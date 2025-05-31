@@ -32,9 +32,6 @@ function App() {
         });
       });
     });
-
-    // Hide display
-    document.body.style.display = 'none';
   }, []);
 
   return (
