@@ -44,9 +44,7 @@ module.exports = {
           800: '#254488',
           900: '#213a71',
         },
-        app: {
-    dark: '#1a202c',
-  }
+        appDark: '#1a202c', // Fixed: Changed from app.dark to appDark
       }
     },
   },
