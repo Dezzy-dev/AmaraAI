@@ -174,28 +174,7 @@ const Navigation: React.FC = () => {
         </div>
       </div>
 
-      {/* Demo content for testing scroll effect */}
-      <div className="h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center mt-20">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Welcome to Amara
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Scroll down to see the navbar scroll effect
-          </p>
-        </div>
-      </div>
       
-      <div className="h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Dark Mode Toggle
-          </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            Click the sun/moon icon to toggle dark mode
-          </p>
-        </div>
-      </div>
     </nav>
   );
 };
