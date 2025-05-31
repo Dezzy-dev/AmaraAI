@@ -10,21 +10,13 @@
   }
   
   body {
-    @apply antialiased text-gray-800 bg-white transition-colors duration-300;
+    @apply antialiased text-gray-800 dark:text-gray-200 bg-white dark:bg-appDark transition-colors duration-300;
   }
-  
-  
   
   ::selection {
     @apply bg-[#9d8cd4]/30 text-[#2d3748] dark:text-white;
   }
 }
-
-..dark body {
-  color: #e5e7eb; /* equivalent of text-gray-200 */
-  background-color: #1a202c; /* your appDark hex */
-}
-
 
 /* Smooth scroll behavior */
 html {

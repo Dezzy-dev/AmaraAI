@@ -44,10 +44,9 @@ module.exports = {
           800: '#254488',
           900: '#213a71',
         },
-        appDark: '#1a202c', // Adding the appDark color
+        appDark: '#1a202c',
       }
     },
   },
   plugins: [],
 }
-
