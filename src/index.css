@@ -20,9 +20,11 @@
   }
 }
 
-.dark body {
-  @apply text-gray-200 bg-appDark;
+..dark body {
+  color: #e5e7eb; /* equivalent of text-gray-200 */
+  background-color: #1a202c; /* your appDark hex */
 }
+
 
 /* Smooth scroll behavior */
 html {
