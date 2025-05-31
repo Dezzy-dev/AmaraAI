@@ -10,7 +10,11 @@
   }
   
   body {
-    @apply antialiased text-gray-800 dark:text-gray-200 bg-white dark:bg-app-dark transition-colors duration-300;
+    @apply antialiased text-gray-800 bg-white transition-colors duration-300;
+  }
+  
+  body.dark {
+    @apply text-gray-200 bg-app-dark;
   }
   
   ::selection {
