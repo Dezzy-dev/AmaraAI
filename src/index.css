@@ -13,12 +13,17 @@
     @apply antialiased text-gray-800 bg-white transition-colors duration-300;
   }
   
-  body.dark {
-    @apply text-gray-200 bg-app-dark;
+  .dark body {
+    @apply text-gray-200;
+    background-color: #1a202c; /* Direct CSS instead of @apply */
   }
   
   ::selection {
-    @apply bg-[#9d8cd4]/30 text-[#2d3748] dark:text-white;
+    @apply bg-[#9d8cd4]/30 text-[#2d3748];
+  }
+  
+  .dark ::selection {
+    @apply text-white;
   }
 }
 
