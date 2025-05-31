@@ -32,6 +32,9 @@ function App() {
         });
       });
     });
+
+    // Hide display
+    document.body.style.display = 'none';
   }, []);
 
   return (
@@ -50,4 +53,4 @@ function App() {
   );
 }
 
-export default App
+export default App;
