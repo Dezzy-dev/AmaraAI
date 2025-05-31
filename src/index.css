@@ -4,41 +4,45 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
-  }
-  
-  body {
-    @apply antialiased transition-colors duration-300;
-    color: rgb(31 41 55); /* text-gray-800 */
-    background-color: white;
-  }
-  
-  /* Dark mode styles */
-  html.dark body {
-    color: rgb(229 231 235) !important; /* text-gray-200 */
-    background-color: #1a202c !important;
-  }
-  
-  ::selection {
-    background-color: rgba(157, 140, 212, 0.3); /* bg-[#9d8cd4]/30 */
-    color: rgb(45 55 72); /* text-[#2d3748] */
-  }
-  
-  html.dark ::selection {
-    color: white !important;
-  }
+/* Simple, direct approach - no layers, no complex selectors */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Smooth scroll behavior */
 html {
+  font-family: 'Inter', system-ui, sans-serif;
   scroll-behavior: smooth;
 }
 
-/* Dark mode transition */
-.dark-mode-transition {
-  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light mode (default) */
+body {
+  background-color: white !important;
+  color: rgb(31, 41, 55) !important; /* gray-800 */
+}
+
+/* Dark mode - simple and direct */
+html.dark body,
+.dark body,
+body.dark {
+  background-color: #1a202c !important;
+  color: rgb(229, 231, 235) !important; /* gray-200 */
+}
+
+/* Selection styles */
+::selection {
+  background-color: rgba(157, 140, 212, 0.3);
+  color: rgb(45, 55, 72);
+}
+
+html.dark ::selection,
+.dark ::selection {
+  color: white;
 }
 
 /* Animations */
@@ -60,25 +64,6 @@ html {
   animation: bounce 2s ease-in-out infinite;
 }
 
-/* Dark mode override - placed after @tailwind utilities to ensure it takes precedence */
-html.dark body {
-  background-color: #1a202c !important;
-  color: #e5e7eb !important;
-}
-
-/* Add this to your CSS instead */
-:root {
-  --bg-color: white;
-  --text-color: rgb(31 41 55);
-}
-
-html.dark {
-  --bg-color: #1a202c;
-  --text-color: #e5e7eb;
-}
-
-body {
-  background-color: var(--bg-color) !important;
-  color: var(--text-color) !important;
-  transition: background-color 0.3s, color 0.3s;
+.dark-mode-transition {
+  transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
 }
