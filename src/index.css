@@ -59,3 +59,9 @@ html {
 .animate-bounce-slow {
   animation: bounce 2s ease-in-out infinite;
 }
+
+/* Dark mode override - placed after @tailwind utilities to ensure it takes precedence */
+html.dark body {
+  background-color: #1a202c !important;
+  color: #e5e7eb !important;
+}
