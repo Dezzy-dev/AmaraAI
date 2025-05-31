@@ -9,8 +9,11 @@ import CallToAction from './components/CallToAction';
 import Waitlist from './components/Waitlist';
 import Footer from './components/Footer';
 import Navigation from './components/Navigation';
+import { useDarkMode } from './hooks/useDarkMode'; // Adjust path as needed
 
 function App() {
+  const [isDark, toggleDarkMode] = useDarkMode();
+
   useEffect(() => {
     // Update document title
     document.title = "Amara | AI Therapy Companion";
@@ -36,7 +39,7 @@ function App() {
 
   return (
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
-      <Navigation />
+      <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
       <Hero />
       <Features />
       <Unique />
