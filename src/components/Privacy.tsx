@@ -26,24 +26,23 @@ const privacyFeatures = [
 
 const Privacy: React.FC = () => {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-6">
         <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] mb-4">Designed for Privacy & Trust</h2>
-          <p className="text-lg text-[#4a5568]">Your emotional wellbeing deserves a space that respects your privacy.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] dark:text-white transition-colors duration-300 mb-4">Designed for Privacy & Trust</h2>
+          <p className="text-lg text-[#4a5568] dark:text-gray-300 transition-colors duration-300">Your emotional wellbeing deserves a space that respects your privacy.</p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {privacyFeatures.map((feature, index) => (
             <div 
               key={index} 
-              className="bg-[#f8f5ff] p-8 rounded-2xl hover:shadow-md transition-shadow duration-300"
+              className="bg-[#f8f5ff] dark:bg-gray-800 hover:bg-white dark:hover:bg-gray-700 p-8 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 border-0 dark:border dark:border-gray-700 transition-all duration-300"
             >
-              <div className="w-12 h-12 bg-[#5dbfbb]/10 rounded-xl flex items-center justify-center mb-6 text-[#5dbfbb]">
+              <div className="w-12 h-12 bg-[#5dbfbb]/10 dark:bg-[#5dbfbb]/20 rounded-xl flex items-center justify-center mb-6 text-[#5dbfbb]">
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold text-[#2d3748] mb-3">{feature.title}</h3>
-              <p className="text-[#4a5568]">{feature.description}</p>
+              <h3 className="text-xl font-semibold text-[#2d3748] dark:text-white transition-colors duration-300 mb-3">{feature.title}</h3>
+              <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300">{feature.description}</p>
             </div>
           ))}
         </div>
