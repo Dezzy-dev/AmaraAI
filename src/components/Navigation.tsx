@@ -1,31 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, MessageSquareText, Sun, Moon } from 'lucide-react';
 
-const Navigation: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+// useDarkMode hook
+function useDarkMode() {
+  const [isDark, setIsDark] = useState(false);
   
+  // Initialize dark mode on first load
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    // For Claude artifacts, we'll use React state instead of localStorage
+    // Check system preference
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    if (isDark) {
+    setIsDark(systemPrefersDark);
+    
+    if (systemPrefersDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [isDark]);
+  }, []);
+  
+  // Toggle function
+  const toggleDarkMode = () => {
+    const newDarkMode = !isDark;
+    setIsDark(newDarkMode);
+    
+    if (newDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+  
+  return [isDark, toggleDarkMode];
+}
+
+const Navigation: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isDark, toggleDarkMode] = useDarkMode();
   
   useEffect(() => {
     const handleScroll = () => {
@@ -39,15 +52,11 @@ const Navigation: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const toggleDarkMode = () => {
-    setIsDark(!isDark);
-  };
   
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
       isScrolled 
-        ? 'bg-white dark:bg-appDark shadow-md py-3' 
+        ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
         : 'bg-transparent py-6'
     }`}>
       <div className="container mx-auto px-6">
@@ -56,7 +65,7 @@ const Navigation: React.FC = () => {
             <div className={`p-2 rounded-full ${
               isScrolled 
                 ? 'bg-[#9d8cd4]/10 dark:bg-[#9d8cd4]/20' 
-                : 'bg-white/80 dark:bg-appDark/80 backdrop-blur-sm shadow-sm'
+                : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm'
             }`}>
               <MessageSquareText className="w-6 h-6 text-[#9d8cd4]" />
             </div>
@@ -124,7 +133,7 @@ const Navigation: React.FC = () => {
       
       {/* Mobile menu */}
       <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`}>
-        <div className="px-6 py-4 bg-white dark:bg-dark-card border-t dark:border-gray-800">
+        <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
           <div className="flex flex-col space-y-4">
             <a 
               href="#" 
@@ -162,6 +171,29 @@ const Navigation: React.FC = () => {
               Start Talking
             </a>
           </div>
+        </div>
+      </div>
+
+      {/* Demo content for testing scroll effect */}
+      <div className="h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center mt-20">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Welcome to Amara
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            Scroll down to see the navbar scroll effect
+          </p>
+        </div>
+      </div>
+      
+      <div className="h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+            Dark Mode Toggle
+          </h2>
+          <p className="text-lg text-gray-600 dark:text-gray-300">
+            Click the sun/moon icon to toggle dark mode
+          </p>
         </div>
       </div>
     </nav>
