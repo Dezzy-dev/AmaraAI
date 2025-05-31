@@ -13,13 +13,15 @@
     @apply antialiased text-gray-800 bg-white transition-colors duration-300;
   }
   
-  .dark body {
-    @apply text-gray-200 bg-appDark;
-  }
+  
   
   ::selection {
     @apply bg-[#9d8cd4]/30 text-[#2d3748] dark:text-white;
   }
+}
+
+.dark body {
+  @apply text-gray-200 bg-appDark;
 }
 
 /* Smooth scroll behavior */
