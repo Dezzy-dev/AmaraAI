@@ -54,11 +54,12 @@ const Navigation: React.FC = () => {
   }, []);
   
   return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${
-      isScrolled 
-        ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
-        : 'bg-transparent py-6'
-    }`}>
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+      <nav className={`fixed w-full z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
+          : 'bg-transparent py-6'
+      }`}>
       <div className="container mx-auto px-6">
         <div className="flex justify-between items-center">
           <a href="#" className="flex items-center">
@@ -174,7 +175,7 @@ const Navigation: React.FC = () => {
         </div>
       </div>
 
-      
+
     </nav>
   );
 };
