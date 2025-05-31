@@ -65,3 +65,20 @@ html.dark body {
   background-color: #1a202c !important;
   color: #e5e7eb !important;
 }
+
+/* Add this to your CSS instead */
+:root {
+  --bg-color: white;
+  --text-color: rgb(31 41 55);
+}
+
+html.dark {
+  --bg-color: #1a202c;
+  --text-color: #e5e7eb;
+}
+
+body {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+  transition: background-color 0.3s, color 0.3s;
+}
