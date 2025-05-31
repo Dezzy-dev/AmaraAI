@@ -1,48 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, MessageSquareText, Sun, Moon } from 'lucide-react';
 
-// useDarkMode hook - extract this to hooks/useDarkMode.js in your project
-function useDarkMode() {
-  const [isDark, setIsDark] = useState(false);
-  
-  // Initialize dark mode on first load
-  useEffect(() => {
-    // Check localStorage first, then system preference
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
-    
-    setIsDark(shouldBeDark);
-    
-    if (shouldBeDark) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, []);
-  
-  // Toggle function
-  const toggleDarkMode = () => {
-    const newDarkMode = !isDark;
-    setIsDark(newDarkMode);
-    
-    if (newDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  };
-  
-  return [isDark, toggleDarkMode];
+interface NavigationProps {
+  isDark: boolean;
+  toggleDarkMode: () => void;
 }
 
-const Navigation: React.FC = () => {
+const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isDark, toggleDarkMode] = useDarkMode();
   
   useEffect(() => {
     const handleScroll = () => {
