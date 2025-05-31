@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, MessageSquareText, Sun, Moon } from 'lucide-react';
 
-// useDarkMode hook
+// useDarkMode hook - extract this to hooks/useDarkMode.js in your project
 function useDarkMode() {
   const [isDark, setIsDark] = useState(false);
   
   // Initialize dark mode on first load
   useEffect(() => {
-    // For Claude artifacts, we'll use React state instead of localStorage
-    // Check system preference
+    // Check localStorage first, then system preference
+    const savedTheme = localStorage.getItem('theme');
     const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     
-    setIsDark(systemPrefersDark);
+    const shouldBeDark = savedTheme === 'dark' || (!savedTheme && systemPrefersDark);
     
-    if (systemPrefersDark) {
+    setIsDark(shouldBeDark);
+    
+    if (shouldBeDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
@@ -27,8 +29,10 @@ function useDarkMode() {
     
     if (newDarkMode) {
       document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
     }
   };
   
@@ -54,12 +58,11 @@ const Navigation: React.FC = () => {
   }, []);
   
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
-      <nav className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
-          : 'bg-transparent py-6'
-      }`}>
+    <nav className={`fixed w-full z-50 transition-all duration-300 ${
+      isScrolled 
+        ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
+        : 'bg-transparent py-6'
+    }`}>
       <div className="container mx-auto px-6">
         <div className="flex justify-between items-center">
           <a href="#" className="flex items-center">
@@ -174,8 +177,7 @@ const Navigation: React.FC = () => {
           </div>
         </div>
       </div>
-      </nav>
-    </div>
+    </nav>
   );
 };
 
