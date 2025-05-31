@@ -10,20 +10,24 @@
   }
   
   body {
-    @apply antialiased text-gray-800 bg-white transition-colors duration-300;
+    @apply antialiased transition-colors duration-300;
+    color: rgb(31 41 55); /* text-gray-800 */
+    background-color: white;
   }
   
-  .dark body {
-    @apply text-gray-200;
-    background-color: #1a202c; /* Direct CSS instead of @apply */
+  /* Dark mode styles */
+  html.dark body {
+    color: rgb(229 231 235) !important; /* text-gray-200 */
+    background-color: #1a202c !important;
   }
   
   ::selection {
-    @apply bg-[#9d8cd4]/30 text-[#2d3748];
+    background-color: rgba(157, 140, 212, 0.3); /* bg-[#9d8cd4]/30 */
+    color: rgb(45 55 72); /* text-[#2d3748] */
   }
   
-  .dark ::selection {
-    @apply text-white;
+  html.dark ::selection {
+    color: white !important;
   }
 }
 
