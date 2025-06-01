@@ -63,7 +63,7 @@ const Hero: React.FC = () => {
                     <span className="absolute -top-3 -left-2 text-4xl text-[#9d8cd4]/20">"</span>
                     Trusted by over 100,000 users seeking safe, AI-powered support.
                     <span className="block text-sm mt-2 not-italic text-[#6b5ca5] dark:text-[#9d8cd4]">
-                      - TrustPilot
+                      
                     </span>
                   </div>
                 </div>
