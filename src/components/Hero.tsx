@@ -178,6 +178,7 @@ export default function Hero() {
                       allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
                       title="Meet Amara - AI Therapy Introduction"
                       onLoad={() => setVideoLoaded(true)}
+                      referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
                   </div>
 
