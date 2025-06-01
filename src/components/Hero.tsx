@@ -6,14 +6,15 @@ import chatAnimation from '../assets/chat-animation.json';
 const Hero: React.FC = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">
-      {/* Enhanced background with blur and gradient */}
+      {/* Enhanced background with radial gradient and blur */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#f8f5ff] via-[#edf7ff] to-[#f0fdff] dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
         <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3619518/pexels-photo-3619518.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750')] bg-cover bg-center opacity-10 dark:opacity-5 backdrop-blur-sm"></div>
+        <div className="absolute inset-0 radial-gradient"></div>
       </div>
       
       {/* Decorative elements */}
-      <div className="absolute top-20 right-[20%] w-64 h-64 rounded-full bg-[#9d8cd4] opacity-10 dark:opacity-20 blur-3xl"></div>
-      <div className="absolute bottom-20 left-[10%] w-80 h-80 rounded-full bg-[#5dbfbb] opacity-10 dark:opacity-15 blur-3xl"></div>
+      <div className="absolute top-20 right-[20%] w-64 h-64 rounded-full bg-[#9d8cd4] opacity-10 dark:opacity-20 blur-3xl animate-pulse-subtle"></div>
+      <div className="absolute bottom-20 left-[10%] w-80 h-80 rounded-full bg-[#5dbfbb] opacity-10 dark:opacity-15 blur-3xl animate-pulse-subtle"></div>
       
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-5xl mx-auto">
@@ -27,39 +28,44 @@ const Hero: React.FC = () => {
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex-1 text-center md:text-left">
-              {/* Main content area with backdrop blur */}
-              <div className="relative backdrop-blur-sm bg-white/30 dark:bg-gray-900/30 rounded-3xl p-8 border border-white/20 dark:border-gray-800/20">
-                {/* Updated headline and copy */}
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2d3748] dark:text-white mb-4 leading-tight opacity-0 animate-[fadeIn_0.6s_ease-out_forwards] transition-colors duration-300">
+              {/* Main content with enhanced backdrop */}
+              <div className="relative backdrop-blur-custom bg-white/30 dark:bg-gray-900/30 rounded-3xl p-8 border border-white/20 dark:border-gray-800/20 shadow-xl">
+                {/* Updated copy */}
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2d3748] dark:text-white mb-4 leading-tight opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]">
                   You deserve to feel heard.
                 </h1>
                 <h2 className="text-xl md:text-2xl text-[#6b5ca5] dark:text-[#9d8cd4] mb-4 opacity-0 animate-[fadeIn_0.6s_ease-out_0.2s_forwards]">
                   Amara is here to listen, support, and never judge.
                 </h2>
-                <p className="text-lg md:text-xl text-[#4a5568] dark:text-gray-300 mb-8 max-w-xl opacity-0 animate-[fadeIn_0.6s_ease-out_0.3s_forwards] transition-colors duration-300">
+                <p className="text-lg md:text-xl text-[#4a5568] dark:text-gray-300 mb-8 opacity-0 animate-[fadeIn_0.6s_ease-out_0.3s_forwards]">
                   Your AI-powered therapy companion. Available 24/7, 100% anonymous, and always here for you.
                 </p>
 
-                {/* CTAs with enhanced styling */}
-                <div className="flex flex-wrap gap-4 justify-center md:justify-start opacity-0 animate-[fadeIn_0.6s_ease-out_0.6s_forwards]">
+                {/* Enhanced CTAs */}
+                <div className="flex flex-wrap gap-6 justify-center md:justify-start opacity-0 animate-[fadeIn_0.6s_ease-out_0.6s_forwards]">
                   <div className="flex flex-col items-center md:items-start">
-                    <button className="px-8 py-4 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-lg shadow-[#9d8cd4]/20 dark:shadow-[#9d8cd4]/40 transition-all duration-300 flex items-center group animate-pulse hover:animate-none">
+                    <button className="px-8 py-4 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-lg transition-all duration-300 flex items-center group hover:scale-105 animate-glow">
                       Start Talking
                       <ChevronRight className="ml-1 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>
-                    <p className="text-sm text-[#4a5568] dark:text-gray-400 mt-2">
+                    <p className="text-[15px] text-[#4a5568]/80 dark:text-gray-400 mt-3 font-medium">
                       No sign-up needed. 100% private & anonymous.
                     </p>
                   </div>
-                  <button className="px-8 py-4 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#6b5ca5] dark:text-[#9d8cd4] rounded-full font-medium shadow-lg transition-all duration-300">
+                  <button className="px-8 py-4 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#6b5ca5] dark:text-[#9d8cd4] rounded-full font-medium shadow-lg transition-all duration-300 hover:scale-105">
                     See How It Works
                   </button>
                 </div>
 
-                {/* Trust signal */}
-                <div className="mt-8 text-[#4a5568] dark:text-gray-300 italic opacity-0 animate-[fadeIn_0.6s_ease-out_0.9s_forwards]">
-                  "Amara helped me open up in a way I never thought possible."
-                  <span className="block text-sm mt-1 not-italic">— Anonymous User</span>
+                {/* Enhanced testimonial */}
+                <div className="mt-10 border-t border-gray-200/30 dark:border-gray-700/30 pt-6">
+                  <div className="text-[#4a5568] dark:text-gray-300 italic text-lg opacity-0 animate-[fadeIn_0.6s_ease-out_0.9s_forwards] relative">
+                    <span className="absolute -top-3 -left-2 text-4xl text-[#9d8cd4]/20">"</span>
+                    Amara helped me open up in a way I never thought possible.
+                    <span className="block text-sm mt-2 not-italic text-[#6b5ca5] dark:text-[#9d8cd4]">
+                      — Anonymous User
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -79,7 +85,7 @@ const Hero: React.FC = () => {
 
       {/* Enhanced scroll cue */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-[fadeIn_0.6s_ease-out_1s_forwards] text-center">
-        <p className="text-[#6b5ca5] dark:text-[#9d8cd4] mb-2 text-sm font-medium">
+        <p className="text-[#6b5ca5] dark:text-[#9d8cd4] mb-3 text-sm font-medium bg-white/50 dark:bg-gray-800/50 px-4 py-2 rounded-full backdrop-blur-sm">
           Scroll to see how Amara helps
         </p>
         <div className="animate-bounce-slow">
