@@ -72,10 +72,8 @@ const Hero: React.FC = () => {
             
             {/* Chat animation */}
             
-            </div>
-          </div>
-        </div>
-      </div>
+            
+  
 
       {/* Enhanced scroll cue */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-[fadeIn_0.6s_ease-out_1s_forwards] text-center">
