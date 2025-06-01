@@ -61,9 +61,9 @@ const Hero: React.FC = () => {
                 <div className="mt-10 border-t border-gray-200/30 dark:border-gray-700/30 pt-6">
                   <div className="text-[#4a5568] dark:text-gray-300 italic text-lg opacity-0 animate-[fadeIn_0.6s_ease-out_0.9s_forwards] relative">
                     <span className="absolute -top-3 -left-2 text-4xl text-[#9d8cd4]/20">"</span>
-                    Amara helped me open up in a way I never thought possible.
+                    Trusted by over 100,000 users seeking safe, AI-powered support.
                     <span className="block text-sm mt-2 not-italic text-[#6b5ca5] dark:text-[#9d8cd4]">
-                      — Anonymous User
+                      - TrustPilot
                     </span>
                   </div>
                 </div>
