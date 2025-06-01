@@ -9,7 +9,11 @@ interface FormData {
   hasUsedTherapy: boolean | null;
 }
 
-const Onboarding: React.FC = () => {
+interface OnboardingProps {
+  onComplete: (name: string) => void;
+}
+
+const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -52,6 +56,10 @@ const Onboarding: React.FC = () => {
         ? prev.concerns.filter(id => id !== concernId)
         : [...prev.concerns, concernId]
     }));
+  };
+
+  const handleStartSession = () => {
+    onComplete(formData.name);
   };
 
   const renderStep = () => {
@@ -219,10 +227,16 @@ const Onboarding: React.FC = () => {
               </div>
             </div>
             <div className="space-y-4">
-              <button className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity">
+              <button 
+                onClick={handleStartSession}
+                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+              >
                 Start Voice Session
               </button>
-              <button className="w-full py-3 px-4 bg-transparent border border-slate-700 rounded-lg text-white font-medium hover:bg-slate-800 transition-colors">
+              <button 
+                onClick={handleStartSession}
+                className="w-full py-3 px-4 bg-transparent border border-slate-700 rounded-lg text-white font-medium hover:bg-slate-800 transition-colors"
+              >
                 Video Session
               </button>
             </div>
