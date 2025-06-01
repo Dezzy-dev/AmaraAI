@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { ChevronRight, MessageSquareText, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 
-export default function Hero() {
+interface HeroProps {
+  onStartTalking: () => void;
+}
+
+export default function Hero({ onStartTalking }: HeroProps) {
   const [isMuted, setIsMuted] = useState(true);
 
   return (
@@ -63,7 +67,10 @@ export default function Hero() {
                 {/* Enhanced CTAs */}
                 <div className="flex flex-wrap gap-6 justify-center lg:justify-start opacity-0 animate-[fadeIn_0.6s_ease-out_0.6s_forwards]">
                   <div className="flex flex-col items-center lg:items-start">
-                    <button className="px-8 py-4 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-lg transition-all duration-300 flex items-center group hover:scale-105 animate-glow">
+                    <button 
+                      onClick={onStartTalking}
+                      className="px-8 py-4 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-lg transition-all duration-300 flex items-center group hover:scale-105 animate-glow"
+                    >
                       Start Talking with Amara
                       <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </button>

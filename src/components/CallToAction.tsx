@@ -1,7 +1,11 @@
 import React from 'react';
 import { MessageSquareText, ExternalLink } from 'lucide-react';
 
-const CallToAction: React.FC = () => {
+interface CallToActionProps {
+  onStartTalking: () => void;
+}
+
+const CallToAction: React.FC<CallToActionProps> = ({ onStartTalking }) => {
   return (
     <section className="py-20 bg-gradient-to-br from-[#9d8cd4] to-[#6695e2]">
       <div className="container mx-auto px-6">
@@ -12,7 +16,10 @@ const CallToAction: React.FC = () => {
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="px-8 py-4 bg-white hover:bg-gray-50 text-[#6b5ca5] rounded-full font-medium shadow-lg shadow-[#6b5ca5]/20 transition-all duration-300 flex items-center">
+            <button 
+              onClick={onStartTalking}
+              className="px-8 py-4 bg-white hover:bg-gray-50 text-[#6b5ca5] rounded-full font-medium shadow-lg shadow-[#6b5ca5]/20 transition-all duration-300 flex items-center"
+            >
               <MessageSquareText className="mr-2 w-5 h-5" />
               Talk to Amara
             </button>
