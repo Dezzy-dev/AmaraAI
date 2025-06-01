@@ -2,7 +2,6 @@ import React from 'react';
 import { ChevronRight, MessageSquareText, ChevronDown } from 'lucide-react';
 
 export default function Hero() {
-
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">
       {/* Enhanced background with radial gradient and blur */}
@@ -92,18 +91,19 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* Video Section with Vimeo Embed */}
+            {/* Video Section with YouTube Embed */}
             <div className="flex-1 max-w-2xl opacity-0 animate-[fadeIn_0.6s_ease-out_0.5s_forwards]">
               <div className="relative">
                 {/* Video Container */}
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#9d8cd4]/10 to-[#5dbfbb]/10 backdrop-blur-sm border border-white/20 dark:border-gray-800/20">
-                  {/* Vimeo Embed */}
+                  {/* YouTube Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
                     <iframe 
-                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&amp;title=0&amp;byline=0&amp;portrait=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" 
+                      src="https://www.youtube.com/embed/fz7sRsEEi20" 
                       className="w-full h-full rounded-lg"
                       frameBorder="0" 
-                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write" 
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      allowFullScreen
                       title="Meet Amara - AI Therapy Companion"
                       loading="lazy"
                     />
