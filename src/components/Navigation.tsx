@@ -46,17 +46,15 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
             }`}>Amara</span>
           </a>
           
+          {/* Simplified navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <a href="#" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
+            <a href="#features" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
               Features
             </a>
-            <a href="#how-it-works" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
-              How It Works
-            </a>
-            <a href="#" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
+            <a href="#pricing" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
               Pricing
             </a>
-            <a href="#" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
+            <a href="#faq" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
               FAQ
             </a>
             <button 
@@ -72,12 +70,13 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
             </button>
             <a 
               href="#" 
-              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white dark:text-white rounded-full font-medium shadow-md transition-all duration-300"
+              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-md transition-all duration-300 animate-pulse hover:animate-none"
             >
               Start Talking
             </a>
           </div>
           
+          {/* Mobile menu button */}
           <div className="md:hidden flex items-center space-x-4">
             <button 
               onClick={toggleDarkMode}
@@ -106,28 +105,21 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
         <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
           <div className="flex flex-col space-y-4">
             <a 
-              href="#" 
+              href="#features" 
               className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
               onClick={() => setIsOpen(false)}
             >
               Features
             </a>
             <a 
-              href="#how-it-works" 
-              className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              How It Works
-            </a>
-            <a 
-              href="#" 
+              href="#pricing" 
               className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
               onClick={() => setIsOpen(false)}
             >
               Pricing
             </a>
             <a 
-              href="#" 
+              href="#faq" 
               className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
               onClick={() => setIsOpen(false)}
             >
@@ -135,7 +127,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
             </a>
             <a 
               href="#" 
-              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white dark:text-white rounded-full font-medium shadow-md transition-all duration-300 inline-block text-center"
+              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-md transition-all duration-300 inline-block text-center animate-pulse hover:animate-none"
               onClick={() => setIsOpen(false)}
             >
               Start Talking
