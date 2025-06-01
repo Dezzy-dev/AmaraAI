@@ -3,7 +3,7 @@ import { ChevronRight, MessageSquareText, ChevronDown } from 'lucide-react';
 import Lottie from 'lottie-react';
 import chatAnimation from '../assets/chat-animation.json';
 
-const Hero: React.FC = () => {
+export default function Hero() {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">
       {/* Enhanced background with radial gradient and blur */}
@@ -86,6 +86,4 @@ const Hero: React.FC = () => {
       </div>
     </section>
   );
-};
-
-export default Hero;
+}
