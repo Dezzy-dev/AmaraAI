@@ -171,52 +171,14 @@ export default function Hero() {
                       </div>
                     )}
                     
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full object-cover"
-                      muted={isVideoMuted}
-                      playsInline
-                      preload="metadata"
-                      onLoadedData={() => setVideoLoaded(true)}
-                      onEnded={handleVideoEnd}
-                      onMouseEnter={() => setShowVideoControls(true)}
-                      onMouseLeave={() => setShowVideoControls(false)}
-                    >
-                      <source src="https://tavus.video/36ec867f08" type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-
-                    {/* Video Controls Overlay */}
-                    <div 
-                      className={`absolute inset-0 bg-black/20 flex items-center justify-center transition-opacity duration-300 ${
-                        showVideoControls || !isVideoPlaying ? 'opacity-100' : 'opacity-0'
-                      }`}
-                      onMouseEnter={() => setShowVideoControls(true)}
-                      onMouseLeave={() => setShowVideoControls(false)}
-                    >
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={toggleVideoPlayback}
-                          className="w-16 h-16 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
-                        >
-                          {isVideoPlaying ? (
-                            <Pause className="w-6 h-6 text-[#9d8cd4]" />
-                          ) : (
-                            <Play className="w-6 h-6 text-[#9d8cd4] ml-1" />
-                          )}
-                        </button>
-                        <button
-                          onClick={toggleVideoMute}
-                          className="w-12 h-12 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center hover:bg-white dark:hover:bg-gray-800 transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
-                        >
-                          {isVideoMuted ? (
-                            <VolumeX className="w-5 h-5 text-[#9d8cd4]" />
-                          ) : (
-                            <Volume2 className="w-5 h-5 text-[#9d8cd4]" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                    <iframe
+                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479"
+                      className="w-full h-full rounded-lg"
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
+                      title="Meet Amara - AI Therapy Introduction"
+                      onLoad={() => setVideoLoaded(true)}
+                    ></iframe>
                   </div>
 
                   {/* Video Info Badge */}
