@@ -1,70 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronRight, MessageSquareText, ChevronDown, Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import React from 'react';
+import { ChevronRight, MessageSquareText, ChevronDown } from 'lucide-react';
 
 export default function Hero() {
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(true);
-  const [showVideoControls, setShowVideoControls] = useState(false);
-  const [videoLoaded, setVideoLoaded] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.addEventListener('loadeddata', () => {
-        setVideoLoaded(true);
-      });
-    }
-  }, []);
-
-  // Auto-play video when it loads (muted for browser compatibility)
-  useEffect(() => {
-    if (videoRef.current && videoLoaded) {
-      const playVideo = async () => {
-        try {
-          await videoRef.current?.play();
-          setIsVideoPlaying(true);
-        } catch (error) {
-          console.log('Autoplay prevented by browser:', error);
-          setShowVideoControls(true);
-        }
-      };
-      
-      setTimeout(playVideo, 1000);
-    }
-  }, [videoLoaded]);
-
-  const toggleVideoPlayback = () => {
-    if (videoRef.current) {
-      if (isVideoPlaying) {
-        videoRef.current.pause();
-        setIsVideoPlaying(false);
-      } else {
-        videoRef.current.play();
-        setIsVideoPlaying(true);
-      }
-    }
-  };
-
-  const toggleVideoMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isVideoMuted;
-      setIsVideoMuted(!isVideoMuted);
-    }
-  };
-
-  const handleVideoEnd = () => {
-    setIsVideoPlaying(false);
-    setShowVideoControls(true);
-  };
-
-  const replayVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play();
-      setIsVideoPlaying(true);
-      setShowVideoControls(false);
-    }
-  };
 
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">
@@ -133,13 +70,6 @@ export default function Hero() {
                       No sign-up needed. Start in seconds.
                     </p>
                   </div>
-                  <button 
-                    onClick={toggleVideoPlayback}
-                    className="px-8 py-4 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#6b5ca5] dark:text-[#9d8cd4] rounded-full font-medium shadow-lg transition-all duration-300 hover:scale-105 flex items-center"
-                  >
-                    {isVideoPlaying ? <Pause className="mr-2 w-4 h-4" /> : <Play className="mr-2 w-4 h-4" />}
-                    {isVideoPlaying ? 'Pause Video' : 'Watch Introduction'}
-                  </button>
                 </div>
 
                 {/* Trust indicators */}
@@ -162,49 +92,20 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* Video Section */}
+            {/* Video Section with Vimeo Embed */}
             <div className="flex-1 max-w-2xl opacity-0 animate-[fadeIn_0.6s_ease-out_0.5s_forwards]">
               <div className="relative">
                 {/* Video Container */}
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#9d8cd4]/10 to-[#5dbfbb]/10 backdrop-blur-sm border border-white/20 dark:border-gray-800/20">
-                  {/* Video Element */}
+                  {/* Vimeo Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
-                    {!videoLoaded && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="text-center">
-                          <div className="w-12 h-12 border-4 border-[#9d8cd4]/30 border-t-[#9d8cd4] rounded-full animate-spin mx-auto mb-4"></div>
-                          <p className="text-[#6b5ca5] dark:text-[#9d8cd4] font-medium">Loading Amara...</p>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <video
-                      ref={videoRef}
+                    <iframe 
+                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&muted=1" 
                       className="w-full h-full rounded-lg"
-                      muted={isVideoMuted}
-                      onEnded={handleVideoEnd}
-                      playsInline
-                    >
-                      <source src="https://player.vimeo.com/progressive_redirect/playback/824804225/rendition/720p/file.mp4?loc=external&signature=4d6e0c1f1f49f56784e844680694c1d2f7d51d5c25a85a320f9f0c3d7e4f5c7a" type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
-                  </div>
-
-                  {/* Video Controls */}
-                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                    <button
-                      onClick={toggleVideoPlayback}
-                      className="w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center text-[#6b5ca5] dark:text-[#9d8cd4] hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
-                    >
-                      {isVideoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-                    </button>
-                    
-                    <button
-                      onClick={toggleVideoMute}
-                      className="w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center text-[#6b5ca5] dark:text-[#9d8cd4] hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
-                    >
-                      {isVideoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                    </button>
+                      frameBorder="0" 
+                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" 
+                      title="Meet Amara - AI Therapy Companion"
+                    />
                   </div>
 
                   {/* Video Info Badge */}
