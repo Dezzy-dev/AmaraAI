@@ -32,10 +32,10 @@ export default function Hero() {
               <div className="relative backdrop-blur-custom bg-white/30 dark:bg-gray-900/30 rounded-3xl p-8 border border-white/20 dark:border-gray-800/20 shadow-xl">
                 {/* Updated copy */}
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2d3748] dark:text-white mb-4 leading-tight opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]">
-                  Healing starts with talking.
+                  You deserve to feel heard.
                 </h1>
                 <h2 className="text-xl md:text-2xl text-[#6b5ca5] dark:text-[#9d8cd4] mb-4 opacity-0 animate-[fadeIn_0.6s_ease-out_0.2s_forwards]">
-                  Amara listens, understands, and supports — anytime you need.
+                  Amara is here to listen, support, and never judge.
                 </h2>
                 <p className="text-lg md:text-xl text-[#4a5568] dark:text-gray-300 mb-8 opacity-0 animate-[fadeIn_0.6s_ease-out_0.3s_forwards]">
                   Your AI-powered therapy companion. Available 24/7, 100% anonymous, and always here for you.
@@ -69,11 +69,9 @@ export default function Hero() {
                 </div>
               </div>
             </div>
-            
-            {/* Chat animation */}
-            
-            
-  
+          </div>
+        </div>
+      </div>
 
       {/* Enhanced scroll cue */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-[fadeIn_0.6s_ease-out_1s_forwards] text-center">
@@ -86,6 +84,4 @@ export default function Hero() {
       </div>
     </section>
   );
-}
-  )
 }
