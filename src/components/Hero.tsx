@@ -99,7 +99,7 @@ export default function Hero() {
                   {/* YouTube Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
                     <iframe
-                      src="https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&mute=1&modestbranding=1&rel=0&controls=0&showinfo=0"
+                      src="https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&modestbranding=1&rel=0&controls=0&showinfo=0"
                       className="w-full h-full rounded-lg"
                       frameBorder="0"
                       allow="autoplay; encrypted-media"
