@@ -8,6 +8,14 @@ export default function Hero() {
   const [videoLoaded, setVideoLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.addEventListener('loadeddata', () => {
+        setVideoLoaded(true);
+      });
+    }
+  }, []);
+
   // Auto-play video when it loads (muted for browser compatibility)
   useEffect(() => {
     if (videoRef.current && videoLoaded) {
@@ -21,7 +29,6 @@ export default function Hero() {
         }
       };
       
-      // Delay for smooth animation
       setTimeout(playVideo, 1000);
     }
   }, [videoLoaded]);
@@ -127,11 +134,11 @@ export default function Hero() {
                     </p>
                   </div>
                   <button 
-                    onClick={replayVideo}
+                    onClick={toggleVideoPlayback}
                     className="px-8 py-4 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700 text-[#6b5ca5] dark:text-[#9d8cd4] rounded-full font-medium shadow-lg transition-all duration-300 hover:scale-105 flex items-center"
                   >
-                    <Play className="mr-2 w-4 h-4" />
-                    Watch Introduction
+                    {isVideoPlaying ? <Pause className="mr-2 w-4 h-4" /> : <Play className="mr-2 w-4 h-4" />}
+                    {isVideoPlaying ? 'Pause Video' : 'Watch Introduction'}
                   </button>
                 </div>
 
@@ -171,15 +178,33 @@ export default function Hero() {
                       </div>
                     )}
                     
-                    <iframe
-                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479"
+                    <video
+                      ref={videoRef}
                       className="w-full h-full rounded-lg"
-                      frameBorder="0"
-                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
-                      title="Meet Amara - AI Therapy Introduction"
-                      onLoad={() => setVideoLoaded(true)}
-                      referrerPolicy="no-referrer-when-downgrade"
-                    ></iframe>
+                      muted={isVideoMuted}
+                      onEnded={handleVideoEnd}
+                      playsInline
+                    >
+                      <source src="https://player.vimeo.com/progressive_redirect/playback/824804225/rendition/720p/file.mp4?loc=external&signature=4d6e0c1f1f49f56784e844680694c1d2f7d51d5c25a85a320f9f0c3d7e4f5c7a" type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+
+                  {/* Video Controls */}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                    <button
+                      onClick={toggleVideoPlayback}
+                      className="w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center text-[#6b5ca5] dark:text-[#9d8cd4] hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
+                    >
+                      {isVideoPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                    </button>
+                    
+                    <button
+                      onClick={toggleVideoMute}
+                      className="w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center text-[#6b5ca5] dark:text-[#9d8cd4] hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
+                    >
+                      {isVideoMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </button>
                   </div>
 
                   {/* Video Info Badge */}
