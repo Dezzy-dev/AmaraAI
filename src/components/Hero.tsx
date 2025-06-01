@@ -100,11 +100,12 @@ export default function Hero() {
                   {/* Vimeo Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
                     <iframe 
-                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479&autoplay=1&muted=1" 
+                      src="https://player.vimeo.com/video/1089547590?h=509e822e54&amp;title=0&amp;byline=0&amp;portrait=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" 
                       className="w-full h-full rounded-lg"
                       frameBorder="0" 
-                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" 
+                      allow="autoplay; fullscreen; picture-in-picture; clipboard-write" 
                       title="Meet Amara - AI Therapy Companion"
+                      loading="lazy"
                     />
                   </div>
 
