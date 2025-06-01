@@ -98,37 +98,37 @@ export default function Hero() {
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#9d8cd4]/10 to-[#5dbfbb]/10 backdrop-blur-sm border border-white/20 dark:border-gray-800/20">
                   {/* YouTube Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
-                    <iframe 
-                      src="https://www.youtube.com/embed/fz7sRsEEi20" 
+                    <iframe
+                      src="https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&mute=1&modestbranding=1&rel=0&controls=0&showinfo=0"
                       className="w-full h-full rounded-lg"
-                      frameBorder="0" 
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                      frameBorder="0"
+                      allow="autoplay; encrypted-media"
                       allowFullScreen
                       title="Meet Amara - AI Therapy Companion"
                       loading="lazy"
                     />
                   </div>
+                </div>
 
-                  {/* Video Info Badge */}
-                  <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-medium text-[#6b5ca5] dark:text-[#9d8cd4]">
-                        Meet Amara
-                      </span>
-                    </div>
+                {/* Video Info Badge */}
+                <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-[#6b5ca5] dark:text-[#9d8cd4]">
+                      Meet Amara
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                {/* Video Description */}
-                <div className="mt-6 text-center">
-                  <p className="text-[#6b5ca5] dark:text-[#9d8cd4] font-medium mb-2">
-                    👋 Say hello to your AI therapy companion
-                  </p>
-                  <p className="text-sm text-[#4a5568] dark:text-gray-400">
-                    Watch Amara introduce herself and learn how she can support your mental wellness journey
-                  </p>
-                </div>
+              {/* Video Description */}
+              <div className="mt-6 text-center">
+                <p className="text-[#6b5ca5] dark:text-[#9d8cd4] font-medium mb-2">
+                  👋 Say hello to your AI therapy companion
+                </p>
+                <p className="text-sm text-[#4a5568] dark:text-gray-400">
+                  Watch Amara introduce herself and learn how she can support your mental wellness journey
+                </p>
               </div>
             </div>
           </div>
