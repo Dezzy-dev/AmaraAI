@@ -71,13 +71,7 @@ const Hero: React.FC = () => {
             </div>
             
             {/* Chat animation */}
-            <div className="w-80 h-80 flex-shrink-0 opacity-0 animate-[fadeIn_0.6s_ease-out_0.9s_forwards] bg-white/10 dark:bg-gray-800/20 rounded-3xl p-4 backdrop-blur-sm">
-              <Lottie 
-                animationData={chatAnimation}
-                loop={true}
-                autoplay={true}
-                className="w-full h-full drop-shadow-2xl"
-              />
+            
             </div>
           </div>
         </div>
