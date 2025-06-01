@@ -1,7 +1,9 @@
-import React from 'react';
-import { ChevronRight, MessageSquareText, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, MessageSquareText, ChevronDown, Volume2, VolumeX } from 'lucide-react';
 
 export default function Hero() {
+  const [isMuted, setIsMuted] = useState(true);
+
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center py-20 overflow-hidden">
       {/* Enhanced background with radial gradient and blur */}
@@ -99,7 +101,7 @@ export default function Hero() {
                   {/* YouTube Embed */}
                   <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
                     <iframe
-                      src="https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&modestbranding=1&rel=0&controls=0&showinfo=0&loop=1&playlist=fz7sRsEEi20"
+                      src={`https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&modestbranding=1&rel=0&controls=0&showinfo=0&loop=1&playlist=fz7sRsEEi20&mute=${isMuted ? 1 : 0}`}
                       className="w-full h-full rounded-lg"
                       frameBorder="0"
                       allow="autoplay; encrypted-media"
@@ -108,6 +110,21 @@ export default function Hero() {
                       loading="lazy"
                     />
                   </div>
+                </div>
+
+                {/* Video Controls */}
+                <div className="absolute bottom-4 right-4 flex space-x-2">
+                  <button
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-colors duration-300"
+                    aria-label={isMuted ? "Unmute video" : "Mute video"}
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-5 h-5 text-[#6b5ca5] dark:text-[#9d8cd4]" />
+                    ) : (
+                      <Volume2 className="w-5 h-5 text-[#6b5ca5] dark:text-[#9d8cd4]" />
+                    )}
+                  </button>
                 </div>
 
                 {/* Video Info Badge */}
