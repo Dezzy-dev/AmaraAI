@@ -24,7 +24,7 @@ function App() {
         e.preventDefault();
         
         const href = this.getAttribute('href');
-        if (!href) return;
+        if (!href || href === '#') return;
         
         const target = document.querySelector(href);
         if (!target) return;
