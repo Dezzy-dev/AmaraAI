@@ -11,6 +11,7 @@ import Footer from './components/Footer';
 import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import TherapySession from './components/TherapySession';
+import FAQ from './components/FAQ';
 import { useDarkMode } from './hooks/useDarkMode';
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
       <HowItWorks />
       <Testimonials />
       <Privacy />
+      <FAQ />
       <CallToAction onStartTalking={() => setShowOnboarding(true)} />
       <Waitlist />
       <Footer />
