@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Clock, X, ChevronDown, Smile, AlertCircle, Lock, Crown } from 'lucide-react';
+import { Send, Clock, X, ChevronDown, Smile, AlertCircle, Lock, Mail, Eye, EyeOff, LayoutDashboard } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -11,20 +11,21 @@ interface Message {
 interface TherapySessionProps {
   userName: string;
   onEndSession: () => void;
+  onNavigateToDashboard?: (userData: UserAccount) => void;
 }
 
-interface SubscriptionTier {
-  tier: 'anonymous' | 'basic' | 'premium' | 'pro';
+interface UserAccount {
+  tier: 'anonymous' | 'registered';
   messagesUsed: number;
   messagesLimit: number;
-  subscriptionId: string | null;
-  trialActive: boolean;
+  email: string | null;
+  isAuthenticated: boolean;
 }
 
 const ANONYMOUS_LIMIT = 3;
-const BASIC_LIMIT = 8;
+const REGISTERED_LIMIT = 8;
 
-const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession }) => {
+const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession, onNavigateToDashboard }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -38,14 +39,25 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
   const [sessionTime, setSessionTime] = useState(0);
   const [showSidebar, setShowSidebar] = useState(true);
   const [currentMood, setCurrentMood] = useState<number | null>(null);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionTier>({
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [userAccount, setUserAccount] = useState<UserAccount>({
     tier: 'anonymous',
     messagesUsed: 0,
     messagesLimit: ANONYMOUS_LIMIT,
-    subscriptionId: null,
-    trialActive: false
+    email: null,
+    isAuthenticated: false
   });
+
+  // Registration form state
+  const [registrationData, setRegistrationData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [registrationErrors, setRegistrationErrors] = useState<string[]>([]);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -70,13 +82,11 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
   }, [messages]);
 
   useEffect(() => {
-    // Show upgrade modal when reaching message limits
-    if (subscription.tier === 'anonymous' && subscription.messagesUsed === ANONYMOUS_LIMIT - 1) {
-      setShowUpgradeModal(true);
-    } else if (subscription.tier === 'basic' && subscription.messagesUsed === BASIC_LIMIT - 1) {
-      setShowUpgradeModal(true);
+    // Show registration modal when reaching anonymous limit
+    if (userAccount.tier === 'anonymous' && userAccount.messagesUsed === ANONYMOUS_LIMIT) {
+      setShowRegistrationModal(true);
     }
-  }, [subscription.messagesUsed]);
+  }, [userAccount.messagesUsed, userAccount.tier]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -89,12 +99,99 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
     return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateRegistration = () => {
+    const errors: string[] = [];
+
+    if (!registrationData.email) {
+      errors.push('Email is required');
+    } else if (!validateEmail(registrationData.email)) {
+      errors.push('Please enter a valid email address');
+    }
+
+    if (!registrationData.password) {
+      errors.push('Password is required');
+    } else if (registrationData.password.length < 6) {
+      errors.push('Password must be at least 6 characters long');
+    }
+
+    if (registrationData.password !== registrationData.confirmPassword) {
+      errors.push('Passwords do not match');
+    }
+
+    setRegistrationErrors(errors);
+    return errors.length === 0;
+  };
+
+  const handleRegistration = async () => {
+    if (!validateRegistration()) return;
+
+    setIsRegistering(true);
+    
+    try {
+      // Simulate API call for registration
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // In a real app, you would:
+      // 1. Make API call to register user
+      // 2. Handle email verification if needed
+      // 3. Store authentication tokens
+      // 4. Update user state with registered account info
+      
+      const newUserAccount: UserAccount = {
+        tier: 'registered',
+        messagesUsed: userAccount.messagesUsed,
+        messagesLimit: REGISTERED_LIMIT,
+        email: registrationData.email,
+        isAuthenticated: true
+      };
+
+      setUserAccount(newUserAccount);
+      setShowRegistrationModal(false);
+      setRegistrationData({ email: '', password: '', confirmPassword: '' });
+      setRegistrationErrors([]);
+      
+      // Add a welcome message from Amara
+      const welcomeMessage: Message = {
+        id: Date.now().toString(),
+        text: `Welcome to Amara, ${registrationData.email.split('@')[0]}! Thank you for joining us. You now have ${REGISTERED_LIMIT - userAccount.messagesUsed} more messages to continue our conversation. You can also visit your dashboard anytime to track your progress and manage your sessions.`,
+        sender: 'amara',
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, welcomeMessage]);
+
+      // Show dashboard redirect option after 3 seconds
+      setTimeout(() => {
+        if (onNavigateToDashboard) {
+          const shouldRedirect = window.confirm(
+            "Would you like to visit your dashboard to explore your new account features? You can always return to continue this conversation."
+          );
+          if (shouldRedirect) {
+            onNavigateToDashboard(newUserAccount);
+          }
+        }
+      }, 3000);
+      
+    } catch (error) {
+      setRegistrationErrors(['Registration failed. Please try again.']);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!inputMessage.trim()) return;
     
-    // Check message limits
-    if (subscription.messagesUsed >= subscription.messagesLimit) {
-      setShowUpgradeModal(true);
+    // Check if user has reached their message limit
+    if (userAccount.messagesUsed >= userAccount.messagesLimit) {
+      if (userAccount.tier === 'anonymous') {
+        setShowRegistrationModal(true);
+      }
       return;
     }
 
@@ -110,7 +207,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
     setIsTyping(true);
     
     // Update message count
-    setSubscription(prev => ({
+    setUserAccount(prev => ({
       ...prev,
       messagesUsed: prev.messagesUsed + 1
     }));
@@ -135,27 +232,20 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
     }
   };
 
-  const handleUpgrade = (plan: 'basic' | 'premium' | 'pro') => {
-    if (plan === 'basic') {
-      setSubscription({
-        tier: 'basic',
-        messagesUsed: subscription.messagesUsed,
-        messagesLimit: BASIC_LIMIT,
-        subscriptionId: null,
-        trialActive: false
-      });
-    } else {
-      // Here you would integrate with RevenueCat
-      console.log(`Upgrading to ${plan} plan`);
-    }
-    setShowUpgradeModal(false);
-  };
-
   const getProgressColor = () => {
-    const usage = (subscription.messagesUsed / subscription.messagesLimit) * 100;
+    const usage = (userAccount.messagesUsed / userAccount.messagesLimit) * 100;
     if (usage > 75) return 'bg-red-600';
     if (usage > 50) return 'bg-yellow-600';
     return 'bg-green-600';
+  };
+
+  const getInputPlaceholder = () => {
+    if (userAccount.messagesUsed >= userAccount.messagesLimit) {
+      return userAccount.tier === 'anonymous' 
+        ? "Sign up to continue chatting..." 
+        : "You've reached your message limit for this session...";
+    }
+    return "Share what's on your mind...";
   };
 
   return (
@@ -177,18 +267,30 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              {subscription.tier !== 'premium' && subscription.tier !== 'pro' && (
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-24 bg-slate-700 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full ${getProgressColor()} transition-all duration-300`}
-                      style={{ width: `${(subscription.messagesUsed / subscription.messagesLimit) * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-slate-300 text-sm">
-                    {subscription.messagesUsed}/{subscription.messagesLimit} messages
-                  </span>
+              <div className="flex items-center space-x-2">
+                <div className="h-2 w-24 bg-slate-700 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${getProgressColor()} transition-all duration-300`}
+                    style={{ width: `${(userAccount.messagesUsed / userAccount.messagesLimit) * 100}%` }}
+                  ></div>
                 </div>
+                <span className="text-slate-300 text-sm">
+                  {userAccount.messagesUsed}/{userAccount.messagesLimit} messages
+                </span>
+                {userAccount.isAuthenticated && (
+                  <span className="text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded-full">
+                    Registered
+                  </span>
+                )}
+              </div>
+              {userAccount.isAuthenticated && onNavigateToDashboard && (
+                <button
+                  onClick={() => onNavigateToDashboard(userAccount)}
+                  className="bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                </button>
               )}
               <button
                 onClick={onEndSession}
@@ -250,22 +352,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={
-                  subscription.messagesUsed >= subscription.messagesLimit
-                    ? "You've reached your message limit. Upgrade to continue..."
-                    : "Share what's on your mind..."
-                }
+                placeholder={getInputPlaceholder()}
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent resize-none"
                 rows={2}
-                disabled={subscription.messagesUsed >= subscription.messagesLimit}
+                disabled={userAccount.messagesUsed >= userAccount.messagesLimit}
               />
               <p className="text-xs text-slate-400 mt-1">Press Enter to send, Shift + Enter for new line</p>
             </div>
             <button
               onClick={handleSend}
-              disabled={subscription.messagesUsed >= subscription.messagesLimit}
+              disabled={userAccount.messagesUsed >= userAccount.messagesLimit}
               className={`bg-gradient-to-r from-purple-600 to-blue-600 text-white p-4 rounded-lg transition-opacity ${
-                subscription.messagesUsed >= subscription.messagesLimit
+                userAccount.messagesUsed >= userAccount.messagesLimit
                   ? 'opacity-50 cursor-not-allowed'
                   : 'hover:opacity-90'
               }`}
@@ -276,53 +374,113 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
         </div>
       </div>
 
-      {/* Upgrade Modal */}
-      {showUpgradeModal && (
+      {/* Registration Modal */}
+      {showRegistrationModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 max-w-md w-full">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Crown className="w-8 h-8 text-white" />
+                <Mail className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-white mb-2">
-                {subscription.tier === 'anonymous'
-                  ? "You've used your 3 free messages!"
-                  : "You've maximized your free messages!"}
+                Continue Your Journey
               </h2>
               <p className="text-slate-300">
-                {subscription.tier === 'anonymous'
-                  ? "Sign up now to get 5 more messages completely free"
-                  : "Upgrade to Premium for unlimited conversations"}
+                Create your free account to get 5 more messages and save your progress
               </p>
             </div>
 
             <div className="space-y-4">
-              {subscription.tier === 'anonymous' && (
-                <button
-                  onClick={() => handleUpgrade('basic')}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity flex items-center justify-center space-x-2"
-                >
-                  <Lock className="w-5 h-5" />
-                  <span>Sign Up for 5 More Messages</span>
-                </button>
+              {/* Registration Form */}
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  value={registrationData.email}
+                  onChange={(e) => setRegistrationData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  placeholder="your@email.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={registrationData.password}
+                    onChange={(e) => setRegistrationData(prev => ({ ...prev, password: e.target.value }))}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 pr-12 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Min 6 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-300 text-sm font-medium mb-2">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={registrationData.confirmPassword}
+                    onChange={(e) => setRegistrationData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 pr-12 text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                    placeholder="Confirm your password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Messages */}
+              {registrationErrors.length > 0 && (
+                <div className="bg-red-600/10 border border-red-600/20 rounded-lg p-3">
+                  {registrationErrors.map((error, index) => (
+                    <p key={index} className="text-red-400 text-sm">
+                      • {error}
+                    </p>
+                  ))}
+                </div>
               )}
 
+              {/* Action Buttons */}
               <button
-                onClick={() => handleUpgrade('premium')}
-                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
+                onClick={handleRegistration}
+                disabled={isRegistering}
+                className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity flex items-center justify-center space-x-2 disabled:opacity-50"
               >
-                Upgrade to Premium - $9.99/month
+                {isRegistering ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-5 h-5" />
+                    <span>Create Free Account</span>
+                  </>
+                )}
               </button>
 
               <button
-                onClick={() => handleUpgrade('pro')}
-                className="w-full py-3 px-4 bg-transparent border border-slate-600 rounded-lg text-white font-medium hover:bg-slate-700 transition-colors"
-              >
-                Upgrade to Pro - $19.99/month
-              </button>
-
-              <button
-                onClick={() => setShowUpgradeModal(false)}
+                onClick={() => setShowRegistrationModal(false)}
                 className="w-full py-2 text-slate-400 hover:text-white transition-colors"
               >
                 Maybe Later
@@ -331,23 +489,23 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
 
             {/* Benefits */}
             <div className="mt-6 pt-6 border-t border-slate-700">
-              <h3 className="text-white font-medium mb-4">Premium Benefits</h3>
+              <h3 className="text-white font-medium mb-4">What you get:</h3>
               <ul className="space-y-2">
                 <li className="flex items-center text-slate-300">
                   <div className="w-5 h-5 text-purple-500 mr-2">✓</div>
-                  Unlimited Messages
+                  5 additional messages (8 total)
                 </li>
                 <li className="flex items-center text-slate-300">
                   <div className="w-5 h-5 text-purple-500 mr-2">✓</div>
-                  Voice & Video Sessions
+                  Save your conversation history
                 </li>
                 <li className="flex items-center text-slate-300">
                   <div className="w-5 h-5 text-purple-500 mr-2">✓</div>
-                  Advanced Progress Tracking
+                  Personalized therapy experience
                 </li>
                 <li className="flex items-center text-slate-300">
                   <div className="w-5 h-5 text-purple-500 mr-2">✓</div>
-                  Priority Support
+                  Progress tracking across sessions
                 </li>
               </ul>
             </div>
@@ -367,6 +525,28 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
               <ChevronDown className="w-5 h-5" />
             </button>
           </div>
+
+          {/* Account Status */}
+          {userAccount.isAuthenticated && (
+            <div className="mb-6 p-3 bg-green-600/10 rounded-lg border border-green-600/20">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center space-x-2 text-green-500">
+                  <Mail className="w-4 h-4" />
+                  <span className="font-medium text-sm">Registered Account</span>
+                </div>
+                {onNavigateToDashboard && (
+                  <button
+                    onClick={() => onNavigateToDashboard(userAccount)}
+                    className="text-xs text-green-400 hover:text-green-300 flex items-center space-x-1"
+                  >
+                    <LayoutDashboard className="w-3 h-3" />
+                    <span>Dashboard</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-green-400 text-xs truncate">{userAccount.email}</p>
+            </div>
+          )}
 
           {/* Mood Tracker */}
           <div className="mb-6">
@@ -394,7 +574,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession 
                 <button
                   key={index}
                   onClick={() => setInputMessage(suggestion)}
-                  className="w-full text-left px-4 py-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors text-sm"
+                  disabled={userAccount.messagesUsed >= userAccount.messagesLimit}
+                  className={`w-full text-left px-4 py-2 rounded-lg text-slate-300 transition-colors text-sm ${
+                    userAccount.messagesUsed >= userAccount.messagesLimit
+                      ? 'bg-slate-700/50 opacity-50 cursor-not-allowed'
+                      : 'bg-slate-700 hover:bg-slate-600'
+                  }`}
                 >
                   {suggestion}
                 </button>

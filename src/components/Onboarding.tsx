@@ -231,7 +231,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 onClick={handleStartSession}
                 className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
               >
-                Start Voice Session
+                Start Therapy  Session
               </button>
               <button 
                 onClick={handleStartSession}
