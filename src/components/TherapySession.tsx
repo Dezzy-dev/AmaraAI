@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Clock, X, ChevronDown, Smile, AlertCircle, Lock, Mail, Eye, EyeOff, LayoutDashboard } from 'lucide-react';
+import { supabase, db } from '../lib/supabase';
 
 interface Message {
   id: string;
@@ -40,6 +41,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
   const [showSidebar, setShowSidebar] = useState(true);
   const [currentMood, setCurrentMood] = useState<number | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [userAccount, setUserAccount] = useState<UserAccount>({
     tier: 'anonymous',
     messagesUsed: 0,
@@ -88,6 +90,36 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
     }
   }, [userAccount.messagesUsed, userAccount.tier]);
 
+  // Initialize session when component mounts
+  useEffect(() => {
+    const initializeSession = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // Get or create user profile
+          const profile = await db.profiles.get(user.id);
+          
+          // Create new therapy session
+          const session = await db.sessions.create(user.id);
+          setCurrentSessionId(session.id);
+          
+          setUserAccount({
+            tier: profile.tier,
+            messagesUsed: 0,
+            messagesLimit: profile.messages_limit,
+            email: profile.email,
+            isAuthenticated: true
+          });
+        }
+      } catch (error) {
+        console.error('Failed to initialize session:', error);
+      }
+    };
+
+    initializeSession();
+  }, []);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -133,52 +165,47 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
     setIsRegistering(true);
     
     try {
-      // Simulate API call for registration
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // In a real app, you would:
-      // 1. Make API call to register user
-      // 2. Handle email verification if needed
-      // 3. Store authentication tokens
-      // 4. Update user state with registered account info
-      
-      const newUserAccount: UserAccount = {
-        tier: 'registered',
-        messagesUsed: userAccount.messagesUsed,
-        messagesLimit: REGISTERED_LIMIT,
+      const { data, error } = await supabase.auth.signUp({
         email: registrationData.email,
-        isAuthenticated: true
-      };
+        password: registrationData.password
+      });
 
-      setUserAccount(newUserAccount);
-      setShowRegistrationModal(false);
-      setRegistrationData({ email: '', password: '', confirmPassword: '' });
-      setRegistrationErrors([]);
-      
-      // Add a welcome message from Amara
-      const welcomeMessage: Message = {
-        id: Date.now().toString(),
-        text: `Welcome to Amara, ${registrationData.email.split('@')[0]}! Thank you for joining us. You now have ${REGISTERED_LIMIT - userAccount.messagesUsed} more messages to continue our conversation. You can also visit your dashboard anytime to track your progress and manage your sessions.`,
-        sender: 'amara',
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, welcomeMessage]);
+      if (error) throw error;
 
-      // Show dashboard redirect option after 3 seconds
-      setTimeout(() => {
-        if (onNavigateToDashboard) {
-          const shouldRedirect = window.confirm(
-            "Would you like to visit your dashboard to explore your new account features? You can always return to continue this conversation."
-          );
-          if (shouldRedirect) {
-            onNavigateToDashboard(newUserAccount);
-          }
-        }
-      }, 3000);
-      
-    } catch (error) {
-      setRegistrationErrors(['Registration failed. Please try again.']);
+      if (data.user) {
+        // Get the newly created profile
+        const profile = await db.profiles.get(data.user.id);
+        
+        const newUserAccount: UserAccount = {
+          tier: 'registered',
+          messagesUsed: userAccount.messagesUsed,
+          messagesLimit: profile.messages_limit,
+          email: data.user.email,
+          isAuthenticated: true
+        };
+
+        setUserAccount(newUserAccount);
+        setShowRegistrationModal(false);
+        
+        // Create new therapy session
+        const session = await db.sessions.create(data.user.id);
+        setCurrentSessionId(session.id);
+
+        // Add welcome message
+        const welcomeMessage: Message = {
+          id: Date.now().toString(),
+          text: `Welcome to Amara! You now have ${profile.messages_limit - userAccount.messagesUsed} messages available.`,
+          sender: 'amara',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, welcomeMessage]);
+        
+        // Save welcome message to database
+        await db.messages.create(session.id, 'amara', welcomeMessage.text);
+      }
+    } catch (error: any) {
+      setRegistrationErrors([error.message]);
     } finally {
       setIsRegistering(false);
     }
@@ -187,7 +214,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
   const handleSend = async () => {
     if (!inputMessage.trim()) return;
     
-    // Check if user has reached their message limit
     if (userAccount.messagesUsed >= userAccount.messagesLimit) {
       if (userAccount.tier === 'anonymous') {
         setShowRegistrationModal(true);
@@ -206,22 +232,46 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
     setInputMessage('');
     setIsTyping(true);
     
-    // Update message count
+    // Save message to database if session exists
+    if (currentSessionId) {
+      try {
+        await db.messages.create(currentSessionId, 'user', inputMessage);
+        
+        // Update session stats
+        await db.sessions.update(currentSessionId, {
+          messages_used: userAccount.messagesUsed + 1,
+          session_duration: sessionTime
+        });
+      } catch (error) {
+        console.error('Failed to save message:', error);
+      }
+    }
+    
     setUserAccount(prev => ({
       ...prev,
       messagesUsed: prev.messagesUsed + 1
     }));
 
     // Simulate Amara's response
-    setTimeout(() => {
+    setTimeout(async () => {
       const response: Message = {
         id: (Date.now() + 1).toString(),
         text: "I hear you. Can you tell me more about what's contributing to those feelings?",
         sender: 'amara',
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, response]);
       setIsTyping(false);
+      
+      // Save Amara's response to database
+      if (currentSessionId) {
+        try {
+          await db.messages.create(currentSessionId, 'amara', response.text);
+        } catch (error) {
+          console.error('Failed to save Amara response:', error);
+        }
+      }
     }, 2000);
   };
 
