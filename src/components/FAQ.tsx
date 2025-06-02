@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Minus } from 'lucide-react';
 
 interface FAQItem {
@@ -57,11 +57,63 @@ const faqs: FAQItem[] = [
   }
 ];
 
+const FAQItem: React.FC<{ faq: FAQItem; index: number; isOpen: boolean; onToggle: () => void }> = ({
+  faq,
+  index,
+  isOpen,
+  onToggle
+}) => {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number>(0);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      setHeight(isOpen ? contentRef.current.scrollHeight : 0);
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 overflow-hidden border-0 dark:border dark:border-gray-700">
+      <button
+        onClick={onToggle}
+        className="w-full text-left px-6 py-4 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#9d8cd4] focus:ring-opacity-50 rounded-t-2xl"
+        aria-expanded={isOpen}
+        aria-controls={`faq-answer-${index}`}
+      >
+        <h3 className="text-[#2d3748] dark:text-white font-medium pr-8 transition-colors duration-300">
+          {faq.question}
+        </h3>
+        <div className="flex-shrink-0 transition-transform duration-200">
+          {isOpen ? (
+            <Minus className="w-5 h-5 text-[#9d8cd4]" />
+          ) : (
+            <Plus className="w-5 h-5 text-[#9d8cd4]" />
+          )}
+        </div>
+      </button>
+      <div
+        id={`faq-answer-${index}`}
+        className="px-6 transition-all duration-300 ease-in-out overflow-hidden"
+        style={{
+          height: `${height}px`,
+          paddingBottom: isOpen ? '16px' : '0px'
+        }}
+      >
+        <div ref={contentRef}>
+          <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300 leading-relaxed">
+            {faq.answer}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const FAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggleItem = (index: number) => {
-    setOpenIndex(prevIndex => prevIndex === index ? null : index);
+    setOpenIndex(current => current === index ? null : index);
   };
 
   return (
@@ -77,49 +129,15 @@ const FAQ: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {faqs.map((faq, index) => {
-            const isOpen = openIndex === index;
-            
-            return (
-              <div
-                key={index}
-                className="bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 overflow-hidden border-0 dark:border dark:border-gray-700"
-              >
-                <button
-                  onClick={() => toggleItem(index)}
-                  className="w-full text-left px-6 py-4 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#9d8cd4] focus:ring-opacity-50 rounded-t-2xl"
-                  aria-expanded={isOpen}
-                  aria-controls={`faq-answer-${index}`}
-                >
-                  <h3 className="text-[#2d3748] dark:text-white font-medium pr-8 transition-colors duration-300">
-                    {faq.question}
-                  </h3>
-                  <div className="flex-shrink-0 transition-transform duration-200">
-                    {isOpen ? (
-                      <Minus className="w-5 h-5 text-[#9d8cd4]" />
-                    ) : (
-                      <Plus className="w-5 h-5 text-[#9d8cd4]" />
-                    )}
-                  </div>
-                </button>
-                <div
-                  id={`faq-answer-${index}`}
-                  className={`px-6 transition-all duration-300 ease-in-out ${
-                    isOpen 
-                      ? 'max-h-96 opacity-100 pb-4' 
-                      : 'max-h-0 opacity-0 pb-0'
-                  }`}
-                  style={{
-                    overflow: 'hidden'
-                  }}
-                >
-                  <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300 leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+          {faqs.map((faq, index) => (
+            <FAQItem
+              key={index}
+              faq={faq}
+              index={index}
+              isOpen={openIndex === index}
+              onToggle={() => toggleItem(index)}
+            />
+          ))}
         </div>
       </div>
     </section>
