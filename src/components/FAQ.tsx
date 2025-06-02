@@ -58,14 +58,10 @@ const faqs: FAQItem[] = [
 ];
 
 const FAQ: React.FC = () => {
-  const [openItems, setOpenItems] = useState<number[]>([]);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggleItem = (index: number) => {
-    setOpenItems(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
+    setOpenIndex(openIndex === index ? null : index);
   };
 
   return (
@@ -94,7 +90,7 @@ const FAQ: React.FC = () => {
                   {faq.question}
                 </h3>
                 <div className="flex-shrink-0">
-                  {openItems.includes(index) ? (
+                  {openIndex === index ? (
                     <Minus className="w-5 h-5 text-[#9d8cd4]" />
                   ) : (
                     <Plus className="w-5 h-5 text-[#9d8cd4]" />
@@ -103,7 +99,7 @@ const FAQ: React.FC = () => {
               </button>
               <div
                 className={`px-6 transition-all duration-300 overflow-hidden ${
-                  openItems.includes(index) ? 'max-h-48 pb-4' : 'max-h-0'
+                  openIndex === index ? 'max-h-48 pb-4' : 'max-h-0'
                 }`}
               >
                 <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300">
