@@ -98,7 +98,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
         
         if (user) {
           // Get or create user profile
-          const profile = await db.profiles.get(user.id);
+          let profile = await db.profiles.get(user.id);
+          
+          // If profile doesn't exist, create it
+          if (!profile) {
+            profile = await db.profiles.create(user.id, user.email || '', 'registered');
+          }
           
           // Create new therapy session
           const session = await db.sessions.create(user.id);
@@ -173,8 +178,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
       if (error) throw error;
 
       if (data.user) {
-        // Get the newly created profile
-        const profile = await db.profiles.get(data.user.id);
+        // Create the profile for the new user
+        const profile = await db.profiles.create(
+          data.user.id,
+          registrationData.email,
+          'registered'
+        );
         
         const newUserAccount: UserAccount = {
           tier: 'registered',

@@ -45,6 +45,23 @@ export const db = {
         .from('profiles')
         .select('*')
         .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data;
+    },
+    create: async (userId: string, email: string, tier: 'anonymous' | 'registered' = 'registered') => {
+      const messagesLimit = tier === 'registered' ? 8 : 3;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email,
+          tier,
+          messages_limit: messagesLimit
+        })
+        .select()
         .single();
       
       if (error) throw error;
