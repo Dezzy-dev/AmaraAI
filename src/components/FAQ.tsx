@@ -61,7 +61,7 @@ const FAQ: React.FC = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const toggleItem = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
+    setOpenIndex(prevIndex => prevIndex === index ? null : index);
   };
 
   return (
@@ -77,37 +77,49 @@ const FAQ: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
-          {faqs.map((faq, index) => (
-            <div
-              key={index}
-              className="bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 overflow-hidden border-0 dark:border dark:border-gray-700"
-            >
-              <button
-                onClick={() => toggleItem(index)}
-                className="w-full text-left px-6 py-4 flex items-center justify-between"
-              >
-                <h3 className="text-[#2d3748] dark:text-white font-medium pr-8 transition-colors duration-300">
-                  {faq.question}
-                </h3>
-                <div className="flex-shrink-0">
-                  {openIndex === index ? (
-                    <Minus className="w-5 h-5 text-[#9d8cd4]" />
-                  ) : (
-                    <Plus className="w-5 h-5 text-[#9d8cd4]" />
-                  )}
-                </div>
-              </button>
+          {faqs.map((faq, index) => {
+            const isOpen = openIndex === index;
+            
+            return (
               <div
-                className={`px-6 transition-all duration-300 overflow-hidden ${
-                  openIndex === index ? 'max-h-48 pb-4' : 'max-h-0'
-                }`}
+                key={index}
+                className="bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 overflow-hidden border-0 dark:border dark:border-gray-700"
               >
-                <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300">
-                  {faq.answer}
-                </p>
+                <button
+                  onClick={() => toggleItem(index)}
+                  className="w-full text-left px-6 py-4 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#9d8cd4] focus:ring-opacity-50 rounded-t-2xl"
+                  aria-expanded={isOpen}
+                  aria-controls={`faq-answer-${index}`}
+                >
+                  <h3 className="text-[#2d3748] dark:text-white font-medium pr-8 transition-colors duration-300">
+                    {faq.question}
+                  </h3>
+                  <div className="flex-shrink-0 transition-transform duration-200">
+                    {isOpen ? (
+                      <Minus className="w-5 h-5 text-[#9d8cd4]" />
+                    ) : (
+                      <Plus className="w-5 h-5 text-[#9d8cd4]" />
+                    )}
+                  </div>
+                </button>
+                <div
+                  id={`faq-answer-${index}`}
+                  className={`px-6 transition-all duration-300 ease-in-out ${
+                    isOpen 
+                      ? 'max-h-96 opacity-100 pb-4' 
+                      : 'max-h-0 opacity-0 pb-0'
+                  }`}
+                  style={{
+                    overflow: 'hidden'
+                  }}
+                >
+                  <p className="text-[#4a5568] dark:text-gray-300 transition-colors duration-300 leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
