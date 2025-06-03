@@ -14,7 +14,7 @@ const Footer: React.FC = () => {
               <h2 className="ml-2 text-xl font-medium text-white dark:text-white transition-colors duration-300">Amara</h2>
             </div>
             <p className="text-gray-400 dark:text-gray-300 transition-colors duration-300">
-              AI therapy companion designed for emotional support when you need it most.
+              AMARA is built to help people feel heard without fear or shame.
             </p>
           </div>
           
