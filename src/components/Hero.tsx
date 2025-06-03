@@ -9,7 +9,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
   const [isMuted, setIsMuted] = useState(true);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [typedText, setTypedText] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
+  const [currentTextIndex, setCurrentTextIndex] = useState(0);
 
   const testimonials = [
     { text: "Amara helped me through my darkest moments", author: "Sarah M." },
@@ -23,8 +23,6 @@ export default function Hero({ onStartTalking }: HeroProps) {
     "support without judgment",
     "therapy that fits your life"
   ];
-
-  const [currentTextIndex, setCurrentTextIndex] = useState(0);
 
   // Typewriter effect
   useEffect(() => {
@@ -44,7 +42,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
     }, 100);
 
     return () => clearInterval(typeInterval);
-  }, [currentTextIndex]);
+  }, [currentTextIndex, typewriterTexts]);
 
   // Testimonial rotation
   useEffect(() => {
@@ -52,15 +50,17 @@ export default function Hero({ onStartTalking }: HeroProps) {
       setCurrentTestimonial((prev) => (prev + 1) % testimonials.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [testimonials.length]);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Dynamic animated background */}
       <div className="absolute inset-0">
         {/* Gradient background with animation */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-blue-50 to-teal-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Cpath d="M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-30"></div>
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M20 20c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          }}></div>
         </div>
         
         {/* Floating orbs with better animation */}
@@ -86,7 +86,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-7xl mx-auto">
           {/* Enhanced Logo with animation */}
-          <div className="flex items-center justify-center mb-8 animate-fadeInUp">
+          <div className="flex items-center justify-center mb-8 opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-lg opacity-30 animate-pulse"></div>
               <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-3 rounded-full shadow-xl border border-purple-200/50">
@@ -111,14 +111,14 @@ export default function Hero({ onStartTalking }: HeroProps) {
                   
                   {/* Emotional hook headline */}
                   <div className="mb-6">
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-800 dark:text-white mb-4 leading-tight animate-fadeInUp">
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-gray-800 dark:text-white mb-4 leading-tight opacity-0 animate-[fadeInUp_0.6s_ease-out_forwards]">
                       You're Not
                       <span className="block bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent animate-pulse">
                         Alone
                       </span>
                     </h1>
                     <div className="h-8 mb-4">
-                      <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 animate-fadeInUp" style={{animationDelay: '0.2s'}}>
+                      <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 opacity-0 animate-[fadeInUp_0.6s_ease-out_0.2s_forwards]">
                         Meet Amara, <span className="text-purple-600 dark:text-purple-400 font-semibold">{typedText}</span>
                         <span className="animate-pulse">|</span>
                       </h2>
@@ -126,7 +126,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
                   </div>
 
                   {/* Emotional description */}
-                  <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed animate-fadeInUp" style={{animationDelay: '0.3s'}}>
+                  <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed opacity-0 animate-[fadeInUp_0.6s_ease-out_0.3s_forwards]">
                     When the world feels overwhelming, Amara is here. 
                     <span className="font-semibold text-purple-600 dark:text-purple-400"> Available instantly, completely private, and always understanding.</span>
                     <br />
@@ -134,7 +134,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
                   </p>
 
                   {/* Enhanced feature highlights with icons */}
-                  <div className="grid grid-cols-2 gap-4 mb-8 animate-fadeInUp" style={{animationDelay: '0.4s'}}>
+                  <div className="grid grid-cols-2 gap-4 mb-8 opacity-0 animate-[fadeInUp_0.6s_ease-out_0.4s_forwards]">
                     <div className="flex items-center space-x-3 bg-white/30 dark:bg-gray-800/30 rounded-xl p-3 backdrop-blur-sm">
                       <Shield className="w-5 h-5 text-purple-500" />
                       <span className="text-gray-700 dark:text-gray-300 font-medium">100% Private</span>
@@ -154,7 +154,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
                   </div>
 
                   {/* Compelling CTA */}
-                  <div className="space-y-4 animate-fadeInUp" style={{animationDelay: '0.6s'}}>
+                  <div className="space-y-4 opacity-0 animate-[fadeInUp_0.6s_ease-out_0.6s_forwards]">
                     <button 
                       onClick={onStartTalking}
                       className="group relative w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full font-semibold shadow-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-purple-500/25"
@@ -175,7 +175,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
                   </div>
 
                   {/* Social proof with testimonial rotation */}
-                  <div className="mt-8 pt-6 border-t border-gray-200/30 dark:border-gray-700/30 animate-fadeInUp" style={{animationDelay: '0.8s'}}>
+                  <div className="mt-8 pt-6 border-t border-gray-200/30 dark:border-gray-700/30 opacity-0 animate-[fadeInUp_0.6s_ease-out_0.8s_forwards]">
                     <div className="text-center lg:text-left mb-4">
                       <div className="bg-white/40 dark:bg-gray-800/40 rounded-2xl p-4 backdrop-blur-sm">
                         <p className="text-gray-600 dark:text-gray-300 italic mb-2">
@@ -207,7 +207,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
             </div>
 
             {/* Enhanced Video Section */}
-            <div className="flex-1 max-w-2xl animate-fadeInUp" style={{animationDelay: '0.5s'}}>
+            <div className="flex-1 max-w-2xl opacity-0 animate-[fadeInUp_0.6s_ease-out_0.5s_forwards]">
               <div className="relative">
                 {/* Video container with enhanced styling */}
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
@@ -271,7 +271,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
       </div>
 
       {/* Enhanced scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center animate-fadeInUp" style={{animationDelay: '1s'}}>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center opacity-0 animate-[fadeInUp_0.6s_ease-out_1s_forwards]">
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-4 py-2 rounded-full border border-purple-200/50 mb-3">
           <p className="text-purple-600 dark:text-purple-400 text-sm font-medium">
             Discover how Amara transforms lives ↓
@@ -281,23 +281,6 @@ export default function Hero({ onStartTalking }: HeroProps) {
           <ChevronDown className="w-6 h-6 text-purple-500 mx-auto" />
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-      `}</style>
-    </section>
+    </div>
   );
 }
