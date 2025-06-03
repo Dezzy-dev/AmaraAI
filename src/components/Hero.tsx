@@ -65,22 +65,9 @@ export default function Hero() {
 
       <div className="container mx-auto px-6 relative z-10">
         <div className="max-w-7xl mx-auto">
-          {/* Logo Section */}
-          <div className="flex items-center justify-center mb-8">
-            <div className="relative">
-              <div className="bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-xl border border-purple-200/50">
-                <MessageSquareText className="w-10 h-10 text-purple-600" />
-              </div>
-            </div>
-            <div className="ml-4">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Amara</h2>
-              <p className="text-sm text-purple-500">AI Therapy Companion</p>
-            </div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-16">
-            {/* Content Section */}
-            <div className="flex-1 text-center lg:text-left max-w-2xl">
+          <div className="flex flex-col items-center gap-16">
+            {/* Content Section - Centered */}
+            <div className="text-center max-w-4xl mx-auto">
               <div className="relative backdrop-blur-lg bg-white/40 rounded-3xl p-10 border border-white/30 shadow-2xl">
                 
                 {/* Main Headline */}
@@ -131,7 +118,7 @@ export default function Hero() {
                 <div className="space-y-4">
                   <button 
                     onClick={handleStartTalking}
-                    className="group relative w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full font-semibold shadow-2xl transition-all duration-300 transform hover:scale-105"
+                    className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full font-semibold shadow-2xl transition-all duration-300 transform hover:scale-105"
                   >
                     <div className="relative flex items-center justify-center">
                       <Heart className="w-5 h-5 mr-2" />
@@ -140,7 +127,7 @@ export default function Hero() {
                     </div>
                   </button>
                   
-                  <div className="text-center lg:text-left">
+                  <div className="text-center">
                     <p className="text-sm text-gray-500 font-medium">
                       ✨ No sign-up required • Start talking in seconds • Completely anonymous
                     </p>
@@ -149,7 +136,7 @@ export default function Hero() {
 
                 {/* Testimonials */}
                 <div className="mt-8 pt-6 border-t border-gray-200/30">
-                  <div className="text-center lg:text-left mb-4">
+                  <div className="text-center mb-4">
                     <div className="bg-white/40 rounded-2xl p-4 backdrop-blur-sm">
                       <p className="text-gray-600 italic mb-2">
                         "{testimonials[currentTestimonial].text}"
@@ -160,7 +147,7 @@ export default function Hero() {
                     </div>
                   </div>
                   
-                  <div className="flex flex-wrap justify-center lg:justify-start gap-8">
+                  <div className="flex flex-wrap justify-center gap-8">
                     <div className="text-center">
                       <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">250K+</div>
                       <div className="text-sm text-gray-500">Lives Touched</div>
@@ -178,8 +165,8 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* Video Section */}
-            <div className="flex-1 max-w-2xl">
+            {/* Video Section - Moved below content */}
+            <div className="w-full max-w-4xl mx-auto">
               <div className="relative">
                 <div className="relative rounded-3xl overflow-hidden shadow-2xl">
                   <div className="relative bg-white/50 backdrop-blur-sm border border-white/30 rounded-3xl overflow-hidden">
