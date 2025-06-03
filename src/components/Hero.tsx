@@ -24,7 +24,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
         {/* Logo */}
         <div className="flex items-center justify-center mb-12 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]">
           <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-3 rounded-full shadow-lg">
-            <MessageSquareText className="w-8 h-8 text-[#9d8cd4]" />
+            <Messag className="w-8 h-8 text-[#9d8cd4]" />
           </div>
           <h2 className="ml-3 text-2xl font-semibold text-[#6b5ca5] dark:text-[#9d8cd4]"></h2>
         </div>
