@@ -1,142 +1,131 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, MessageSquareText, Sun, Moon } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ThemeToggle } from './ThemeToggle';
 
-interface NavigationProps {
-  isDark: boolean;
-  toggleDarkMode: () => void;
-}
-
-const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
-  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 20);
     };
-    
+
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
-  return (
-    <nav className={`fixed w-full z-50 transition-all duration-300 ${
-      isScrolled 
-        ? 'bg-white dark:bg-gray-900 shadow-md py-3' 
-        : 'bg-transparent py-6'
-    }`}>
-      <div className="container mx-auto px-6">
-        <div className="flex justify-between items-center">
-          <a href="#" className="flex items-center">
-            <div className={`p-2 rounded-full ${
-              isScrolled 
-                ? 'bg-[#9d8cd4]/10 dark:bg-[#9d8cd4]/20' 
-                : 'bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm shadow-sm'
-            }`}>
-              <MessageSquareText className="w-6 h-6 text-[#9d8cd4]" />
-            </div>
-            <span className={`ml-2 text-xl font-medium ${
-              isScrolled 
-                ? 'text-[#2d3748] dark:text-white' 
-                : 'text-[#6b5ca5] dark:text-[#9d8cd4]'
-            }`}>Amara</span>
-          </a>
-          
-          {/* Simplified navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
-              Features
-            </a>
-            <a href="#pricing" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
-              Pricing
-            </a>
-            <a href="#faq" className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200">
-              FAQ
-            </a>
-            <button 
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? (
-                <Sun className="w-5 h-5 text-[#9d8cd4]" />
-              ) : (
-                <Moon className="w-5 h-5 text-[#9d8cd4]" />
-              )}
-            </button>
-            <a 
-              href="#" 
-              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-md transition-all duration-300 animate-pulse hover:animate-none"
-            >
-              Start Talking
-            </a>
-          </div>
-          
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center space-x-4">
-            <button 
-              onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-              aria-label="Toggle dark mode"
-            >
-              {isDark ? (
-                <Sun className="w-5 h-5 text-[#9d8cd4]" />
-              ) : (
-                <Moon className="w-5 h-5 text-[#9d8cd4]" />
-              )}
-            </button>
-            <button 
-              className="text-[#4a5568] dark:text-white"
-              onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle menu"
-            >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Mobile menu */}
-      <div className={`md:hidden ${isOpen ? 'block' : 'hidden'}`}>
-        <div className="px-6 py-4 bg-white dark:bg-gray-800 border-t dark:border-gray-700">
-          <div className="flex flex-col space-y-4">
-            <a 
-              href="#features" 
-              className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              Features
-            </a>
-            <a 
-              href="#pricing" 
-              className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              Pricing
-            </a>
-            <a 
-              href="#faq" 
-              className="text-[#4a5568] dark:text-gray-300 hover:text-[#9d8cd4] dark:hover:text-[#9d8cd4] transition-colors duration-200 py-2"
-              onClick={() => setIsOpen(false)}
-            >
-              FAQ
-            </a>
-            <a 
-              href="#" 
-              className="px-5 py-2 bg-[#9d8cd4] hover:bg-[#8a7ac0] text-white rounded-full font-medium shadow-md transition-all duration-300 inline-block text-center animate-pulse hover:animate-none"
-              onClick={() => setIsOpen(false)}
-            >
-              Start Talking
-            </a>
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-};
 
-export default Navigation;
+  const scrollToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setIsMobileMenuOpen(false);
+    }
+  };
+
+  const handleStartTalking = () => {
+    navigate('/onboarding');
+  };
+
+  const navItems = [
+    { label: 'How It Works', id: 'how-it-works' },
+    { label: 'Why Amara?', id: 'testimonials' },
+    { label: 'Try Demo', id: 'try-amara' }
+  ];
+
+  return (
+    <header 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-sm border-b border-gray-200/20 dark:border-gray-700/20' 
+          : 'bg-transparent'
+      }`}
+    >
+      <div className="container-responsive-wide">
+        <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18">
+          {/* Logo - Responsive */}
+          <div className="flex items-center">
+            <span 
+              className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-800 dark:text-gray-100 cursor-pointer transition-all duration-200 hover:scale-105"
+              style={{
+                fontFamily: 'serif',
+                letterSpacing: '0.02em',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
+              }}
+              onClick={() => navigate('/')}
+            >
+              𝒜𝓂𝒶𝓇𝒶
+            </span>
+          </div>
+
+          {/* Desktop Navigation - Hidden on mobile/tablet */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors duration-200 text-sm xl:text-base whitespace-nowrap"
+              >
+                {item.label}
+              </button>
+            ))}
+            
+            <button
+              onClick={handleStartTalking}
+              className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-4 xl:px-6 py-2 xl:py-2.5 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md text-sm xl:text-base whitespace-nowrap"
+            >
+              Start Talking
+            </button>
+          </nav>
+
+          {/* Theme Toggle & Mobile Menu Button */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Toggle - Always visible */}
+            <div className="relative">
+              <ThemeToggle />
+            </div>
+            
+            {/* Mobile Menu Button - Hidden on desktop */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 touch-target"
+              aria-label="Toggle mobile menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              ) : (
+                <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Menu - Responsive */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/20 shadow-lg">
+            <nav className="container-responsive py-4 space-y-3">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToSection(item.id)}
+                  className="block w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 touch-target"
+                >
+                  {item.label}
+                </button>
+              ))}
+              
+              <button
+                onClick={handleStartTalking}
+                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4 touch-target-lg"
+              >
+                Start Talking
+              </button>
+            </nav>
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}
