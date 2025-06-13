@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ThemeToggle } from './ThemeToggle';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 
-export function Header() {
+interface NavigationProps {
+  isDark: boolean;
+  toggleDarkMode: () => void;
+}
+
+const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -26,7 +28,8 @@ export function Header() {
   };
 
   const handleStartTalking = () => {
-    navigate('/onboarding');
+    // You can replace this with your navigation logic
+    console.log('Navigate to onboarding');
   };
 
   const navItems = [
@@ -43,7 +46,7 @@ export function Header() {
           : 'bg-transparent'
       }`}
     >
-      <div className="container-responsive-wide">
+      <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-18">
           {/* Logo - Responsive */}
           <div className="flex items-center">
@@ -54,7 +57,10 @@ export function Header() {
                 letterSpacing: '0.02em',
                 textShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
               }}
-              onClick={() => navigate('/')}
+              onClick={() => {
+                // You can replace this with your home navigation logic
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
             >
               𝒜𝓂𝒶𝓇𝒶
             </span>
@@ -83,14 +89,22 @@ export function Header() {
           {/* Theme Toggle & Mobile Menu Button */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Theme Toggle - Always visible */}
-            <div className="relative">
-              <ThemeToggle />
-            </div>
+            <button 
+              onClick={toggleDarkMode}
+              className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+              aria-label="Toggle dark mode"
+            >
+              {isDark ? (
+                <Sun className="w-5 h-5 sm:w-6 sm:h-6" />
+              ) : (
+                <Moon className="w-5 h-5 sm:w-6 sm:h-6" />
+              )}
+            </button>
             
             {/* Mobile Menu Button - Hidden on desktop */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 touch-target"
+              className="lg:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
               aria-label="Toggle mobile menu"
             >
               {isMobileMenuOpen ? (
@@ -105,12 +119,12 @@ export function Header() {
         {/* Mobile Navigation Menu - Responsive */}
         {isMobileMenuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/20 shadow-lg">
-            <nav className="container-responsive py-4 space-y-3">
+            <nav className="px-6 py-4 space-y-3">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="block w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 touch-target"
+                  className="block w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50"
                 >
                   {item.label}
                 </button>
@@ -118,7 +132,7 @@ export function Header() {
               
               <button
                 onClick={handleStartTalking}
-                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4 touch-target-lg"
+                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4"
               >
                 Start Talking
               </button>
@@ -128,4 +142,6 @@ export function Header() {
       </div>
     </header>
   );
-}
+};
+
+export default Navigation;
