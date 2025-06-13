@@ -1,14 +1,11 @@
 import React from 'react';
 import { MessageCircle, Play } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
   onStartTalking: () => void;
 }
 
 export default function Hero({ onStartTalking }: HeroProps) {
-  const navigate = useNavigate();
-
   const handleStartTalking = () => {
     onStartTalking();
   };
