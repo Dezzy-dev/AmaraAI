@@ -1,178 +1,126 @@
-import React, { useState } from 'react';
-import { ChevronRight, MessageSquareText, ChevronDown, Volume2, VolumeX, Heart, Shield, Clock } from 'lucide-react';
+import React from 'react';
+import { MessageCircle, Play } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface HeroProps {
   onStartTalking: () => void;
 }
 
 export default function Hero({ onStartTalking }: HeroProps) {
-  const [isMuted, setIsMuted] = useState(true);
+  const navigate = useNavigate();
+
+  const handleStartTalking = () => {
+    onStartTalking();
+  };
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center py-12 overflow-hidden">
-      {/* Enhanced background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#f8f5ff] via-[#edf7ff] to-[#f0fdff] dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
-        <div className="absolute inset-0 bg-[url('https://images.pexels.com/photos/3619518/pexels-photo-3619518.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750')] bg-cover bg-center opacity-10 dark:opacity-5 backdrop-blur-sm"></div>
-      </div>
-      
-      {/* Decorative elements */}
-      <div className="absolute top-20 right-[20%] w-64 h-64 rounded-full bg-[#9d8cd4] opacity-10 dark:opacity-20 blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 left-[10%] w-80 h-80 rounded-full bg-[#5dbfbb] opacity-10 dark:opacity-15 blur-3xl animate-pulse"></div>
-      
-      <div className="container mx-auto px-6 relative z-10 max-w-6xl">
-        
-        {/* Logo */}
-        <div className="flex items-center justify-center mb-12 opacity-0 animate-[fadeIn_0.6s_ease-out_forwards]">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm p-3 rounded-full shadow-lg">
-            
+    <div className="overflow-x-hidden bg-gray-50 dark:bg-gray-900">
+      <section className="pt-16 sm:pt-20 lg:pt-24 xl:pt-28 bg-gray-50 dark:bg-gray-900 relative">
+        {/* Bolt.new Badges - Responsive positioning */}
+        <div className="absolute top-16 sm:top-20 lg:top-24 right-4 sm:right-6 z-10">
+          {/* Light Mode Badge */}
+          <div className="block dark:hidden">
+            <img 
+              src="/black_circle_360x360.png" 
+              alt="Powered by Bolt.new" 
+              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
+              title="Powered by Bolt.new"
+            />
           </div>
-          <h2 className="ml-3 text-2xl font-semibold text-[#6b5ca5] dark:text-[#9d8cd4]"></h2>
+          
+          {/* Dark Mode Badge */}
+          <div className="hidden dark:block">
+            <img 
+              src="/white_circle_360x360.png" 
+              alt="Powered by Bolt.new" 
+              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
+              title="Powered by Bolt.new"
+            />
+          </div>
         </div>
 
-        {/* Main Content Section */}
-        <div className="text-center mb-16">
-          {/* Main Headline */}
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#2d3748] dark:text-white mb-6 leading-tight opacity-0 animate-[fadeIn_0.6s_ease-out_0.2s_forwards]">
-            You're Not{' '}
-            <span className="bg-gradient-to-r from-[#9d8cd4] via-[#8a7ac0] to-[#5dbfbb] bg-clip-text text-transparent">
-              Alone
-            </span>
-          </h1>
-
-          {/* Simplified Subtitle */}
-          <h2 className="text-2xl md:text-3xl text-[#6b5ca5] dark:text-[#9d8cd4] mb-8 opacity-0 animate-[fadeIn_0.6s_ease-out_0.3s_forwards] max-w-3xl mx-auto">
-            Meet your AI therapy companion who truly understands
-          </h2>
-
-          {/* Clean Description */}
-          <p className="text-xl md:text-2xl text-[#4a5568] dark:text-gray-300 mb-12 opacity-0 animate-[fadeIn_0.6s_ease-out_0.4s_forwards] max-w-4xl mx-auto leading-relaxed">
-            Professional support available instantly.{' '}
-            <span className="font-semibold text-[#9d8cd4]">Private, caring, and always here</span>{' '}
-            when you need someone to talk to.
-          </p>
-
-          {/* CTA Button */}
-          <div className="mb-12 opacity-0 animate-[fadeIn_0.6s_ease-out_0.5s_forwards]">
-            <button 
-              onClick={onStartTalking}
-              className="group px-10 py-5 bg-gradient-to-r from-[#9d8cd4] to-[#8a7ac0] hover:from-[#8a7ac0] hover:to-[#7a6bb3] text-white text-xl font-semibold rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-[#9d8cd4]/25"
-            >
-              <div className="flex items-center justify-center">
-                <Heart className="w-6 h-6 mr-3" />
-                Start Talking with Amara
-                <ChevronRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </button>
+        <div className="container-responsive-wide">
+          <div className="max-w-4xl mx-auto text-center animate-fade-up">
+            {/* Subtitle - Responsive */}
+            <h1 className="px-4 sm:px-6 text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 font-inter">
+              AI therapy companion, made for healing
+            </h1>
             
-            <p className="text-sm text-[#4a5568] dark:text-gray-400 mt-4 font-medium">
-              ✨ No sign-up required • Start in seconds • Completely anonymous
+            {/* Main Headline - Fully responsive */}
+            <p className="mt-4 sm:mt-5 lg:mt-6 text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight sm:leading-tight lg:leading-tight text-gray-900 dark:text-gray-100 px-4">
+              Feel Better.
+              <span className="relative inline-flex sm:inline">
+                <span className="bg-gradient-to-r from-[#44BCFF] via-[#FF44EC] to-[#FF675E] blur-lg filter opacity-30 w-full h-full absolute inset-0"></span>
+                <span className="relative"> Talk Freely. </span>
+              </span>
+              Meet Amara.
             </p>
-          </div>
 
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-4 mb-12 opacity-0 animate-[fadeIn_0.6s_ease-out_0.6s_forwards]">
-            {[
-              { icon: Shield, text: '100% Private', color: '[#9d8cd4]' },
-              { icon: Clock, text: 'Available 24/7', color: '[#5dbfbb]' },
-              { icon: Heart, text: 'Judgment-Free', color: '[#9d8cd4]' }
-            ].map(({ icon: Icon, text, color }) => (
-              <div
-                key={text}
-                className="flex items-center space-x-3 px-6 py-3 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-full border border-white/30 dark:border-gray-700/30 shadow-lg"
-              >
-                <Icon className={`w-5 h-5 text-${color}`} />
-                <span className="font-medium text-[#4a5568] dark:text-gray-300">{text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="flex justify-center gap-12 mb-16 opacity-0 animate-[fadeIn_0.6s_ease-out_0.7s_forwards]">
-            {[
-              { value: '100K+', label: 'Conversations', color: '[#9d8cd4]' },
-              { value: '4.9★', label: 'User Rating', color: '[#5dbfbb]' },
-              { value: '24/7', label: 'Available', color: '[#9d8cd4]' }
-            ].map(({ value, label, color }) => (
-              <div key={label} className="text-center">
-                <div className={`text-3xl md:text-4xl font-bold text-${color} mb-1`}>
-                  {value}
-                </div>
-                <div className="text-sm text-[#4a5568] dark:text-gray-400">
-                  {label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Video Section - Below Content */}
-        <div className="max-w-4xl mx-auto opacity-0 animate-[fadeIn_0.6s_ease-out_0.8s_forwards]">
-          <div className="relative">
-            {/* Video Container */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-[#9d8cd4]/10 to-[#5dbfbb]/10 backdrop-blur-sm border border-white/20 dark:border-gray-800/20">
-              <div className="relative aspect-video bg-gradient-to-br from-[#9d8cd4]/5 to-[#5dbfbb]/5">
-                <iframe
-                  src={`https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&modestbranding=1&rel=0&controls=0&showinfo=0&loop=1&playlist=fz7sRsEEi20&mute=${isMuted ? 1 : 0}`}
-                  className="w-full h-full rounded-lg"
-                  frameBorder="0"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen
-                  title="Meet Amara - AI Therapy Companion"
-                  loading="lazy"
-                />
-              </div>
-            </div>
-
-            {/* Video Controls */}
-            <div className="absolute bottom-4 right-4">
+            {/* CTA Buttons - Responsive layout */}
+            <div className="px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 mt-8 sm:mt-9 lg:mt-12">
               <button
-                onClick={() => setIsMuted(!isMuted)}
-                className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full p-3 shadow-lg hover:bg-white dark:hover:bg-gray-700 transition-all duration-300"
-                aria-label={isMuted ? "Unmute video" : "Mute video"}
+                onClick={handleStartTalking}
+                className="group inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 lg:py-4 text-base sm:text-lg lg:text-xl font-bold text-white transition-all duration-200 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 border-2 border-transparent rounded-xl lg:rounded-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-600 transform hover:scale-105 shadow-lg hover:shadow-xl touch-target-lg"
+                role="button"
               >
-                {isMuted ? (
-                  <VolumeX className="w-5 h-5 text-[#6b5ca5] dark:text-[#9d8cd4]" />
-                ) : (
-                  <Volume2 className="w-5 h-5 text-[#6b5ca5] dark:text-[#9d8cd4]" />
-                )}
+                <MessageCircle className="w-5 h-5 lg:w-6 lg:h-6 mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap">Start Talking</span>
+                <div className="w-0 group-hover:w-2 transition-all duration-300 overflow-hidden ml-2">
+                  <div className="w-2 h-2 bg-white rounded-full"></div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-6 lg:px-8 py-3 sm:py-3.5 lg:py-4 text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-gray-100 transition-all duration-200 border-2 border-gray-400 dark:border-gray-600 rounded-xl lg:rounded-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 hover:bg-gray-900 focus:bg-gray-900 hover:text-white focus:text-white hover:border-gray-900 focus:border-gray-900 dark:hover:bg-gray-100 dark:focus:bg-gray-100 dark:hover:text-gray-900 dark:focus:text-gray-900 touch-target-lg"
+                role="button"
+              >
+                <Play className="w-5 h-5 lg:w-6 lg:h-6 mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap">See How It Works</span>
               </button>
             </div>
+          </div>
+        </div>
 
-            {/* Video Badge */}
-            <div className="absolute top-4 left-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-full px-4 py-2 shadow-lg">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-[#6b5ca5] dark:text-[#9d8cd4]">
-                  Meet Amara
-                </span>
+        {/* Video Section - Fully responsive */}
+        <div className="pb-8 sm:pb-12 lg:pb-16 bg-white dark:bg-gray-800">
+          <div className="relative">
+            <div className="absolute inset-0 h-2/3 bg-gray-50 dark:bg-gray-900"></div>
+            <div className="relative container-responsive-wide">
+              <div className="max-w-6xl mx-auto animate-fade-up-delayed">
+                {/* Video Introduction Text - Responsive */}
+                <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+                  <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 sm:mb-3">
+                    Watch Amara Introduce Herself
+                  </h3>
+                  <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-gray-600 dark:text-gray-300 px-4">
+                    See how natural conversations with your AI therapy companion feel
+                  </p>
+                </div>
+
+                {/* YouTube Embed - Responsive aspect ratio */}
+                <div className="relative w-full" style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}>
+                  <iframe
+                    className="absolute top-0 left-0 w-full h-full rounded-lg sm:rounded-xl lg:rounded-2xl shadow-xl sm:shadow-2xl dark:shadow-black/50"
+                    src="https://www.youtube.com/embed/fz7sRsEEi20?autoplay=1&mute=1&loop=1&playlist=fz7sRsEEi20&controls=1&modestbranding=1&rel=0&showinfo=0"
+                    title="Amara AI Therapy Companion Demo"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+
+                {/* Trust indicators - Responsive */}
+                <div className="mt-8 sm:mt-12 lg:mt-16 text-center">
+                  <p className="text-xs sm:text-sm lg:text-base text-gray-500 dark:text-gray-400 px-4">
+                    Trusted by thousands • Private & Secure • Available 24/7
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Video Description */}
-          <div className="mt-8 text-center bg-white/40 dark:bg-gray-800/40 backdrop-blur-sm rounded-2xl p-6 border border-white/20 dark:border-gray-700/20">
-            <p className="text-[#6b5ca5] dark:text-[#9d8cd4] font-semibold mb-2 flex items-center justify-center text-lg">
-              <Heart className="w-5 h-5 mr-2" />
-              Say hello to your compassionate AI companion
-            </p>
-            <p className="text-[#4a5568] dark:text-gray-400">
-              Watch Amara introduce herself and discover how she provides the emotional support you deserve
-            </p>
-          </div>
         </div>
-      </div>
-
-      {/* Scroll Indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 opacity-0 animate-[fadeIn_0.6s_ease-out_1s_forwards] text-center">
-        <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30 dark:border-gray-700/30 mb-3">
-          <p className="text-[#6b5ca5] dark:text-[#9d8cd4] text-sm font-medium">
-            Discover how Amara transforms lives ↓
-          </p>
-        </div>
-        <div className="animate-bounce">
-          <ChevronDown className="w-6 h-6 text-[#9d8cd4]" />
-        </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }
