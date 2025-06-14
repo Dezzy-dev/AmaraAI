@@ -73,5 +73,3 @@ export function TryAmara() {
     </section>
   );
 }
-
-export default CallToAction;
