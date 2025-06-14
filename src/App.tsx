@@ -12,6 +12,7 @@ import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import TherapySession from './components/TherapySession';
 import FAQ from './components/FAQ';
+import Brands from './components/Brands';
 import { useDarkMode } from './hooks/useDarkMode';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
       <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
       <Hero onStartTalking={() => setShowOnboarding(true)} />
+      <Brands />
       <Features />
       <Unique />
       <HowItWorks />
