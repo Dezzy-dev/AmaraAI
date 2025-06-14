@@ -12,7 +12,7 @@ const CallToAction: React.FC<CallToActionProps> = ({ onStartTalking }) => {
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
         style={{
-          backgroundImage: 'url(https://images.unsplash.com/photo-1544027993-37dbfe43562a?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80)',
+          backgroundImage: 'url(https://t3.ftcdn.net/jpg/07/45/65/06/360_F_745650609_gXT4ZcsKUcPgQcbSip11hLa0XO1L90Pc.jpg)',
         }}
       ></div>
       {/* Soft Transparent Overlay */}
