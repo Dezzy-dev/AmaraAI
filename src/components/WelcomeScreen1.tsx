@@ -35,7 +35,7 @@ const WelcomeScreen1: React.FC<WelcomeScreen1Props> = ({ onNext }) => {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             Hello, I'm{' '}
             <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
-              Amara
+              𝒜𝓂𝒶𝓇𝒶
             </span>
           </h1>
           
