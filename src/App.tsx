@@ -7,7 +7,7 @@ import Testimonials from './components/Testimonials';
 import Privacy from './components/Privacy';
 import CallToAction from './components/CallToAction';
 import Waitlist from './components/Waitlist';
-import Footer from './components/Footer';
+import { Footer } from './components/Footer';
 import Navigation from './components/Navigation';
 import Onboarding from './components/Onboarding';
 import TherapySession from './components/TherapySession';
