@@ -28,13 +28,13 @@ const Unique: React.FC = () => {
   return (
     <section className="py-20 bg-gradient-to-br from-[#f0fdff] to-[#f8f5ff] dark:from-gray-800 dark:to-gray-900 transition-colors duration-300">
       <div className="container mx-auto px-6">
-        <div className="max-w-3xl mx-auto text-center mb-16">
+        <div className="max-w-3xl mx-auto text-center mb-16 opacity-0 animate-fade-in-up">
           <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] dark:text-white transition-colors duration-300 mb-4">Why Amara is Different</h2>
           <p className="text-lg text-[#4a5568] dark:text-gray-300 transition-colors duration-300">A new approach to emotional support designed for modern life.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {uniqueFeatures.map((feature, index) => (
-            <div key={index} className="flex items-start p-1">
+            <div key={index} className={`flex items-start p-1 opacity-0 animate-fade-in-up animate-delay-${200 + (index * 100)}`}>
               <div className="w-12 h-12 bg-[#5dbfbb]/10 dark:bg-[#5dbfbb]/20 rounded-xl flex items-center justify-center mr-5 text-[#5dbfbb] flex-shrink-0">
                 {feature.icon}
               </div>

@@ -66,7 +66,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
     switch (step) {
       case 1:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <div className="flex justify-center">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-full flex items-center justify-center">
                 <Heart className="w-8 h-8 text-white" />
@@ -101,7 +101,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       case 2:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <h2 className="text-2xl font-bold text-white text-center">What brings you here today?</h2>
             <p className="text-slate-300 text-center">Select all that apply</p>
             <div className="grid grid-cols-2 gap-4">
@@ -125,7 +125,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <h2 className="text-2xl font-bold text-white text-center">Your Preferences</h2>
             <div className="space-y-6">
               <div>
@@ -174,7 +174,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       case 4:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <div className="flex justify-center">
               <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
                 <Shield className="w-8 h-8 text-white" />
@@ -209,7 +209,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
 
       case 5:
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 opacity-0 animate-fade-in-up">
             <div className="flex justify-center">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
                 <Mic className="w-8 h-8 text-white" />

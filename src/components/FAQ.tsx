@@ -72,7 +72,7 @@ const FAQ: React.FC = () => {
   return (
     <section className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300" id="faq">
       <div className="container mx-auto px-6">
-        <div className="max-w-3xl mx-auto text-center mb-16">
+        <div className="max-w-3xl mx-auto text-center mb-16 opacity-0 animate-fade-in-up">
           <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] dark:text-white mb-4 transition-colors duration-300">
             Frequently Asked Questions
           </h2>
@@ -86,7 +86,7 @@ const FAQ: React.FC = () => {
           {faqs.map((faq, index) => (
             <div
               key={`faq-${index}`} // More explicit key
-              className="bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 border-0 dark:border dark:border-gray-700"
+              className={`bg-[#f8f5ff] dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md dark:shadow-gray-900/20 dark:hover:shadow-gray-900/40 transition-all duration-300 border-0 dark:border dark:border-gray-700 opacity-0 animate-fade-in-up animate-delay-${200 + (index * 50)}`}
             >
               <button
                 onClick={(e) => {

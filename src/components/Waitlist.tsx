@@ -23,20 +23,20 @@ const Waitlist: React.FC = () => {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#5dbfbb]/5 rounded-full -translate-x-1/2 translate-y-1/2"></div>
             
             <div className="relative z-10">
-              <h2 className="text-3xl font-bold text-center text-[#2d3748] dark:text-white transition-colors duration-300 mb-6">
+              <h2 className="text-3xl font-bold text-center text-[#2d3748] dark:text-white transition-colors duration-300 mb-6 opacity-0 animate-fade-in-up">
                 Want early access to voice therapy with Amara?
               </h2>
-              <p className="text-lg text-center text-[#4a5568] dark:text-gray-300 transition-colors duration-300 mb-8">
+              <p className="text-lg text-center text-[#4a5568] dark:text-gray-300 transition-colors duration-300 mb-8 opacity-0 animate-fade-in-up animate-delay-200">
                 Join our waitlist to be among the first to experience our most advanced features.
               </p>
               
               {submitted ? (
-                <div className="bg-[#5dbfbb]/10 dark:bg-[#5dbfbb]/20 text-[#5dbfbb] p-4 rounded-xl text-center transition-colors duration-300">
+                <div className="bg-[#5dbfbb]/10 dark:bg-[#5dbfbb]/20 text-[#5dbfbb] p-4 rounded-xl text-center transition-colors duration-300 opacity-0 animate-fade-in-up animate-delay-300">
                   <p className="font-medium">Thank you for joining our waitlist!</p>
                   <p className="text-sm mt-1">We'll notify you as soon as early access is available.</p>
                 </div>
               ) : (
-                <div className="max-w-md mx-auto">
+                <div className="max-w-md mx-auto opacity-0 animate-fade-in-up animate-delay-300">
                   <form onSubmit={handleSubmit}>
                   <div className="flex">
                     <input

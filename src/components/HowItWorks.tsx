@@ -30,14 +30,14 @@ const HowItWorks: React.FC = () => {
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] dark:text-white transition-colors duration-300 mb-6">How It Works</h2>
-            <p className="text-lg text-[#4a5568] dark:text-gray-300 transition-colors duration-300 mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#2d3748] dark:text-white transition-colors duration-300 mb-6 opacity-0 animate-fade-in-up">How It Works</h2>
+            <p className="text-lg text-[#4a5568] dark:text-gray-300 transition-colors duration-300 mb-8 opacity-0 animate-fade-in-up animate-delay-200">
               Amara combines advanced AI with therapeutic principles to create a supportive experience that feels natural and helpful.
             </p>
 
             <div className="space-y-8">
               {steps.map((step, index) => (
-                <div key={index} className="flex items-start">
+                <div key={index} className={`flex items-start opacity-0 animate-fade-in-up animate-delay-${300 + (index * 100)}`}>
                   <div className="w-10 h-10 rounded-full bg-[#6695e2]/10 dark:bg-[#6695e2]/20 flex items-center justify-center mr-4 text-[#6695e2]">
                     {step.icon}
                   </div>
@@ -54,7 +54,7 @@ const HowItWorks: React.FC = () => {
             <div className="absolute -top-10 -left-10 w-64 h-64 bg-[#6695e2]/5 rounded-full"></div>
             <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-[#9d8cd4]/5 rounded-full"></div>
             
-            <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl dark:shadow-gray-900/20 overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300">
+            <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl dark:shadow-gray-900/20 overflow-hidden border border-gray-100 dark:border-gray-700 transition-colors duration-300 opacity-0 animate-fade-in-up animate-delay-500">
               <div className="bg-[#f8f5ff] dark:bg-gray-700 p-4 border-b border-gray-100 dark:border-gray-600 transition-colors duration-300">
                 <div className="flex items-center">
                   <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
