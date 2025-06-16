@@ -50,6 +50,16 @@ html.dark ::selection,
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(10px); }
@@ -67,6 +77,14 @@ html.dark ::selection,
 
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.6s ease-out forwards;
 }
 
 .animate-bounce-slow {
@@ -88,4 +106,80 @@ html.dark ::selection,
 
 .radial-gradient {
   background: radial-gradient(circle at center, rgba(157, 140, 212, 0.1) 0%, transparent 70%);
+}
+
+/* Container utilities for responsive design */
+.container-responsive-wide {
+  width: 100%;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive-wide {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive-wide {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Touch target improvements for mobile */
+.touch-target-lg {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Animation delays */
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-500 { animation-delay: 0.5s; }
+.animate-delay-1000 { animation-delay: 1s; }
+
+/* Fade up animation with delay */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeUpDelayed {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.8s ease-out forwards;
+}
+
+.animate-fade-up-delayed {
+  animation: fadeUpDelayed 0.8s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+/* Slide animations */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.6s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
 }

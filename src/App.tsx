@@ -13,13 +13,24 @@ import Onboarding from './components/Onboarding';
 import TherapySession from './components/TherapySession';
 import FAQ from './components/FAQ';
 import Brands from './components/Brands';
+import WelcomeFlow from './components/WelcomeFlow';
 import { useDarkMode } from './hooks/useDarkMode';
 
 function App() {
   const [isDark, toggleDarkMode] = useDarkMode();
+  const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSession, setShowSession] = useState(false);
   const [userName, setUserName] = useState('');
+
+  const handleStartTalking = () => {
+    setShowWelcomeFlow(true);
+  };
+
+  const handleWelcomeComplete = () => {
+    setShowWelcomeFlow(false);
+    setShowOnboarding(true);
+  };
 
   const handleStartSession = (name: string) => {
     setUserName(name);
@@ -30,6 +41,7 @@ function App() {
   const handleEndSession = () => {
     setShowSession(false);
     setShowOnboarding(false);
+    setShowWelcomeFlow(false);
   };
 
   if (showSession) {
@@ -40,10 +52,14 @@ function App() {
     return <Onboarding onComplete={handleStartSession} />;
   }
 
+  if (showWelcomeFlow) {
+    return <WelcomeFlow onComplete={handleWelcomeComplete} />;
+  }
+
   return (
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
       <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
-      <Hero onStartTalking={() => setShowOnboarding(true)} />
+      <Hero onStartTalking={handleStartTalking} />
       <Brands />
       <Features />
       <Unique />
@@ -51,7 +67,7 @@ function App() {
       <Testimonials />
       <Privacy />
       <FAQ />
-      <CallToAction onStartTalking={() => setShowOnboarding(true)} />
+      <CallToAction onStartTalking={handleStartTalking} />
       <Waitlist />
       <Footer />
     </div>
