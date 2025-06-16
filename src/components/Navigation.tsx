@@ -51,7 +51,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
           {/* Logo - Responsive */}
           <div className="flex items-center">
             <span 
-              className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-800 dark:text-gray-100 cursor-pointer transition-all duration-200 hover:scale-105"
+              className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-800 dark:text-gray-100 cursor-pointer transition-all duration-200 hover:scale-105 opacity-0 animate-fade-in-up"
               style={{
                 fontFamily: 'serif',
                 letterSpacing: '0.02em',
@@ -68,11 +68,11 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
 
           {/* Desktop Navigation - Hidden on mobile/tablet */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
-            {navItems.map((item) => (
+            {navItems.map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className="text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors duration-200 text-sm xl:text-base whitespace-nowrap"
+                className={`text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors duration-200 text-sm xl:text-base whitespace-nowrap opacity-0 animate-fade-in-up animate-delay-${200 + (index * 100)}`}
               >
                 {item.label}
               </button>
@@ -80,7 +80,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
             
             <button
               onClick={handleStartTalking}
-              className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-4 xl:px-6 py-2 xl:py-2.5 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md text-sm xl:text-base whitespace-nowrap"
+              className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-4 xl:px-6 py-2 xl:py-2.5 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md text-sm xl:text-base whitespace-nowrap opacity-0 animate-fade-in-up animate-delay-500"
             >
               Start Talking
             </button>
@@ -120,11 +120,11 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
         {isMobileMenuOpen && (
           <div className="lg:hidden absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/20 dark:border-gray-700/20 shadow-lg">
             <nav className="px-6 py-4 space-y-3">
-              {navItems.map((item) => (
+              {navItems.map((item, index) => (
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="block w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                  className={`block w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 opacity-0 animate-fade-in-up animate-delay-${200 + (index * 100)}`}
                 >
                   {item.label}
                 </button>
@@ -132,7 +132,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
               
               <button
                 onClick={handleStartTalking}
-                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4"
+                className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4 opacity-0 animate-fade-in-up animate-delay-500"
               >
                 Start Talking
               </button>

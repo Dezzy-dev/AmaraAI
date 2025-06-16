@@ -7,7 +7,7 @@ export function Footer() {
       <div className="container-responsive-wide">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
           {/* Logo & Description - Responsive */}
-          <div className="sm:col-span-2 text-center sm:text-left">
+          <div className="sm:col-span-2 text-center sm:text-left opacity-0 animate-fade-in-up">
             <div className="flex items-center gap-3 mb-4 justify-center sm:justify-start">
               <span 
                 className="text-xl sm:text-2xl lg:text-3xl font-light text-white"
@@ -31,7 +31,7 @@ export function Footer() {
           </div>
 
           {/* Quick Links - Responsive */}
-          <div className="text-center sm:text-left">
+          <div className="text-center sm:text-left opacity-0 animate-fade-in-up animate-delay-200">
             <h3 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base lg:text-lg">Quick Links</h3>
             <ul className="space-y-2 text-gray-400 dark:text-gray-300 text-xs sm:text-sm lg:text-base">
               <li><a href="#" className="hover:text-white transition-colors duration-300 touch-target">How It Works</a></li>
@@ -42,7 +42,7 @@ export function Footer() {
           </div>
 
           {/* Support - Responsive */}
-          <div className="text-center sm:text-left">
+          <div className="text-center sm:text-left opacity-0 animate-fade-in-up animate-delay-300">
             <h3 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base lg:text-lg">Support</h3>
             <ul className="space-y-2 text-gray-400 dark:text-gray-300 text-xs sm:text-sm lg:text-base">
               <li><a href="#" className="hover:text-white transition-colors duration-300 touch-target">Help Center</a></li>
@@ -55,7 +55,7 @@ export function Footer() {
 
         {/* Bottom Section - Responsive */}
         <div className="border-t border-gray-800 dark:border-gray-700 pt-6 sm:pt-8">
-          <div className="flex flex-col lg:flex-row justify-between items-center gap-4 text-center lg:text-left">
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-4 text-center lg:text-left opacity-0 animate-fade-in-up animate-delay-400">
             <div className="text-gray-400 dark:text-gray-300 text-xs sm:text-sm lg:text-base">
               © 2025 Amara – AI Therapy Companion. All rights reserved.
             </div>
@@ -68,7 +68,7 @@ export function Footer() {
           </div>
 
           {/* Disclaimer - Responsive */}
-          <div className="mt-6 sm:mt-8 p-3 sm:p-4 lg:p-6 bg-gray-800 dark:bg-gray-900/50 rounded-lg border border-gray-700/50">
+          <div className="mt-6 sm:mt-8 p-3 sm:p-4 lg:p-6 bg-gray-800 dark:bg-gray-900/50 rounded-lg border border-gray-700/50 opacity-0 animate-fade-in-up animate-delay-500">
             <p className="text-xs sm:text-sm lg:text-base text-gray-400 dark:text-gray-300 leading-relaxed crisis-info">
               <strong>Important:</strong> Amara is designed to provide emotional support and is not a replacement for professional mental health treatment. 
               If you're experiencing a mental health crisis, please contact your local emergency services or a crisis helpline immediately.

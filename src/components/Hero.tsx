@@ -20,7 +20,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
             <img 
               src="/black_circle_360x360.png" 
               alt="Powered by Bolt.new" 
-              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
+              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-0 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
               title="Powered by Bolt.new"
             />
           </div>
@@ -30,14 +30,14 @@ export default function Hero({ onStartTalking }: HeroProps) {
             <img 
               src="/white_circle_360x360.png" 
               alt="Powered by Bolt.new" 
-              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
+              className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 opacity-0 opacity-50 hover:opacity-70 transition-all duration-300 transform hover:scale-105 animate-fade-in-up animate-delay-1000"
               title="Powered by Bolt.new"
             />
           </div>
         </div>
 
         <div className="container-responsive-wide">
-          <div className="max-w-4xl mx-auto text-center animate-fade-up">
+          <div className="max-w-4xl mx-auto text-center opacity-0 animate-fade-up">
             {/* Subtitle - Responsive */}
             <h1 className="px-4 sm:px-6 text-sm sm:text-base lg:text-lg text-gray-600 dark:text-gray-400 font-inter">
               AI therapy companion, made for healing
@@ -54,7 +54,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
             </p>
 
             {/* CTA Buttons - Responsive layout */}
-            <div className="px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 mt-8 sm:mt-9 lg:mt-12">
+            <div className="px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5 mt-8 sm:mt-9 lg:mt-12 opacity-0 animate-fade-up animate-delay-300">
               <button
                 onClick={handleStartTalking}
                 className="group inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-3.5 lg:py-4 text-base sm:text-lg lg:text-xl font-bold text-white transition-all duration-200 bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 border-2 border-transparent rounded-xl lg:rounded-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-600 transform hover:scale-105 shadow-lg hover:shadow-xl touch-target-lg"
@@ -84,7 +84,7 @@ export default function Hero({ onStartTalking }: HeroProps) {
           <div className="relative">
             <div className="absolute inset-0 h-2/3 bg-gray-50 dark:bg-gray-900"></div>
             <div className="relative container-responsive-wide">
-              <div className="max-w-6xl mx-auto animate-fade-up-delayed">
+              <div className="max-w-6xl mx-auto opacity-0 animate-fade-up-delayed">
                 {/* Video Introduction Text - Responsive */}
                 <div className="text-center mb-6 sm:mb-8 lg:mb-12">
                   <h3 className="text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2 sm:mb-3">
