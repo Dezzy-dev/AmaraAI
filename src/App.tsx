@@ -16,11 +16,12 @@ import WelcomeFlow from './components/WelcomeFlow';
 import PersonalizationFlow, { PersonalizationData } from './components/personalization/PersonalizationFlow';
 import AuthModal from './components/auth/AuthModal';
 import ComparisonPricingPage from './components/ComparisonPricingPage';
+import CreditCardPage from './components/CreditCardPage';
 import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
-type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'dashboard';
+type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard';
 
 interface UserProfile {
   id: string;
@@ -41,6 +42,7 @@ function App() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
   const [userPath, setUserPath] = useState<UserPath>(null);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
 
@@ -126,15 +128,28 @@ function App() {
   };
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
-    console.log(`Starting ${planType} free trial...`);
+    setSelectedPlan(planType);
+    setCurrentView('credit-card');
+  };
+
+  const handleCreditCardSuccess = () => {
+    console.log(`Starting ${selectedPlan} free trial...`);
     // Simulate successful trial start
-    setCurrentUser(mockUsers.trial);
+    const trialUser = {
+      ...mockUsers.trial,
+      current_plan: selectedPlan === 'monthly' ? 'monthly_trial' as const : 'yearly_trial' as const
+    };
+    setCurrentUser(trialUser);
     setCurrentView('dashboard');
   };
 
   const handleBackToAuth = () => {
     setCurrentView('landing');
     setShowAuthModal(true);
+  };
+
+  const handleBackToComparison = () => {
+    setCurrentView('comparison');
   };
 
   // Dashboard handlers
@@ -172,47 +187,52 @@ function App() {
     console.log('Getting AI prompt...');
   };
 
-  // Demo buttons for testing different user states
-  const renderDemoButtons = () => (
-    <div className="fixed bottom-4 right-4 space-y-2 z-50">
-      <button
-        onClick={() => {
-          setCurrentUser(mockUsers.freemium);
-          setCurrentView('dashboard');
-        }}
-        className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
-      >
-        Demo: Freemium User
-      </button>
-      <button
-        onClick={() => {
-          setCurrentUser(mockUsers.trial);
-          setCurrentView('dashboard');
-        }}
-        className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
-      >
-        Demo: Trial User
-      </button>
-      <button
-        onClick={() => {
-          setCurrentUser(mockUsers.premium);
-          setCurrentView('dashboard');
-        }}
-        className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
-      >
-        Demo: Premium User
-      </button>
-      <button
-        onClick={() => {
-          setCurrentUser(null);
-          setCurrentView('landing');
-        }}
-        className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
-      >
-        Back to Landing
-      </button>
-    </div>
-  );
+  // Demo buttons for testing different user states (hidden in production)
+  const renderDemoButtons = () => {
+    // Hide demo buttons in production
+    if (import.meta.env.PROD) return null;
+    
+    return (
+      <div className="fixed bottom-4 right-4 space-y-2 z-50">
+        <button
+          onClick={() => {
+            setCurrentUser(mockUsers.freemium);
+            setCurrentView('dashboard');
+          }}
+          className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
+        >
+          Demo: Freemium User
+        </button>
+        <button
+          onClick={() => {
+            setCurrentUser(mockUsers.trial);
+            setCurrentView('dashboard');
+          }}
+          className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
+        >
+          Demo: Trial User
+        </button>
+        <button
+          onClick={() => {
+            setCurrentUser(mockUsers.premium);
+            setCurrentView('dashboard');
+          }}
+          className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
+        >
+          Demo: Premium User
+        </button>
+        <button
+          onClick={() => {
+            setCurrentUser(null);
+            setCurrentView('landing');
+          }}
+          className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
+        >
+          Back to Landing
+        </button>
+      </div>
+    );
+  };
 
   // Render current view
   const renderCurrentView = () => {
@@ -230,6 +250,15 @@ function App() {
             onGetAIPrompt={handleGetAIPrompt}
           />
         ) : null;
+
+      case 'credit-card':
+        return (
+          <CreditCardPage
+            selectedPlan={selectedPlan}
+            onSuccess={handleCreditCardSuccess}
+            onBack={handleBackToComparison}
+          />
+        );
 
       case 'comparison':
         return (
