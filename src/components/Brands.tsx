@@ -87,9 +87,9 @@ export function Brands() {
                 <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-transparent to-blue-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl transform scale-110"></div>
                 
                 {/* Logo container */}
-                <div className="relative flex items-center justify-center h-20 px-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-100/50 dark:border-gray-700/50 shadow-sm hover:shadow-lg transition-all duration-500 group-hover:border-purple-200/50 dark:group-hover:border-purple-700/50 group-hover:-translate-y-1">
+                <div className="relative flex items-center justify-center h-20 px-6 bg-white dark:bg-white backdrop-blur-sm rounded-2xl border border-gray-100/50 dark:border-gray-700/50 shadow-sm hover:shadow-lg transition-all duration-500 group-hover:border-purple-200/50 dark:group-hover:border-purple-700/50 group-hover:-translate-y-1">
                   <img 
-                    className="max-h-8 w-auto object-contain transition-all duration-500 filter grayscale group-hover:grayscale-0 group-hover:scale-105" 
+                    className="max-h-8 w-auto object-contain transition-all duration-500 group-hover:scale-105" 
                     src={brand.logo} 
                     alt={`${brand.name} logo`}
                     loading="lazy"
