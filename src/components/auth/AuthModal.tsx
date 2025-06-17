@@ -7,12 +7,14 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'signup' | 'signin';
+  onAuthSuccess?: () => void;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ 
   isOpen, 
   onClose, 
-  initialMode = 'signup' 
+  initialMode = 'signup',
+  onAuthSuccess
 }) => {
   const [mode, setMode] = useState<'signup' | 'signin'>(initialMode);
 
@@ -21,22 +23,34 @@ const AuthModal: React.FC<AuthModalProps> = ({
   const handleSignUp = async (email: string, password: string) => {
     console.log('Sign up:', { email, password });
     // Implement actual sign up logic here
-    // For now, just close the modal
-    onClose();
+    // For now, simulate success
+    if (onAuthSuccess) {
+      onAuthSuccess();
+    } else {
+      onClose();
+    }
   };
 
   const handleSignIn = async (email: string, password: string) => {
     console.log('Sign in:', { email, password });
     // Implement actual sign in logic here
-    // For now, just close the modal
-    onClose();
+    // For now, simulate success
+    if (onAuthSuccess) {
+      onAuthSuccess();
+    } else {
+      onClose();
+    }
   };
 
   const handleSocialAuth = (provider: 'google' | 'apple', action: 'signup' | 'signin') => {
     console.log(`${action} with ${provider}`);
     // Implement social auth logic here
-    // For now, just close the modal
-    onClose();
+    // For now, simulate success
+    if (onAuthSuccess) {
+      onAuthSuccess();
+    } else {
+      onClose();
+    }
   };
 
   const handleForgotPassword = () => {

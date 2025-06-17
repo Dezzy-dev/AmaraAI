@@ -15,7 +15,10 @@ import Brands from './components/Brands';
 import WelcomeFlow from './components/WelcomeFlow';
 import PersonalizationFlow, { PersonalizationData } from './components/personalization/PersonalizationFlow';
 import AuthModal from './components/auth/AuthModal';
+import ComparisonPricingPage from './components/ComparisonPricingPage';
 import { useDarkMode } from './hooks/useDarkMode';
+
+type UserPath = 'trial_path' | 'freemium_path' | null;
 
 function App() {
   const [isDark, toggleDarkMode] = useDarkMode();
@@ -23,7 +26,9 @@ function App() {
   const [showPersonalizationFlow, setShowPersonalizationFlow] = useState(false);
   const [showSession, setShowSession] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showComparisonPricing, setShowComparisonPricing] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [userPath, setUserPath] = useState<UserPath>(null);
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
 
   const handleStartTalking = () => {
@@ -48,13 +53,53 @@ function App() {
     setPersonalizationData(null);
   };
 
-  const openAuthModal = (mode: 'signup' | 'signin') => {
+  const openAuthModal = (mode: 'signup' | 'signin', path: UserPath = null) => {
     setAuthMode(mode);
+    setUserPath(path);
     setShowAuthModal(true);
   };
 
-  const handleSignUp = () => openAuthModal('signup');
+  const handleSignUp = (path: UserPath = 'trial_path') => openAuthModal('signup', path);
   const handleSignIn = () => openAuthModal('signin');
+
+  const handleAuthSuccess = () => {
+    setShowAuthModal(false);
+    
+    // Route user based on their chosen path
+    if (userPath === 'trial_path') {
+      // Redirect to comparison/pricing page
+      setShowComparisonPricing(true);
+    } else if (userPath === 'freemium_path') {
+      // Redirect to dashboard (for now, just close everything)
+      console.log('Redirecting to freemium dashboard...');
+      // In a real app, this would navigate to the dashboard
+    }
+    
+    // Reset path
+    setUserPath(null);
+  };
+
+  const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
+    console.log(`Starting ${planType} free trial...`);
+    // This would integrate with your payment processor
+    // For now, just close the comparison page
+    setShowComparisonPricing(false);
+  };
+
+  const handleBackToAuth = () => {
+    setShowComparisonPricing(false);
+    setShowAuthModal(true);
+  };
+
+  // Show comparison/pricing page
+  if (showComparisonPricing) {
+    return (
+      <ComparisonPricingPage 
+        onStartFreeTrial={handleStartFreeTrial}
+        onBack={handleBackToAuth}
+      />
+    );
+  }
 
   return (
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
@@ -87,11 +132,13 @@ function App() {
           <Footer />
         </>
       )}
-      {/* Auth Modal is always rendered */}
+      
+      {/* Auth Modal */}
       <AuthModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
         initialMode={authMode}
+        onAuthSuccess={handleAuthSuccess}
       />
     </div>
   );
