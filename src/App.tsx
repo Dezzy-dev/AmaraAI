@@ -14,14 +14,16 @@ import TherapySession from './components/TherapySession';
 import FAQ from './components/FAQ';
 import Brands from './components/Brands';
 import WelcomeFlow from './components/WelcomeFlow';
+import PersonalizationFlow, { PersonalizationData } from './components/personalization/PersonalizationFlow';
 import { useDarkMode } from './hooks/useDarkMode';
 
 function App() {
   const [isDark, toggleDarkMode] = useDarkMode();
   const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
+  const [showPersonalizationFlow, setShowPersonalizationFlow] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSession, setShowSession] = useState(false);
-  const [userName, setUserName] = useState('');
+  const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
 
   const handleStartTalking = () => {
     setShowWelcomeFlow(true);
@@ -29,11 +31,16 @@ function App() {
 
   const handleWelcomeComplete = () => {
     setShowWelcomeFlow(false);
+    setShowPersonalizationFlow(true);
+  };
+
+  const handlePersonalizationComplete = (data: PersonalizationData) => {
+    setPersonalizationData(data);
+    setShowPersonalizationFlow(false);
     setShowOnboarding(true);
   };
 
   const handleStartSession = (name: string) => {
-    setUserName(name);
     setShowOnboarding(false);
     setShowSession(true);
   };
@@ -41,15 +48,35 @@ function App() {
   const handleEndSession = () => {
     setShowSession(false);
     setShowOnboarding(false);
+    setShowPersonalizationFlow(false);
     setShowWelcomeFlow(false);
+    setPersonalizationData(null);
   };
 
   if (showSession) {
-    return <TherapySession userName={userName} onEndSession={handleEndSession} />;
+    return (
+      <TherapySession 
+        userName={personalizationData?.name || 'there'} 
+        userCountry={personalizationData?.country}
+        userFeeling={personalizationData?.feeling}
+        onEndSession={handleEndSession} 
+      />
+    );
   }
 
   if (showOnboarding) {
-    return <Onboarding onComplete={handleStartSession} />;
+    return (
+      <Onboarding 
+        userName={personalizationData?.name}
+        userCountry={personalizationData?.country}
+        userFeeling={personalizationData?.feeling}
+        onComplete={handleStartSession} 
+      />
+    );
+  }
+
+  if (showPersonalizationFlow) {
+    return <PersonalizationFlow onComplete={handlePersonalizationComplete} />;
   }
 
   if (showWelcomeFlow) {

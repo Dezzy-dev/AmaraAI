@@ -10,13 +10,16 @@ interface FormData {
 }
 
 interface OnboardingProps {
+  userName?: string;
+  userCountry?: string;
+  userFeeling?: string;
   onComplete: (name: string) => void;
 }
 
-const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+const Onboarding: React.FC<OnboardingProps> = ({ userName, userCountry, userFeeling, onComplete }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({
-    name: '',
+    name: userName || '',
     email: '',
     concerns: [],
     preferredTime: '',
@@ -59,7 +62,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const handleStartSession = () => {
-    onComplete(formData.name);
+    onComplete(formData.name || userName || 'there');
   };
 
   const renderStep = () => {
@@ -73,7 +76,15 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
               </div>
             </div>
             <h2 className="text-2xl font-bold text-white text-center">Welcome to Amara</h2>
-            <p className="text-slate-300 text-center">Let's personalize your experience</p>
+            <p className="text-slate-300 text-center">Let's personalize your experience further</p>
+            {userName && (
+              <div className="bg-purple-600/20 border border-purple-600/30 rounded-lg p-4 text-center">
+                <p className="text-purple-200">
+                  Hi {userName}! {userCountry && `Great to meet someone from ${userCountry}. `}
+                  {userFeeling && `I can see you're feeling ${userFeeling} right now.`}
+                </p>
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="block text-slate-300 mb-2">First Name</label>
@@ -219,7 +230,9 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
               <h3 className="text-white font-medium mb-4">Session Summary</h3>
               <div className="space-y-2 text-slate-300">
-                <p>Name: {formData.name}</p>
+                <p>Name: {formData.name || userName}</p>
+                {userCountry && <p>Country: {userCountry}</p>}
+                {userFeeling && <p>Current Feeling: {userFeeling}</p>}
                 <p>Focus Areas: {formData.concerns.map(c => 
                   concerns.find(con => con.id === c)?.label
                 ).join(', ')}</p>
@@ -231,7 +244,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                 onClick={handleStartSession}
                 className="w-full py-3 px-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white font-medium hover:opacity-90 transition-opacity"
               >
-                Start Therapy  Session
+                Start Therapy Session
               </button>
               <button 
                 onClick={handleStartSession}

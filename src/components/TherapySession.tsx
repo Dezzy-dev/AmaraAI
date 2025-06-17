@@ -11,6 +11,8 @@ interface Message {
 
 interface TherapySessionProps {
   userName: string;
+  userCountry?: string;
+  userFeeling?: string;
   onEndSession: () => void;
   onNavigateToDashboard?: (userData: UserAccount) => void;
 }
@@ -26,11 +28,35 @@ interface UserAccount {
 const ANONYMOUS_LIMIT = 3;
 const REGISTERED_LIMIT = 8;
 
-const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession, onNavigateToDashboard }) => {
+const TherapySession: React.FC<TherapySessionProps> = ({ userName, userCountry, userFeeling, onEndSession, onNavigateToDashboard }) => {
+  // Create personalized welcome message
+  const createWelcomeMessage = () => {
+    let message = `Hi ${userName}! I'm glad you're here. `;
+    
+    if (userCountry) {
+      message += `It's wonderful to connect with someone from ${userCountry}. `;
+    }
+    
+    if (userFeeling) {
+      const feelingResponses = {
+        happy: "I can sense you're in a good mood today, which is lovely to see. ",
+        neutral: "I appreciate you taking the time to check in, even when you're feeling neutral. ",
+        sad: "I can see you're going through a difficult time right now, and I want you to know I'm here to listen. ",
+        anxious: "I notice you're feeling anxious at the moment. That takes courage to acknowledge, and I'm here to support you through it. ",
+        excited: "Your excitement is wonderful to feel! I'd love to hear what's bringing you joy today. "
+      };
+      message += feelingResponses[userFeeling as keyof typeof feelingResponses] || "Thank you for sharing how you're feeling with me. ";
+    }
+    
+    message += "How are you feeling right now in this moment, and what would you like to talk about today?";
+    
+    return message;
+  };
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: `Hi ${userName}! I'm glad you're here. I noticed from your onboarding that you're dealing with anxiety and work stress. How are you feeling right now in this moment?`,
+      text: createWelcomeMessage(),
       sender: 'amara',
       timestamp: new Date()
     }
@@ -604,6 +630,19 @@ const TherapySession: React.FC<TherapySessionProps> = ({ userName, onEndSession,
                 )}
               </div>
               <p className="text-green-400 text-xs truncate">{userAccount.email}</p>
+            </div>
+          )}
+
+          {/* User Context */}
+          {(userCountry || userFeeling) && (
+            <div className="mb-6 p-3 bg-purple-600/10 rounded-lg border border-purple-600/20">
+              <h3 className="text-purple-400 font-medium text-sm mb-2">Your Context</h3>
+              {userCountry && (
+                <p className="text-purple-300 text-xs mb-1">From: {userCountry}</p>
+              )}
+              {userFeeling && (
+                <p className="text-purple-300 text-xs">Feeling: {userFeeling}</p>
+              )}
             </div>
           )}
 
