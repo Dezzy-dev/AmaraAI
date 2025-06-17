@@ -16,40 +16,86 @@ import WelcomeFlow from './components/WelcomeFlow';
 import PersonalizationFlow, { PersonalizationData } from './components/personalization/PersonalizationFlow';
 import AuthModal from './components/auth/AuthModal';
 import ComparisonPricingPage from './components/ComparisonPricingPage';
+import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
+type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'dashboard';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
+  trial_end_date?: string;
+  messages_used_today?: number;
+  last_session_date?: string;
+  last_mood?: string;
+  last_journal_entry?: string;
+  created_at: string;
+}
 
 function App() {
   const [isDark, toggleDarkMode] = useDarkMode();
-  const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
-  const [showPersonalizationFlow, setShowPersonalizationFlow] = useState(false);
-  const [showSession, setShowSession] = useState(false);
+  const [currentView, setCurrentView] = useState<AppView>('landing');
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [showComparisonPricing, setShowComparisonPricing] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
   const [userPath, setUserPath] = useState<UserPath>(null);
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  // Mock user data for demonstration
+  const mockUsers = {
+    freemium: {
+      id: '1',
+      name: 'Alex',
+      email: 'alex@example.com',
+      current_plan: 'freemium' as const,
+      messages_used_today: 3,
+      last_session_date: '2025-01-08',
+      last_mood: 'Happy 😊',
+      created_at: '2025-01-01'
+    },
+    trial: {
+      id: '2',
+      name: 'Jordan',
+      email: 'jordan@example.com',
+      current_plan: 'yearly_trial' as const,
+      trial_end_date: '2025-01-15',
+      messages_used_today: 0,
+      last_session_date: '2025-01-08',
+      last_mood: 'Anxious 😰',
+      last_journal_entry: 'Today was challenging but I learned something new about myself...',
+      created_at: '2025-01-08'
+    },
+    premium: {
+      id: '3',
+      name: 'Sam',
+      email: 'sam@example.com',
+      current_plan: 'yearly_premium' as const,
+      messages_used_today: 0,
+      last_session_date: '2025-01-08',
+      last_mood: 'Excited 😄',
+      last_journal_entry: 'Feeling grateful for the progress I\'ve made this month...',
+      created_at: '2024-12-01'
+    }
+  };
 
   const handleStartTalking = () => {
-    setShowWelcomeFlow(true);
+    setCurrentView('welcome');
   };
 
   const handleWelcomeComplete = () => {
-    setShowWelcomeFlow(false);
-    setShowPersonalizationFlow(true);
+    setCurrentView('personalization');
   };
 
   const handlePersonalizationComplete = (data: PersonalizationData) => {
     setPersonalizationData(data);
-    setShowPersonalizationFlow(false);
-    setShowSession(true);
+    setCurrentView('session');
   };
 
   const handleEndSession = () => {
-    setShowSession(false);
-    setShowPersonalizationFlow(false);
-    setShowWelcomeFlow(false);
+    setCurrentView('landing');
     setPersonalizationData(null);
   };
 
@@ -68,11 +114,11 @@ function App() {
     // Route user based on their chosen path
     if (userPath === 'trial_path') {
       // Redirect to comparison/pricing page
-      setShowComparisonPricing(true);
+      setCurrentView('comparison');
     } else if (userPath === 'freemium_path') {
-      // Redirect to dashboard (for now, just close everything)
-      console.log('Redirecting to freemium dashboard...');
-      // In a real app, this would navigate to the dashboard
+      // Redirect to dashboard with freemium user
+      setCurrentUser(mockUsers.freemium);
+      setCurrentView('dashboard');
     }
     
     // Reset path
@@ -81,57 +127,159 @@ function App() {
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     console.log(`Starting ${planType} free trial...`);
-    // This would integrate with your payment processor
-    // For now, just close the comparison page
-    setShowComparisonPricing(false);
+    // Simulate successful trial start
+    setCurrentUser(mockUsers.trial);
+    setCurrentView('dashboard');
   };
 
   const handleBackToAuth = () => {
-    setShowComparisonPricing(false);
+    setCurrentView('landing');
     setShowAuthModal(true);
   };
 
-  // Show comparison/pricing page
-  if (showComparisonPricing) {
-    return (
-      <ComparisonPricingPage 
-        onStartFreeTrial={handleStartFreeTrial}
-        onBack={handleBackToAuth}
-      />
-    );
-  }
+  // Dashboard handlers
+  const handleStartNewSession = () => {
+    setCurrentView('personalization');
+  };
+
+  const handleResumeSession = () => {
+    setCurrentView('session');
+  };
+
+  const handleUpgrade = () => {
+    setCurrentView('comparison');
+  };
+
+  const handleManageSubscription = () => {
+    console.log('Managing subscription...');
+  };
+
+  const handleLogMood = (mood: string) => {
+    console.log('Logging mood:', mood);
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, last_mood: mood });
+    }
+  };
+
+  const handleQuickJournal = (entry: string) => {
+    console.log('Saving journal entry:', entry);
+    if (currentUser) {
+      setCurrentUser({ ...currentUser, last_journal_entry: entry });
+    }
+  };
+
+  const handleGetAIPrompt = () => {
+    console.log('Getting AI prompt...');
+  };
+
+  // Demo buttons for testing different user states
+  const renderDemoButtons = () => (
+    <div className="fixed bottom-4 right-4 space-y-2 z-50">
+      <button
+        onClick={() => {
+          setCurrentUser(mockUsers.freemium);
+          setCurrentView('dashboard');
+        }}
+        className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
+      >
+        Demo: Freemium User
+      </button>
+      <button
+        onClick={() => {
+          setCurrentUser(mockUsers.trial);
+          setCurrentView('dashboard');
+        }}
+        className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
+      >
+        Demo: Trial User
+      </button>
+      <button
+        onClick={() => {
+          setCurrentUser(mockUsers.premium);
+          setCurrentView('dashboard');
+        }}
+        className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
+      >
+        Demo: Premium User
+      </button>
+      <button
+        onClick={() => {
+          setCurrentUser(null);
+          setCurrentView('landing');
+        }}
+        className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
+      >
+        Back to Landing
+      </button>
+    </div>
+  );
+
+  // Render current view
+  const renderCurrentView = () => {
+    switch (currentView) {
+      case 'dashboard':
+        return currentUser ? (
+          <Dashboard
+            user={currentUser}
+            onStartNewSession={handleStartNewSession}
+            onResumeSession={handleResumeSession}
+            onUpgrade={handleUpgrade}
+            onManageSubscription={handleManageSubscription}
+            onLogMood={handleLogMood}
+            onQuickJournal={handleQuickJournal}
+            onGetAIPrompt={handleGetAIPrompt}
+          />
+        ) : null;
+
+      case 'comparison':
+        return (
+          <ComparisonPricingPage 
+            onStartFreeTrial={handleStartFreeTrial}
+            onBack={handleBackToAuth}
+          />
+        );
+
+      case 'session':
+        return (
+          <TherapySession 
+            userName={personalizationData?.name || 'there'} 
+            userCountry={personalizationData?.country}
+            userFeeling={personalizationData?.feeling}
+            onEndSession={handleEndSession}
+            onSignUp={handleSignUp}
+            onSignIn={handleSignIn}
+          />
+        );
+
+      case 'personalization':
+        return <PersonalizationFlow onComplete={handlePersonalizationComplete} />;
+
+      case 'welcome':
+        return <WelcomeFlow onComplete={handleWelcomeComplete} />;
+
+      default:
+        return (
+          <>
+            <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
+            <Hero onStartTalking={handleStartTalking} />
+            <Brands />
+            <Features />
+            <Unique />
+            <HowItWorks />
+            <Testimonials />
+            <Privacy />
+            <FAQ />
+            <CallToAction onStartTalking={handleStartTalking} />
+            <Waitlist />
+            <Footer />
+          </>
+        );
+    }
+  };
 
   return (
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
-      {showSession ? (
-        <TherapySession 
-          userName={personalizationData?.name || 'there'} 
-          userCountry={personalizationData?.country}
-          userFeeling={personalizationData?.feeling}
-          onEndSession={handleEndSession}
-          onSignUp={handleSignUp}
-          onSignIn={handleSignIn}
-        />
-      ) : showPersonalizationFlow ? (
-        <PersonalizationFlow onComplete={handlePersonalizationComplete} />
-      ) : showWelcomeFlow ? (
-        <WelcomeFlow onComplete={handleWelcomeComplete} />
-      ) : (
-        <>
-          <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
-          <Hero onStartTalking={handleStartTalking} />
-          <Brands />
-          <Features />
-          <Unique />
-          <HowItWorks />
-          <Testimonials />
-          <Privacy />
-          <FAQ />
-          <CallToAction onStartTalking={handleStartTalking} />
-          <Waitlist />
-          <Footer />
-        </>
-      )}
+      {renderCurrentView()}
       
       {/* Auth Modal */}
       <AuthModal 
@@ -140,6 +288,9 @@ function App() {
         initialMode={authMode}
         onAuthSuccess={handleAuthSuccess}
       />
+
+      {/* Demo buttons for testing */}
+      {renderDemoButtons()}
     </div>
   );
 }
