@@ -44,19 +44,37 @@ export default function Hero({ onStartTalking = () => console.log('Start talking
           }}
         ></div>
 
-        {/* Bolt.new Badges with enhanced animation */}
-        <div className="absolute top-20 right-6 z-20">
-          <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-70' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '1.5s' }}>
-            <div className="block dark:hidden">
-              <div className="w-14 h-14 bg-black rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-xl animate-pulse">
-                <span className="text-white text-xs font-bold">BOLT</span>
+        {/* Bolt.new Logo Badge - Top Right */}
+        <div className="absolute top-6 right-6 z-30">
+          <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '1.2s' }}>
+            <a 
+              href="https://bolt.new/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="group block hover:scale-110 transition-all duration-300 cursor-pointer"
+              aria-label="Powered by Bolt.new"
+            >
+              {/* Light Mode Logo */}
+              <div className="block dark:hidden">
+                <img 
+                  src="/src/assets/black_circle_360x360.png" 
+                  alt="Powered by Bolt.new" 
+                  className="w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group-hover:rotate-3"
+                />
               </div>
-            </div>
-            <div className="hidden dark:block">
-              <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center hover:scale-110 transition-transform duration-300 shadow-lg hover:shadow-xl animate-pulse">
-                <span className="text-black text-xs font-bold">BOLT</span>
+              
+              {/* Dark Mode Logo */}
+              <div className="hidden dark:block">
+                <img 
+                  src="/src/assets/white_circle_360x360.png" 
+                  alt="Powered by Bolt.new" 
+                  className="w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 group-hover:rotate-3"
+                />
               </div>
-            </div>
+              
+              {/* Subtle glow effect on hover */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-purple-500/20 to-blue-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"></div>
+            </a>
           </div>
         </div>
 
