@@ -19,7 +19,8 @@ import {
   Play,
   Plus,
   Edit3,
-  Activity
+  Activity,
+  Brain
 } from 'lucide-react';
 
 interface UserProfile {
