@@ -482,55 +482,55 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-white flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/20 to-slate-800 flex">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col h-screen">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 shadow-sm">
+        {/* Header with Frosted Glass Effect */}
+        <header className="bg-white/10 backdrop-blur-md border-b border-white/10 p-4 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-gray-900 text-lg font-semibold">Chat with Amara</h1>
-              <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
-                <Clock className="w-4 h-4 text-gray-600" />
-                <span className="text-gray-600 text-sm">{formatTime(sessionTime)}</span>
+              <h1 className="text-white text-lg font-semibold">Chat with Amara</h1>
+              <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-sm px-3 py-1 rounded-full border border-white/20">
+                <Clock className="w-4 h-4 text-white/80" />
+                <span className="text-white/80 text-sm">{formatTime(sessionTime)}</span>
               </div>
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-600 text-sm font-medium">Active</span>
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                <span className="text-green-400 text-sm font-medium">Active</span>
               </div>
             </div>
             
             <div className="flex items-center space-x-4">
               {/* Trial Progress Indicator */}
               {userAccount.tier === 'anonymous' && (
-                <div className="flex items-center space-x-3 bg-purple-50 px-4 py-2 rounded-lg border border-purple-200">
+                <div className="flex items-center space-x-3 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
                   <div className="flex flex-col items-center">
-                    <div className="text-xs text-gray-600 mb-1">Chat Messages</div>
+                    <div className="text-xs text-white/70 mb-1">Chat Messages</div>
                     <div className="flex items-center space-x-2">
-                      <div className="h-2 w-16 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-2 w-16 bg-white/20 rounded-full overflow-hidden">
                         <div 
-                          className={`h-full ${getProgressColor()} transition-all duration-300`}
+                          className={`h-full ${getProgressColor()} transition-all duration-300 shadow-sm`}
                           style={{ width: `${(userAccount.messagesUsed / userAccount.messagesLimit) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-xs text-gray-600 font-medium">
+                      <span className="text-xs text-white/80 font-medium">
                         {userAccount.messagesUsed}/{userAccount.messagesLimit}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="w-px h-8 bg-gray-300"></div>
+                  <div className="w-px h-8 bg-white/20"></div>
                   
                   <div className="flex flex-col items-center">
-                    <div className="text-xs text-gray-600 mb-1">Voice Notes</div>
+                    <div className="text-xs text-white/70 mb-1">Voice Notes</div>
                     <div className="flex items-center space-x-2">
-                      <div className="h-2 w-16 bg-gray-200 rounded-full overflow-hidden">
+                      <div className="h-2 w-16 bg-white/20 rounded-full overflow-hidden">
                         <div 
-                          className="h-full bg-blue-500 transition-all duration-300"
+                          className="h-full bg-blue-400 transition-all duration-300 shadow-sm"
                           style={{ width: `${(userAccount.voiceNotesUsed / userAccount.voiceNotesLimit) * 100}%` }}
                         ></div>
                       </div>
-                      <span className="text-xs text-gray-600 font-medium">
+                      <span className="text-xs text-white/80 font-medium">
                         {userAccount.voiceNotesUsed}/{userAccount.voiceNotesLimit}
                       </span>
                     </div>
@@ -539,7 +539,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               )}
               
               {userAccount.isAuthenticated && (
-                <span className="text-xs text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200 font-medium">
+                <span className="text-xs text-green-400 bg-green-400/10 px-3 py-1 rounded-full border border-green-400/20 font-medium backdrop-blur-sm">
                   7-Day Free Trial
                 </span>
               )}
@@ -547,7 +547,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               {userAccount.isAuthenticated && onNavigateToDashboard && (
                 <button
                   onClick={() => onNavigateToDashboard(userAccount)}
-                  className="bg-purple-50 text-purple-600 hover:bg-purple-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 border border-purple-200"
+                  className="bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 px-4 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 border border-purple-400/20 backdrop-blur-sm hover:shadow-lg hover:shadow-purple-500/20"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="text-sm font-medium">Dashboard</span>
@@ -556,7 +556,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               
               <button
                 onClick={onEndSession}
-                className="bg-red-50 text-red-600 hover:bg-red-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 border border-red-200"
+                className="bg-red-500/20 text-red-300 hover:bg-red-500/30 px-4 py-2 rounded-lg transition-all duration-300 flex items-center space-x-2 border border-red-400/20 backdrop-blur-sm hover:shadow-lg hover:shadow-red-500/20"
               >
                 <X className="w-4 h-4" />
                 <span className="text-sm font-medium">End Session</span>
@@ -565,10 +565,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           </div>
         </header>
 
-        {/* Chat Messages */}
+        {/* Chat Messages with Dark Gradient Background */}
         <div
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50"
+          className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-slate-900/50 to-slate-800/50"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 40% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)
+            `
+          }}
         >
           {messages.map((message) => (
             <div
@@ -578,24 +585,27 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <div
                 className={`max-w-[75%] ${
                   message.sender === 'user'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                    : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/25'
+                    : 'bg-slate-800/80 backdrop-blur-sm text-gray-100 border border-slate-700/50 shadow-lg shadow-slate-900/50'
                 } rounded-2xl px-6 py-4 ${
                   message.sender === 'user' ? 'rounded-tr-md' : 'rounded-tl-md'
+                } transition-all duration-300 hover:shadow-xl ${
+                  message.sender === 'user' ? 'hover:shadow-purple-500/30' : 'hover:shadow-slate-900/60'
                 }`}
               >
                 <p className="leading-relaxed">{message.text}</p>
-                <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center justify-between mt-3">
                   <p className={`text-xs ${
-                    message.sender === 'user' ? 'text-purple-100' : 'text-gray-500'
+                    message.sender === 'user' ? 'text-purple-100' : 'text-gray-400'
                   }`}>
                     {message.timestamp.toLocaleTimeString()}
                   </p>
                   {message.type === 'voice' && (
-                    <div className={`text-xs ${
-                      message.sender === 'user' ? 'text-purple-100' : 'text-gray-500'
+                    <div className={`text-xs flex items-center space-x-1 ${
+                      message.sender === 'user' ? 'text-purple-100' : 'text-gray-400'
                     }`}>
-                      Voice Note
+                      <Mic className="w-3 h-3" />
+                      <span>Voice Note</span>
                     </div>
                   )}
                 </div>
@@ -605,60 +615,77 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           
           {isTyping && (
             <div className="flex items-center space-x-3">
-              <div className="bg-white border border-gray-200 shadow-sm p-4 rounded-2xl rounded-tl-md">
+              <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700/50 shadow-lg shadow-slate-900/50 p-4 rounded-2xl rounded-tl-md">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                 </div>
               </div>
-              <span className="text-sm text-gray-500">Amara is typing...</span>
+              <span className="text-sm text-gray-300">Amara is typing...</span>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Message Input */}
-        <div className="bg-white border-t border-gray-200 p-4">
-          <div className="flex space-x-3">
+        {/* Modern Input Area */}
+        <div className="bg-slate-800/80 backdrop-blur-md border-t border-slate-700/50 p-6">
+          {/* Trial Limit Warning */}
+          {userAccount.tier === 'anonymous' && !canSendMessage() && (
+            <div className="mb-4 p-4 bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 rounded-xl backdrop-blur-sm">
+              <p className="text-purple-200 text-sm text-center">
+                Trial limit reached. Sign up to continue chatting with unlimited messages!
+              </p>
+            </div>
+          )}
+          
+          <div className="flex space-x-4">
             <div className="flex-1">
               <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={getInputPlaceholder()}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-colors"
+                className="w-full bg-slate-700/50 backdrop-blur-sm border border-slate-600/50 rounded-2xl px-6 py-4 text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 resize-none transition-all duration-300 shadow-inner"
                 rows={2}
                 disabled={!canSendMessage()}
+                style={{
+                  minHeight: '60px',
+                  maxHeight: '120px'
+                }}
               />
-              <p className="text-xs text-gray-500 mt-2">Press Enter to send, Shift + Enter for new line</p>
+              <p className="text-xs text-gray-400 mt-2 px-2">Press Enter to send, Shift + Enter for new line</p>
             </div>
             
-            <div className="flex flex-col space-y-2">
-              <button
-                onClick={handleSend}
-                disabled={!canSendMessage() || !inputMessage.trim()}
-                className={`p-3 rounded-xl transition-all ${
-                  canSendMessage() && inputMessage.trim()
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                <Send className="w-5 h-5" />
-              </button>
-              
+            <div className="flex flex-col space-y-3">
+              {/* Voice Input Button */}
               <button
                 onClick={handleVoiceNote}
                 disabled={!canSendVoiceNote()}
-                className={`p-3 rounded-xl transition-all ${
+                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
                   canSendVoiceNote()
                     ? isRecording
-                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                }`}
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg shadow-red-500/30'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40'
+                    : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+                } ${isRecording ? 'ring-2 ring-red-400/50' : ''}`}
+                title={isRecording ? 'Stop Recording' : 'Start Voice Note'}
               >
-                {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              </button>
+              
+              {/* Send Button */}
+              <button
+                onClick={handleSend}
+                disabled={!canSendMessage() || !inputMessage.trim()}
+                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
+                  canSendMessage() && inputMessage.trim()
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40'
+                    : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+                }`}
+                title="Send Message"
+              >
+                <Send className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -667,10 +694,10 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
       {/* Trial Limit Modal */}
       {showTrialLimitModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white rounded-2xl border border-gray-200 p-8 max-w-md w-full shadow-2xl animate-scale-in">
             <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/30">
                 <Lock className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-3">
@@ -815,14 +842,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className={`w-80 bg-white border-l border-gray-200 transition-all duration-300 ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
+      {/* Sidebar with Dark Theme */}
+      <div className={`w-80 bg-slate-800/90 backdrop-blur-md border-l border-slate-700/50 transition-all duration-300 ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-gray-900 font-semibold">Session Insights</h2>
+            <h2 className="text-white font-semibold">Session Insights</h2>
             <button
               onClick={() => setShowSidebar(!showSidebar)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-white transition-colors"
             >
               <ChevronDown className="w-5 h-5" />
             </button>
@@ -830,36 +857,36 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
           {/* Account Status */}
           {userAccount.isAuthenticated && (
-            <div className="mb-8 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="mb-8 p-4 bg-green-500/10 rounded-lg border border-green-400/20 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2 text-green-700">
+                <div className="flex items-center space-x-2 text-green-400">
                   <Mail className="w-4 h-4" />
                   <span className="font-medium text-sm">Free Trial Active</span>
                 </div>
                 {onNavigateToDashboard && (
                   <button
                     onClick={() => onNavigateToDashboard(userAccount)}
-                    className="text-xs text-green-600 hover:text-green-700 flex items-center space-x-1"
+                    className="text-xs text-green-400 hover:text-green-300 flex items-center space-x-1"
                   >
                     <LayoutDashboard className="w-3 h-3" />
                     <span>Dashboard</span>
                   </button>
                 )}
               </div>
-              <p className="text-green-600 text-xs truncate">{userAccount.email}</p>
+              <p className="text-green-300 text-xs truncate">{userAccount.email}</p>
             </div>
           )}
 
           {/* Mood Tracker */}
           <div className="mb-8">
-            <h3 className="text-gray-700 text-sm font-medium mb-4">How are you feeling?</h3>
+            <h3 className="text-gray-300 text-sm font-medium mb-4">How are you feeling?</h3>
             <div className="flex justify-between">
               {[1, 2, 3, 4, 5].map((mood) => (
                 <button
                   key={mood}
                   onClick={() => setCurrentMood(mood)}
                   className={`p-2 rounded-lg transition-colors ${
-                    currentMood === mood ? 'bg-purple-100 text-purple-600' : 'text-gray-400 hover:text-gray-600'
+                    currentMood === mood ? 'bg-purple-500/20 text-purple-400' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <Smile className="w-6 h-6" />
@@ -870,7 +897,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
           {/* Quick Suggestions */}
           <div className="mb-8">
-            <h3 className="text-gray-700 text-sm font-medium mb-4">Quick Topics</h3>
+            <h3 className="text-gray-300 text-sm font-medium mb-4">Quick Topics</h3>
             <div className="space-y-2">
               {quickSuggestions.map((suggestion, index) => (
                 <button
@@ -879,8 +906,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                   disabled={!canSendMessage()}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors text-sm ${
                     canSendMessage()
-                      ? 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
-                      : 'bg-gray-100 opacity-50 cursor-not-allowed text-gray-500'
+                      ? 'bg-slate-700/50 hover:bg-slate-600/50 text-gray-300 border border-slate-600/50 backdrop-blur-sm'
+                      : 'bg-slate-700/30 opacity-50 cursor-not-allowed text-gray-500'
                   }`}
                 >
                   {suggestion}
@@ -890,14 +917,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           </div>
 
           {/* Emergency Support */}
-          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-            <div className="flex items-center space-x-2 text-red-600 mb-3">
+          <div className="p-4 bg-red-500/10 rounded-lg border border-red-400/20 backdrop-blur-sm">
+            <div className="flex items-center space-x-2 text-red-400 mb-3">
               <AlertCircle className="w-5 h-5" />
               <span className="font-medium text-sm">Need immediate help?</span>
             </div>
-            <p className="text-red-700 text-sm leading-relaxed">
+            <p className="text-red-300 text-sm leading-relaxed">
               If you're in crisis, please call the 24/7 support line:
-              <a href="tel:988" className="block text-red-600 hover:text-red-700 font-medium mt-1">988</a>
+              <a href="tel:988" className="block text-red-400 hover:text-red-300 font-medium mt-1">988</a>
             </p>
           </div>
         </div>
