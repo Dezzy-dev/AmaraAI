@@ -3,6 +3,7 @@ import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb }
 import LoadingScreen from './LoadingScreen';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
+import SignUpNudge from './SignUpNudge';
 
 interface Message {
   id: string;
@@ -17,13 +18,17 @@ interface TherapySessionProps {
   userCountry?: string;
   userFeeling?: string;
   onEndSession: () => void;
+  onSignUp: () => void;
+  onSignIn: () => void;
 }
 
 const TherapySession: React.FC<TherapySessionProps> = ({ 
   userName, 
   userCountry, 
   userFeeling, 
-  onEndSession 
+  onEndSession,
+  onSignUp,
+  onSignIn
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -405,21 +410,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       </div>
 
       {/* Persistent Sign-Up Nudge */}
-      <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-t border-purple-200 dark:border-purple-700 p-4">
-        <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-4">
-          <p className="text-sm text-gray-600 dark:text-gray-300 text-center">
-            Unlock unlimited conversations and advanced features
-          </p>
-          <div className="flex space-x-3">
-            <button className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full text-sm font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105">
-              Sign Up for 7-Day Free Trial
-            </button>
-            <button className="px-6 py-2 border border-purple-300 dark:border-purple-600 text-purple-600 dark:text-purple-400 rounded-full text-sm font-medium hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200">
-              Sign In
-            </button>
-          </div>
-        </div>
-      </div>
+      <SignUpNudge onSignUp={() => setTimeout(onSignUp, 100)} onSignIn={() => setTimeout(onSignIn, 100)} />
 
       {/* Trial Limit Modal */}
       {showTrialModal && (
@@ -440,24 +431,29 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               
               <div className="space-y-3">
                 <button 
-                  onClick={() => setShowTrialModal(false)}
+                  onClick={() => {
+                    setShowTrialModal(false);
+                    setTimeout(onSignUp, 100);
+                  }}
                   className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-full font-semibold hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105"
                 >
                   Sign Up for 7-Day Free Trial
                 </button>
                 
                 <button 
-                  onClick={() => setShowTrialModal(false)}
-                  className="w-full py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-full font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+                  onClick={() => {
+                    setShowTrialModal(false);
+                    setTimeout(onSignIn, 100);
+                  }}
+                  className="w-full py-3 border border-purple-300 dark:border-purple-600 text-purple-600 dark:text-purple-400 rounded-full font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
                 >
                   Sign In
                 </button>
-                
                 <button 
                   onClick={() => setShowTrialModal(false)}
-                  className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200"
+                  className="w-full py-3 mt-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200"
                 >
-                  Continue browsing (limited features)
+                  Maybe Later
                 </button>
               </div>
             </div>

@@ -48,51 +48,46 @@ function App() {
     setPersonalizationData(null);
   };
 
-  const handleSignUp = () => {
-    setAuthMode('signup');
+  const openAuthModal = (mode: 'signup' | 'signin') => {
+    setAuthMode(mode);
     setShowAuthModal(true);
   };
 
-  const handleSignIn = () => {
-    setAuthMode('signin');
-    setShowAuthModal(true);
-  };
-
-  if (showSession) {
-    return (
-      <TherapySession 
-        userName={personalizationData?.name || 'there'} 
-        userCountry={personalizationData?.country}
-        userFeeling={personalizationData?.feeling}
-        onEndSession={handleEndSession} 
-      />
-    );
-  }
-
-  if (showPersonalizationFlow) {
-    return <PersonalizationFlow onComplete={handlePersonalizationComplete} />;
-  }
-
-  if (showWelcomeFlow) {
-    return <WelcomeFlow onComplete={handleWelcomeComplete} />;
-  }
+  const handleSignUp = () => openAuthModal('signup');
+  const handleSignIn = () => openAuthModal('signin');
 
   return (
     <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
-      <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
-      <Hero onStartTalking={handleStartTalking} />
-      <Brands />
-      <Features />
-      <Unique />
-      <HowItWorks />
-      <Testimonials />
-      <Privacy />
-      <FAQ />
-      <CallToAction onStartTalking={handleStartTalking} />
-      <Waitlist />
-      <Footer />
-      
-      {/* Auth Modal */}
+      {showSession ? (
+        <TherapySession 
+          userName={personalizationData?.name || 'there'} 
+          userCountry={personalizationData?.country}
+          userFeeling={personalizationData?.feeling}
+          onEndSession={handleEndSession}
+          onSignUp={handleSignUp}
+          onSignIn={handleSignIn}
+        />
+      ) : showPersonalizationFlow ? (
+        <PersonalizationFlow onComplete={handlePersonalizationComplete} />
+      ) : showWelcomeFlow ? (
+        <WelcomeFlow onComplete={handleWelcomeComplete} />
+      ) : (
+        <>
+          <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
+          <Hero onStartTalking={handleStartTalking} />
+          <Brands />
+          <Features />
+          <Unique />
+          <HowItWorks />
+          <Testimonials />
+          <Privacy />
+          <FAQ />
+          <CallToAction onStartTalking={handleStartTalking} />
+          <Waitlist />
+          <Footer />
+        </>
+      )}
+      {/* Auth Modal is always rendered */}
       <AuthModal 
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
