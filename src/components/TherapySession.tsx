@@ -1,5 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Clock, X, ChevronDown, Smile, AlertCircle, Lock, Mail, Eye, EyeOff, LayoutDashboard, Mic, MicOff } from 'lucide-react';
+import { 
+  Send, Clock, X, ChevronDown, Smile, AlertCircle, Lock, Mail, Eye, EyeOff, 
+  LayoutDashboard, Mic, MicOff, Heart, Plus, BookOpen, TrendingUp, Home, 
+  Settings, HelpCircle, MessageSquare, Lightbulb, RefreshCw, ThumbsUp, 
+  ThumbsDown, Meh, Frown, Laugh, PenTool, Bookmark, MoreHorizontal
+} from 'lucide-react';
 import { supabase, db } from '../lib/supabase';
 import LoadingScreen from './LoadingScreen';
 import TypingIndicator from './TypingIndicator';
@@ -12,6 +17,7 @@ interface Message {
   timestamp: Date;
   type: 'text' | 'voice';
   isTyping?: boolean;
+  reactions?: string[];
 }
 
 interface TherapySessionProps {
@@ -55,6 +61,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const [showTrialLimitModal, setShowTrialLimitModal] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
+  const [hoveredMessageId, setHoveredMessageId] = useState<string | null>(null);
   
   // User account state with anonymous trial tracking
   const [userAccount, setUserAccount] = useState<UserAccount>({
@@ -81,12 +89,46 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
+  // Quick reply suggestions that adapt based on conversation
+  const getQuickReplies = () => {
+    const baseReplies = [
+      "Tell me more",
+      "How does that make you feel?",
+      "Let's take a breath",
+      "Change topic"
+    ];
+
+    if (userAccount.isAuthenticated) {
+      // AI-driven suggestions for authenticated users
+      return [
+        "Can you help me understand this better?",
+        "What would help me feel calmer?",
+        "I'd like to explore this deeper",
+        "Let's try a different approach"
+      ];
+    }
+
+    return baseReplies;
+  };
+
   const quickSuggestions = [
     "I'm feeling anxious about work",
-    "I had a difficult day today",
+    "I had a difficult day today", 
     "I need help processing my emotions",
     "Can you help me feel calmer?"
   ];
+
+  // Mood options with emojis
+  const moodOptions = [
+    { value: 1, emoji: '😢', label: 'Very Sad' },
+    { value: 2, emoji: '😔', label: 'Sad' },
+    { value: 3, emoji: '😐', label: 'Neutral' },
+    { value: 4, emoji: '😊', label: 'Happy' },
+    { value: 5, emoji: '😄', label: 'Very Happy' }
+  ];
+
+  // Reaction emojis for messages
+  const reactionEmojis = ['❤️', '👍', '🤔', '😢', '😊'];
 
   // Handle loading screen completion
   const handleLoadingComplete = () => {
@@ -140,7 +182,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         sender: 'amara',
         timestamp: new Date(),
         type: 'text',
-        isTyping: true
+        isTyping: true,
+        reactions: []
       };
       
       // Show typing indicator first
@@ -167,7 +210,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         sender: 'amara',
         timestamp: new Date(),
         type: 'text',
-        isTyping: true
+        isTyping: true,
+        reactions: []
       };
       
       setTimeout(() => {
@@ -321,7 +365,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
             sender: 'amara',
             timestamp: new Date(),
             type: 'text',
-            isTyping: true
+            isTyping: true,
+            reactions: []
           };
           
           setMessages(prev => [...prev, welcomeMessage]);
@@ -362,12 +407,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       text: inputMessage,
       sender: 'user',
       timestamp: new Date(),
-      type: 'text'
+      type: 'text',
+      reactions: []
     };
 
     setMessages(prev => [...prev, newMessage]);
     setInputMessage('');
     setIsTyping(true);
+    setShowQuickReplies(false); // Hide quick replies after user sends message
     
     // Update usage count
     const newMessagesUsed = userAccount.messagesUsed + 1;
@@ -409,10 +456,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         sender: 'amara',
         timestamp: new Date(),
         type: 'text',
-        isTyping: true
+        isTyping: true,
+        reactions: []
       };
       
       setMessages(prev => [...prev, response]);
+      setShowQuickReplies(true); // Show quick replies after Amara responds
       
       // Save Amara's response to database
       if (currentSessionId) {
@@ -430,6 +479,71 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         }, 2000);
       }
     }, 1500 + Math.random() * 1000); // Realistic response time
+  };
+
+  const handleQuickReply = (reply: string) => {
+    setInputMessage(reply);
+    setShowQuickReplies(false);
+  };
+
+  const handlePromptRequest = () => {
+    if (checkTrialLimits()) return;
+
+    const prompts = [
+      "What's one thing you're grateful for today?",
+      "If you could tell your past self one thing, what would it be?",
+      "What does self-care look like for you?",
+      "What's a small step you could take today to feel better?",
+      "How would you describe your ideal day?"
+    ];
+
+    const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+    
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      
+      const promptMessage: Message = {
+        id: Date.now().toString(),
+        text: `Here's a reflection prompt for you: ${prompt}`,
+        sender: 'amara',
+        timestamp: new Date(),
+        type: 'text',
+        isTyping: true,
+        reactions: []
+      };
+      
+      setMessages(prev => [...prev, promptMessage]);
+    }, 1000);
+  };
+
+  const handleReaction = (messageId: string, emoji: string) => {
+    setMessages(prev => prev.map(msg => {
+      if (msg.id === messageId) {
+        const reactions = msg.reactions || [];
+        const hasReaction = reactions.includes(emoji);
+        return {
+          ...msg,
+          reactions: hasReaction 
+            ? reactions.filter(r => r !== emoji)
+            : [...reactions, emoji]
+        };
+      }
+      return msg;
+    }));
+  };
+
+  const handleAddToJournal = (messageText: string) => {
+    // For demo purposes, show a notification
+    alert(`Added to journal: "${messageText.substring(0, 50)}..."`);
+  };
+
+  const handleJournalConversation = () => {
+    const conversationText = messages
+      .map(msg => `${msg.sender === 'user' ? 'Me' : 'Amara'}: ${msg.text}`)
+      .join('\n\n');
+    
+    alert(`Conversation added to journal:\n\n${conversationText.substring(0, 200)}...`);
   };
 
   const handleVoiceNote = () => {
@@ -452,7 +566,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           text: "🎤 Voice note recorded",
           sender: 'user',
           timestamp: new Date(),
-          type: 'voice'
+          type: 'voice',
+          reactions: []
         };
         
         setMessages(prev => [...prev, voiceMessage]);
@@ -523,30 +638,42 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20 flex relative">
+      {/* Subtle background pattern */}
+      <div className="absolute inset-0 opacity-30 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-100 dark:bg-purple-900/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-pink-100 dark:bg-pink-900/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-100/50 dark:bg-blue-900/10 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col h-screen">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+      <div className="flex-1 flex flex-col h-screen relative z-10">
+        {/* Enhanced Header */}
+        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <h1 className="text-gray-900 dark:text-white text-lg font-semibold">Chat with Amara</h1>
-              <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full">
-                <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                <span className="text-gray-600 dark:text-gray-400 text-sm">{formatTime(sessionTime)}</span>
+              {/* Amara Avatar */}
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                <Heart className="w-5 h-5 text-white" fill="currentColor" />
               </div>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-600 dark:text-green-400 text-sm font-medium">Active</span>
+              
+              <div>
+                <h1 className="text-gray-900 dark:text-white text-lg font-semibold">Chat with Amara</h1>
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-600 dark:text-green-400 text-sm font-medium">Active</span>
+                  <span className="text-gray-400">•</span>
+                  <span className="text-gray-600 dark:text-gray-400 text-sm">{formatTime(sessionTime)}</span>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Trial Progress Indicator */}
+            <div className="flex items-center space-x-3">
+              {/* Trial Progress for Anonymous Users */}
               {userAccount.tier === 'anonymous' && (
-                <div className="flex items-center space-x-3 bg-gray-100 dark:bg-gray-700 px-4 py-2 rounded-lg">
+                <div className="flex items-center space-x-3 bg-white/60 dark:bg-gray-700/60 backdrop-blur-sm px-4 py-2 rounded-xl border border-gray-200/50 dark:border-gray-600/50">
                   <div className="flex flex-col items-center">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Chat Messages</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Messages</div>
                     <div className="flex items-center space-x-2">
                       <div className="h-2 w-16 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                         <div 
@@ -563,7 +690,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                   <div className="w-px h-8 bg-gray-300 dark:bg-gray-600"></div>
                   
                   <div className="flex flex-col items-center">
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Voice Notes</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">Voice</div>
                     <div className="flex items-center space-x-2">
                       <div className="h-2 w-16 bg-gray-200 dark:bg-gray-600 rounded-full overflow-hidden">
                         <div 
@@ -579,20 +706,47 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                 </div>
               )}
               
+              {/* Authenticated User Badge */}
               {userAccount.isAuthenticated && (
-                <span className="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full font-medium">
-                  7-Day Free Trial
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full font-medium">
+                    7-Day Free Trial
+                  </span>
+                  {userAccount.isAuthenticated && onNavigateToDashboard && (
+                    <button
+                      onClick={() => onNavigateToDashboard(userAccount)}
+                      className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 px-3 py-1.5 rounded-lg transition-colors flex items-center space-x-1 text-sm"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Dashboard</span>
+                    </button>
+                  )}
+                </div>
               )}
               
-              {userAccount.isAuthenticated && onNavigateToDashboard && (
-                <button
-                  onClick={() => onNavigateToDashboard(userAccount)}
-                  className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span className="text-sm font-medium">Dashboard</span>
-                </button>
+              {/* Navigation Icons for Authenticated Users */}
+              {userAccount.isAuthenticated && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={handleJournalConversation}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg transition-colors"
+                    title="Journal This Conversation"
+                  >
+                    <BookOpen className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                    title="New Session"
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                  </button>
+                  <button
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    title="Settings"
+                  >
+                    <Settings className="w-5 h-5" />
+                  </button>
+                </div>
               )}
               
               <button
@@ -609,46 +763,107 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         {/* Chat Messages */}
         <div
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50 dark:bg-gray-900"
+          className="flex-1 overflow-y-auto p-6 space-y-6"
         >
           {messages.map((message) => (
             <div
               key={message.id}
               className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              onMouseEnter={() => setHoveredMessageId(message.id)}
+              onMouseLeave={() => setHoveredMessageId(null)}
             >
-              <div
-                className={`max-w-[75%] ${
-                  message.sender === 'user'
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
-                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 shadow-sm'
-                } rounded-2xl px-6 py-4 ${
-                  message.sender === 'user' ? 'rounded-tr-md' : 'rounded-tl-md'
-                } transition-all duration-300 hover:shadow-md`}
-              >
-                {message.isTyping ? (
-                  <TypewriterText 
-                    text={message.text} 
-                    speed={25}
-                    className="leading-relaxed"
-                  />
-                ) : (
-                  <p className="leading-relaxed">{message.text}</p>
-                )}
-                <div className="flex items-center justify-between mt-3">
-                  <p className={`text-xs ${
-                    message.sender === 'user' ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'
-                  }`}>
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                  {message.type === 'voice' && (
-                    <div className={`text-xs flex items-center space-x-1 ${
+              <div className="relative group max-w-[75%]">
+                {/* Message Bubble */}
+                <div
+                  className={`${
+                    message.sender === 'user'
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg'
+                      : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-600 shadow-sm'
+                  } rounded-2xl px-6 py-4 ${
+                    message.sender === 'user' ? 'rounded-tr-md' : 'rounded-tl-md'
+                  } transition-all duration-300 hover:shadow-md relative`}
+                >
+                  {/* Amara Avatar for her messages */}
+                  {message.sender === 'amara' && (
+                    <div className="absolute -left-3 -top-2 w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-md">
+                      <Heart className="w-4 h-4 text-white" fill="currentColor" />
+                    </div>
+                  )}
+
+                  {message.isTyping ? (
+                    <TypewriterText 
+                      text={message.text} 
+                      speed={25}
+                      className="leading-relaxed"
+                    />
+                  ) : (
+                    <p className="leading-relaxed">{message.text}</p>
+                  )}
+                  
+                  <div className="flex items-center justify-between mt-3">
+                    <p className={`text-xs ${
                       message.sender === 'user' ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'
                     }`}>
-                      <Mic className="w-3 h-3" />
-                      <span>Voice Note</span>
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
+                    {message.type === 'voice' && (
+                      <div className={`text-xs flex items-center space-x-1 ${
+                        message.sender === 'user' ? 'text-purple-100' : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        <Mic className="w-3 h-3" />
+                        <span>Voice Note</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Reactions */}
+                  {message.reactions && message.reactions.length > 0 && (
+                    <div className="flex items-center space-x-1 mt-2">
+                      {message.reactions.map((reaction, index) => (
+                        <span key={index} className="text-sm">{reaction}</span>
+                      ))}
                     </div>
                   )}
                 </div>
+
+                {/* Message Actions (on hover) */}
+                {hoveredMessageId === message.id && (
+                  <div className={`absolute top-0 ${message.sender === 'user' ? '-left-12' : '-right-12'} flex flex-col space-y-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200`}>
+                    {/* Reaction Button */}
+                    <div className="relative">
+                      <button
+                        className="p-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                        title="React"
+                      >
+                        <Smile className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </button>
+                      
+                      {/* Reaction Picker (simplified for demo) */}
+                      <div className="absolute top-full mt-1 left-0 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        {reactionEmojis.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => handleReaction(message.id, emoji)}
+                            className="hover:bg-gray-100 dark:hover:bg-gray-600 p-1 rounded"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Add to Journal (for authenticated users) */}
+                    {userAccount.isAuthenticated && (
+                      <button
+                        onClick={() => handleAddToJournal(message.text)}
+                        className="p-1.5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                        title="Add to Journal"
+                      >
+                        <PenTool className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -657,8 +872,63 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Quick Reply Chips */}
+        {showQuickReplies && canSendMessage() && (
+          <div className="px-6 pb-2">
+            <div className="flex flex-wrap gap-2">
+              {getQuickReplies().map((reply, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleQuickReply(reply)}
+                  className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-sm text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  {reply}
+                </button>
+              ))}
+              
+              {/* Prompt Button */}
+              <button
+                onClick={handlePromptRequest}
+                className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 rounded-full text-sm text-purple-700 dark:text-purple-300 hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/50 dark:hover:to-pink-900/50 transition-all duration-200 shadow-sm hover:shadow-md flex items-center space-x-1"
+              >
+                <Lightbulb className="w-4 h-4" />
+                <span>Get a prompt</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Anonymous Trial CTA Bar */}
+        {userAccount.tier === 'anonymous' && (
+          <div className="px-6 pb-4">
+            <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-purple-800 dark:text-purple-200 font-semibold text-sm">
+                    Unlock More Conversations
+                  </h3>
+                  <p className="text-purple-700 dark:text-purple-300 text-xs">
+                    Sign up for unlimited access with your 7-day free trial
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setShowTrialLimitModal(true)}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md"
+                  >
+                    Sign Up for Free Trial
+                  </button>
+                  <button className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 px-3 py-2 text-sm font-medium transition-colors">
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input Area */}
-        <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 p-6">
           {/* Trial Limit Warning */}
           {userAccount.tier === 'anonymous' && !canSendMessage() && (
             <div className="mb-4 p-4 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-700 rounded-xl">
@@ -675,7 +945,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={getInputPlaceholder()}
-                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl px-6 py-4 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-all duration-300"
+                className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl px-6 py-4 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition-all duration-300 shadow-sm focus:shadow-md"
                 rows={2}
                 disabled={!canSendMessage()}
                 style={{
@@ -691,12 +961,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <button
                 onClick={handleVoiceNote}
                 disabled={!canSendVoiceNote()}
-                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
+                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl ${
                   canSendVoiceNote()
                     ? isRecording
-                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-lg'
-                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white'
+                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none transform-none'
                 }`}
                 title={isRecording ? 'Stop Recording' : 'Start Voice Note'}
               >
@@ -707,10 +977,10 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <button
                 onClick={handleSend}
                 disabled={!canSendMessage() || !inputMessage.trim()}
-                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 ${
+                className={`p-4 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl ${
                   canSendMessage() && inputMessage.trim()
-                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl'
-                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white'
+                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed shadow-none transform-none'
                 }`}
                 title="Send Message"
               >
@@ -721,7 +991,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         </div>
       </div>
 
-      {/* Trial Limit Modal */}
+      {/* Enhanced Trial Limit Modal */}
       {showTrialLimitModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full shadow-2xl animate-scale-in">
@@ -730,7 +1000,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                 <Lock className="w-10 h-10 text-white" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                Your Journey Continues!
+                Experience Amara, Fully
               </h2>
               <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                 You've reached the limit of your anonymous trial. Sign up now to enjoy 1 week of full, 
@@ -841,38 +1111,38 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               </button>
             </div>
 
-            {/* Benefits */}
+            {/* Enhanced Benefits */}
             <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
               <h3 className="text-gray-900 dark:text-white font-semibold mb-4 text-center">What you get with your free trial:</h3>
-              <ul className="space-y-3">
-                <li className="flex items-center text-gray-700 dark:text-gray-300">
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <div className="w-5 h-5 text-green-500 mr-3 flex-shrink-0">✓</div>
                   <span className="text-sm">Unlimited chat messages for 7 days</span>
-                </li>
-                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                </div>
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <div className="w-5 h-5 text-green-500 mr-3 flex-shrink-0">✓</div>
                   <span className="text-sm">Up to 20 voice notes per week</span>
-                </li>
-                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                </div>
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <div className="w-5 h-5 text-green-500 mr-3 flex-shrink-0">✓</div>
-                  <span className="text-sm">Save your conversation history</span>
-                </li>
-                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-sm">AI-driven conversation suggestions</span>
+                </div>
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <div className="w-5 h-5 text-green-500 mr-3 flex-shrink-0">✓</div>
-                  <span className="text-sm">Personalized therapy experience</span>
-                </li>
-                <li className="flex items-center text-gray-700 dark:text-gray-300">
+                  <span className="text-sm">Journal integration and mood tracking</span>
+                </div>
+                <div className="flex items-center text-gray-700 dark:text-gray-300">
                   <div className="w-5 h-5 text-green-500 mr-3 flex-shrink-0">✓</div>
-                  <span className="text-sm">Progress tracking and insights</span>
-                </li>
-              </ul>
+                  <span className="text-sm">Progress insights and reflection prompts</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Sidebar */}
-      <div className={`w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transition-all duration-300 ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
+      {/* Enhanced Sidebar */}
+      <div className={`w-80 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-l border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 ${showSidebar ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-gray-900 dark:text-white font-semibold">Session Insights</h2>
@@ -906,27 +1176,42 @@ const TherapySession: React.FC<TherapySessionProps> = ({
             </div>
           )}
 
-          {/* Mood Tracker */}
+          {/* Enhanced Mood Tracker */}
           <div className="mb-8">
-            <h3 className="text-gray-700 dark:text-gray-300 text-sm font-medium mb-4">How are you feeling?</h3>
-            <div className="flex justify-between">
-              {[1, 2, 3, 4, 5].map((mood) => (
+            <h3 className="text-gray-700 dark:text-gray-300 text-sm font-medium mb-4 flex items-center">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              How are you feeling?
+            </h3>
+            <div className="grid grid-cols-5 gap-2">
+              {moodOptions.map((mood) => (
                 <button
-                  key={mood}
-                  onClick={() => setCurrentMood(mood)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    currentMood === mood ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                  key={mood.value}
+                  onClick={() => setCurrentMood(mood.value)}
+                  className={`p-3 rounded-lg transition-all duration-200 text-center ${
+                    currentMood === mood.value 
+                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 scale-105' 
+                      : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
+                  title={mood.label}
                 >
-                  <Smile className="w-6 h-6" />
+                  <div className="text-lg">{mood.emoji}</div>
+                  <div className="text-xs mt-1">{mood.value}</div>
                 </button>
               ))}
             </div>
+            {currentMood && (
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2 text-center">
+                Current mood: {moodOptions.find(m => m.value === currentMood)?.label}
+              </p>
+            )}
           </div>
 
           {/* Quick Suggestions */}
           <div className="mb-8">
-            <h3 className="text-gray-700 dark:text-gray-300 text-sm font-medium mb-4">Quick Topics</h3>
+            <h3 className="text-gray-700 dark:text-gray-300 text-sm font-medium mb-4 flex items-center">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Quick Topics
+            </h3>
             <div className="space-y-2">
               {quickSuggestions.map((suggestion, index) => (
                 <button
@@ -935,7 +1220,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                   disabled={!canSendMessage()}
                   className={`w-full text-left px-4 py-3 rounded-lg transition-colors text-sm ${
                     canSendMessage()
-                      ? 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600'
+                      ? 'bg-gray-50 dark:bg-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600'
                       : 'bg-gray-100 dark:bg-gray-700 opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-400'
                   }`}
                 >
@@ -944,6 +1229,32 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               ))}
             </div>
           </div>
+
+          {/* Authenticated User Features */}
+          {userAccount.isAuthenticated && (
+            <div className="mb-8">
+              <h3 className="text-gray-700 dark:text-gray-300 text-sm font-medium mb-4 flex items-center">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Session Tools
+              </h3>
+              <div className="space-y-2">
+                <button
+                  onClick={handleJournalConversation}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 transition-colors text-sm flex items-center"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Journal This Conversation
+                </button>
+                <button
+                  onClick={handlePromptRequest}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700 transition-colors text-sm flex items-center"
+                >
+                  <Lightbulb className="w-4 h-4 mr-2" />
+                  Get Reflection Prompt
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Emergency Support */}
           <div className="p-4 bg-red-50 dark:bg-red-900/30 rounded-lg border border-red-200 dark:border-red-700">
