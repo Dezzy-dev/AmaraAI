@@ -9,7 +9,6 @@ import CallToAction from './components/CallToAction';
 import Waitlist from './components/Waitlist';
 import { Footer } from './components/Footer';
 import Navigation from './components/Navigation';
-import Onboarding from './components/Onboarding';
 import TherapySession from './components/TherapySession';
 import FAQ from './components/FAQ';
 import Brands from './components/Brands';
@@ -21,7 +20,6 @@ function App() {
   const [isDark, toggleDarkMode] = useDarkMode();
   const [showWelcomeFlow, setShowWelcomeFlow] = useState(false);
   const [showPersonalizationFlow, setShowPersonalizationFlow] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSession, setShowSession] = useState(false);
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
 
@@ -37,17 +35,11 @@ function App() {
   const handlePersonalizationComplete = (data: PersonalizationData) => {
     setPersonalizationData(data);
     setShowPersonalizationFlow(false);
-    setShowOnboarding(true);
-  };
-
-  const handleStartSession = (name: string) => {
-    setShowOnboarding(false);
     setShowSession(true);
   };
 
   const handleEndSession = () => {
     setShowSession(false);
-    setShowOnboarding(false);
     setShowPersonalizationFlow(false);
     setShowWelcomeFlow(false);
     setPersonalizationData(null);
@@ -60,17 +52,6 @@ function App() {
         userCountry={personalizationData?.country}
         userFeeling={personalizationData?.feeling}
         onEndSession={handleEndSession} 
-      />
-    );
-  }
-
-  if (showOnboarding) {
-    return (
-      <Onboarding 
-        userName={personalizationData?.name}
-        userCountry={personalizationData?.country}
-        userFeeling={personalizationData?.feeling}
-        onComplete={handleStartSession} 
       />
     );
   }
