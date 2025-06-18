@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  MessageCircle, 
-  Heart, 
-  PenTool, 
-  BarChart3, 
-  Settings, 
-  HelpCircle, 
-  User, 
-  Clock, 
-  Calendar,
+import {
+  MessageCircle,
+  Heart,
+  PenTool,
+  BarChart3, // Not used in the provided JSX, consider removing if truly unused
+  Settings,
+  HelpCircle,
+  User, // Not used in the provided JSX, consider removing if truly unused
+  Clock, // Not used in the provided JSX, consider removing if truly unused
+  Calendar, // Not used in the provided JSX, consider removing if truly unused
   Sparkles,
   Crown,
   Zap,
@@ -18,7 +18,7 @@ import {
   ArrowRight,
   Play,
   Plus,
-  Edit3,
+  Edit3, // Not used in the provided JSX, consider removing if truly unused
   Activity,
   Brain
 } from 'lucide-react';
@@ -131,7 +131,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <span 
+              <span
                 className="text-2xl font-light text-gray-800 dark:text-gray-100"
                 style={{
                   fontFamily: 'serif',
@@ -143,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               </span>
             </div>
 
-            {/* Right side navigation */}
+            {/* Right side navigation - Uses flexbox for horizontal alignment, handles overflow implicitly */}
             <div className="flex items-center space-x-4">
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <HelpCircle className="w-5 h-5" />
@@ -162,11 +162,12 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Message */}
         <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+          {/* Responsive font sizes: text-3xl for small, md:text-4xl for medium and up */}
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
             {getGreeting()}, {user.name}!
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            {isTrialUser() 
+            {isTrialUser()
               ? "Your healing journey continues with full access to all features."
               : isFreemiumUser()
               ? "Welcome to your safe space. Ready to explore what's on your mind?"
@@ -179,23 +180,24 @@ const Dashboard: React.FC<DashboardProps> = ({
         {isTrialUser() && (
           <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-6">
-              <div className="flex items-center justify-between">
+              {/* Flexbox with wrapping for smaller screens */}
+              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                     <Crown className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center md:text-left">
                       Your Free Trial Ends in {getTrialDaysRemaining()} Days!
                     </h3>
-                    <p className="text-gray-600 dark:text-gray-300">
+                    <p className="text-gray-600 dark:text-gray-300 text-center md:text-left">
                       Continue enjoying unlimited access to all premium features
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={onUpgrade}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
                 >
                   Secure Your Premium Access
                 </button>
@@ -208,21 +210,22 @@ const Dashboard: React.FC<DashboardProps> = ({
         {isFreemiumUser() && (
           <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-              <div className="flex items-center justify-between">
+              {/* Flexbox with wrapping for smaller screens */}
+              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <Zap className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Unlock Your Full Potential</h3>
-                    <p className="text-purple-100">
+                    <h3 className="text-lg font-semibold text-center md:text-left">Unlock Your Full Potential</h3>
+                    <p className="text-purple-100 text-center md:text-left">
                       Upgrade to Premium for unlimited conversations and advanced features
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={onUpgrade}
-                  className="px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  className="px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
                 >
                   Upgrade to Premium
                 </button>
@@ -231,8 +234,9 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
 
+        {/* Main Content Grid - Changes from 1 column to 3 on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content Area */}
+          {/* Main Content Area - Takes 2 columns on large screens */}
           <div className="lg:col-span-2 space-y-8">
             {/* Chat Session Management */}
             <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.2s' }}>
@@ -240,8 +244,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <MessageCircle className="w-6 h-6 mr-3 text-purple-600" />
                 Your Conversations
               </h2>
-              
-              <div className="grid md:grid-cols-2 gap-4">
+
+              {/* Grid for session buttons - Changes from 1 column to 2 on medium screens */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={onStartNewSession}
                   disabled={isFreemiumUser() && getFreemiumLimits().remaining === 0}
@@ -293,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Resume Session</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {user.last_session_date 
+                      {user.last_session_date
                         ? `Continue from ${new Date(user.last_session_date).toLocaleDateString()}`
                         : 'No previous session found'
                       }
@@ -314,7 +319,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </span>
                   </div>
                   <div className="w-full bg-amber-200 dark:bg-amber-800 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-amber-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(getFreemiumLimits().used / getFreemiumLimits().limit) * 100}%` }}
                     ></div>
@@ -329,7 +334,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <Smile className="w-6 h-6 mr-3 text-pink-600" />
                 How are you feeling today?
               </h2>
-              
+
+              {/* Responsive grid for moods - Changes from 3 columns to 6 on medium screens */}
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {moods.map((mood) => (
                   <button
@@ -354,7 +360,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {isFreemiumUser() && (
                 <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between flex-wrap gap-2"> {/* Added flex-wrap and gap */}
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       🔒 Mood tracking available with Premium
                     </span>
@@ -375,7 +381,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <PenTool className="w-6 h-6 mr-3 text-blue-600" />
                 Quick Journal Entry
               </h2>
-              
+
               <div className="space-y-4">
                 <textarea
                   value={journalEntry}
@@ -389,8 +395,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                   }`}
                   rows={3}
                 />
-                
-                <div className="flex items-center justify-between">
+
+                <div className="flex items-center justify-between flex-wrap gap-3"> {/* Added flex-wrap and gap */}
                   <div className="flex items-center space-x-3">
                     {!isFreemiumUser() && (isTrialUser() || isPremiumUser()) && (
                       <button
@@ -402,7 +408,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </button>
                     )}
                   </div>
-                  
+
                   <button
                     onClick={handleJournalSubmit}
                     disabled={!journalEntry.trim() || isFreemiumUser()}
@@ -418,7 +424,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                 {isFreemiumUser() && (
                   <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2"> {/* Added flex-wrap and gap */}
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         🔒 Journaling available with Premium
                       </span>
@@ -443,7 +449,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <Activity className="w-5 h-5 mr-2 text-green-600" />
                 Recent Activity
               </h3>
-              
+
               <div className="space-y-3">
                 {user.last_mood && (
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -456,7 +462,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {user.last_journal_entry && (
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -470,7 +476,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </div>
                 )}
-                
+
                 {user.last_session_date && (
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
@@ -494,7 +500,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <Brain className="w-5 h-5 mr-2 text-indigo-600" />
                   Amara's Insights
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700">
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
@@ -507,7 +513,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                     </div>
                   </div>
-                  
+
                   <button className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -527,7 +533,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <Crown className="w-5 h-5 mr-2 text-yellow-600" />
                   Premium Member
                 </h3>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
@@ -535,7 +541,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {user.current_plan.replace('_', ' ')}
                     </span>
                   </div>
-                  
+
                   <button
                     onClick={onManageSubscription}
                     className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left"
