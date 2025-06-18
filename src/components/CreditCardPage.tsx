@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, CreditCard, Shield, Lock, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface CreditCardPageProps {
-  selectedPlan: 'monthly' | 'yearly';
+  selectedPlan?: 'monthly' | 'yearly';
   onSuccess: () => void;
   onBack: () => void;
 }
@@ -22,7 +22,7 @@ interface FormErrors {
 }
 
 const CreditCardPage: React.FC<CreditCardPageProps> = ({
-  selectedPlan,
+  selectedPlan = 'monthly',
   onSuccess,
   onBack
 }) => {
@@ -43,7 +43,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
     yearly: { price: 159.99, period: 'year', monthlyEquivalent: 13.33 }
   };
 
-  const currentPlan = planPricing[selectedPlan];
+  const currentPlan = planPricing[selectedPlan] || planPricing.monthly;
 
   // Format card number with spaces
   const formatCardNumber = (value: string) => {
@@ -152,7 +152,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) return;
@@ -182,78 +182,78 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-pink-200/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/4 left-1/4 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-40 h-40 sm:w-64 sm:h-64 lg:w-80 lg:h-80 bg-pink-200/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="relative">
         {/* Header */}
-        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 px-4 py-4">
+        <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 px-3 sm:px-4 py-3 sm:py-4">
           <div className="max-w-4xl mx-auto flex items-center justify-between">
             <button
               onClick={onBack}
-              className="inline-flex items-center px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+              className="inline-flex items-center px-2 sm:px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200 text-sm sm:text-base"
             >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back
+              <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+              <span className="hidden xs:inline">Back</span>
             </button>
             
-            <div className="text-center">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            <div className="text-center flex-1 px-2">
+              <h1 className="text-sm sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white leading-tight">
                 Activate Your 7-Day Free Trial
               </h1>
             </div>
             
-            <div className="w-20"></div> {/* Spacer for centering */}
+            <div className="w-12 sm:w-20"></div> {/* Spacer for centering */}
           </div>
         </header>
 
-        <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 lg:px-6 py-6 sm:py-8 lg:py-12">
           {/* Hero Section */}
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-full border border-green-200 dark:border-green-700 mb-6">
-              <Shield className="w-4 h-4 text-green-600 dark:text-green-400" />
-              <span className="text-sm font-medium text-green-700 dark:text-green-300">
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-full border border-green-200 dark:border-green-700 mb-4 sm:mb-6">
+              <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-600 dark:text-green-400" />
+              <span className="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300">
                 Secure & Encrypted
               </span>
             </div>
             
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 leading-tight px-2">
               Activate Your 7-Day Free Trial
             </h1>
             
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-2">
+            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-2 px-2">
               Just one more step to unlock full access. No charges for 7 days.
             </p>
             
-            <div className="inline-flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <Lock className="w-4 h-4 mr-2" />
+            <div className="inline-flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <Lock className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Your payment information is secure and encrypted
             </div>
           </div>
 
           {/* Plan Summary */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Plan Summary</h3>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-gray-900 dark:text-white capitalize">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6 sm:mb-8">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Plan Summary</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-white capitalize text-sm sm:text-base">
                   {selectedPlan} Plan
                 </p>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
                   7-day free trial, then ${currentPlan.price}/{currentPlan.period}
                   {selectedPlan === 'yearly' && (
-                    <span className="text-green-600 dark:text-green-400 ml-2">
+                    <span className="text-green-600 dark:text-green-400 block sm:inline sm:ml-2">
                       (${currentPlan.monthlyEquivalent}/month)
                     </span>
                   )}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+              <div className="text-left sm:text-right">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                   $0.00
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   Today
                 </p>
               </div>
@@ -261,20 +261,20 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
           </div>
 
           {/* Payment Form */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-            <div className="flex items-center mb-6">
-              <CreditCard className="w-6 h-6 text-purple-600 mr-3" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 lg:p-8">
+            <div className="flex items-center mb-4 sm:mb-6">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 mr-2 sm:mr-3" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
                 Payment Information
               </h2>
             </div>
 
             {paymentError && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg flex items-start">
-                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 mr-3 mt-0.5 flex-shrink-0" />
-                <div>
-                  <p className="text-red-800 dark:text-red-200 font-medium">Payment Failed</p>
-                  <p className="text-red-700 dark:text-red-300 text-sm mt-1">{paymentError}</p>
+              <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg flex items-start">
+                <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-red-800 dark:text-red-200 font-medium text-sm sm:text-base">Payment Failed</p>
+                  <p className="text-red-700 dark:text-red-300 text-xs sm:text-sm mt-1 break-words">{paymentError}</p>
                   <p className="text-red-600 dark:text-red-400 text-xs mt-2">
                     Demo tip: Use card number 4111 2222 3333 4444 for successful payment
                   </p>
@@ -282,7 +282,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Card Number */}
               <div>
                 <label htmlFor="cardNumber" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -295,17 +295,17 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                   onChange={(e) => handleInputChange('cardNumber', e.target.value)}
                   placeholder="1234 5678 9012 3456"
                   maxLength={19}
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm sm:text-base ${
                     errors.cardNumber ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
                 {errors.cardNumber && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.cardNumber}</p>
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.cardNumber}</p>
                 )}
               </div>
 
               {/* Expiry and CVC */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label htmlFor="expiryDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Expiry Date
@@ -317,12 +317,12 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                     onChange={(e) => handleInputChange('expiryDate', e.target.value)}
                     placeholder="MM/YY"
                     maxLength={5}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm sm:text-base ${
                       errors.expiryDate ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   />
                   {errors.expiryDate && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.expiryDate}</p>
+                    <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.expiryDate}</p>
                   )}
                 </div>
 
@@ -337,12 +337,12 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                     onChange={(e) => handleInputChange('cvc', e.target.value)}
                     placeholder="123"
                     maxLength={4}
-                    className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm sm:text-base ${
                       errors.cvc ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                     }`}
                   />
                   {errors.cvc && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.cvc}</p>
+                    <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.cvc}</p>
                   )}
                 </div>
               </div>
@@ -358,12 +358,12 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                   value={formData.nameOnCard}
                   onChange={(e) => handleInputChange('nameOnCard', e.target.value)}
                   placeholder="John Doe"
-                  className={`w-full px-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm sm:text-base ${
                     errors.nameOnCard ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                 />
                 {errors.nameOnCard && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.nameOnCard}</p>
+                  <p className="mt-1 text-xs sm:text-sm text-red-600 dark:text-red-400">{errors.nameOnCard}</p>
                 )}
               </div>
 
@@ -371,29 +371,30 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center"
+                onClick={handleSubmit}
+                className="w-full py-3 sm:py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg sm:rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3 animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-5 h-5 mr-3" />
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
                     Start My Free Trial
                   </>
                 )}
               </button>
-            </form>
+            </div>
           </div>
 
           {/* Trial Confirmation & Disclaimer */}
-          <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
               Trial Terms
             </h3>
-            <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+            <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
               <p>
                 By clicking "Start My Free Trial", you agree to our{' '}
                 <a href="#" className="text-purple-600 dark:text-purple-400 hover:underline">
@@ -414,9 +415,11 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
           </div>
 
           {/* Demo Notice */}
-          <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Demo Mode:</strong> This is a demonstration. Use card number <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">4111 2222 3333 4444</code> for successful payment simulation.
+          <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+              <strong>Demo Mode:</strong> This is a demonstration. Use card number{' '}
+              <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded text-xs break-all">4111 2222 3333 4444</code>{' '}
+              for successful payment simulation.
             </p>
           </div>
         </div>
@@ -425,4 +428,38 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
   );
 };
 
-export default CreditCardPage;
+// Demo component with default props for testing
+const DemoWrapper = () => {
+  const [showSuccess, setShowSuccess] = useState(false);
+  
+  const handleSuccess = () => {
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+  
+  const handleBack = () => {
+    console.log('Back button clicked');
+  };
+  
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
+          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Success!</h2>
+          <p className="text-gray-600 dark:text-gray-300">Your free trial has been activated.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <CreditCardPage
+      selectedPlan="yearly"
+      onSuccess={handleSuccess}
+      onBack={handleBack}
+    />
+  );
+};
+
+export default DemoWrapper;v
