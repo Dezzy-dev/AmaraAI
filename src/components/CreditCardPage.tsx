@@ -36,6 +36,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [paymentError, setPaymentError] = useState('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Plan pricing
   const planPricing = {
@@ -170,13 +171,40 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
     if (cleanCardNumber === '4111222233334444') {
       // Simulate successful payment
       setIsLoading(false);
-      onSuccess();
+      setShowSuccessMessage(true);
+      
+      // Show success message briefly, then redirect
+      setTimeout(() => {
+        onSuccess();
+      }, 1500);
     } else {
       // Simulate payment failure
       setIsLoading(false);
       setPaymentError('Payment failed. Please check your card details and try again.');
     }
   };
+
+  // Show success overlay when payment is successful
+  if (showSuccessMessage) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 text-center max-w-md mx-auto animate-scale-in">
+          <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            Trial Activated Successfully!
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            Redirecting to your dashboard...
+          </p>
+          <div className="flex justify-center">
+            <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
@@ -428,38 +456,4 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
   );
 };
 
-// Demo component with default props for testing
-const DemoWrapper = () => {
-  const [showSuccess, setShowSuccess] = useState(false);
-  
-  const handleSuccess = () => {
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-  
-  const handleBack = () => {
-    console.log('Back button clicked');
-  };
-  
-  if (showSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900/10 dark:to-blue-900/10 flex items-center justify-center p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 text-center max-w-md">
-          <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Success!</h2>
-          <p className="text-gray-600 dark:text-gray-300">Your free trial has been activated.</p>
-        </div>
-      </div>
-    );
-  }
-  
-  return (
-    <CreditCardPage
-      selectedPlan="yearly"
-      onSuccess={handleSuccess}
-      onBack={handleBack}
-    />
-  );
-};
-
-export default DemoWrapper;
+export default CreditCardPage;
