@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import SignUpPage from './SignUpPage';
 import SignInPage from './SignInPage';
+import { useUser } from '../../contexts/UserContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,13 +18,24 @@ const AuthModal: React.FC<AuthModalProps> = ({
   onAuthSuccess
 }) => {
   const [mode, setMode] = useState<'signup' | 'signin'>(initialMode);
+  const { userData, setUserData, updateUserData } = useUser();
 
   if (!isOpen) return null;
 
   const handleSignUp = async (email: string, password: string) => {
     console.log('Sign up:', { email, password });
-    // Implement actual sign up logic here
-    // For now, simulate success
+    
+    // Simulate successful sign up
+    const newUserData = {
+      name: userData?.name || 'User',
+      email: email,
+      country: userData?.country,
+      feeling: userData?.feeling,
+      isAuthenticated: true
+    };
+    
+    setUserData(newUserData);
+    
     if (onAuthSuccess) {
       onAuthSuccess();
     } else {
@@ -33,8 +45,21 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSignIn = async (email: string, password: string) => {
     console.log('Sign in:', { email, password });
-    // Implement actual sign in logic here
-    // For now, simulate success
+    
+    // Simulate successful sign in
+    if (userData) {
+      updateUserData({ 
+        email: email,
+        isAuthenticated: true 
+      });
+    } else {
+      setUserData({
+        name: 'User',
+        email: email,
+        isAuthenticated: true
+      });
+    }
+    
     if (onAuthSuccess) {
       onAuthSuccess();
     } else {
@@ -44,8 +69,22 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
   const handleSocialAuth = (provider: 'google' | 'apple', action: 'signup' | 'signin') => {
     console.log(`${action} with ${provider}`);
-    // Implement social auth logic here
-    // For now, simulate success
+    
+    // Simulate successful social auth
+    const email = `user@${provider}.com`;
+    if (userData) {
+      updateUserData({ 
+        email: email,
+        isAuthenticated: true 
+      });
+    } else {
+      setUserData({
+        name: 'User',
+        email: email,
+        isAuthenticated: true
+      });
+    }
+    
     if (onAuthSuccess) {
       onAuthSuccess();
     } else {

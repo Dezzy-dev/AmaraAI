@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import Unique from './components/Unique';
@@ -19,6 +19,8 @@ import ComparisonPricingPage from './components/ComparisonPricingPage';
 import CreditCardPage from './components/CreditCardPage';
 import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
+import { UserProvider, useUser } from './contexts/UserContext';
+import { ChatProvider } from './contexts/ChatContext';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard';
@@ -36,7 +38,7 @@ interface UserProfile {
   created_at: string;
 }
 
-function App() {
+function AppContent() {
   const [isDark, toggleDarkMode] = useDarkMode();
   const [currentView, setCurrentView] = useState<AppView>('landing');
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -45,6 +47,8 @@ function App() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  
+  const { userData, setUserData, updateUserData, isUserDataLoaded } = useUser();
 
   // Mock user data for demonstration
   const mockUsers = {
@@ -84,20 +88,50 @@ function App() {
   };
 
   const handleStartTalking = () => {
-    setCurrentView('welcome');
+    // Check if user has personalization data stored
+    if (userData && userData.name && userData.isAuthenticated) {
+      // Skip personalization and go directly to session
+      setCurrentView('session');
+    } else {
+      // Start with welcome flow for new users
+      setCurrentView('welcome');
+    }
   };
 
   const handleWelcomeComplete = () => {
-    setCurrentView('personalization');
+    // Check if user already has personalization data
+    if (userData && userData.name) {
+      setCurrentView('session');
+    } else {
+      setCurrentView('personalization');
+    }
   };
 
   const handlePersonalizationComplete = (data: PersonalizationData) => {
     setPersonalizationData(data);
+    
+    // Store personalization data in user context
+    if (userData) {
+      updateUserData({
+        name: data.name,
+        country: data.country,
+        feeling: data.feeling
+      });
+    } else {
+      // Create new user data for anonymous users
+      setUserData({
+        name: data.name,
+        country: data.country,
+        feeling: data.feeling,
+        isAuthenticated: false
+      });
+    }
+    
     setCurrentView('session');
   };
 
   const handleEndSession = () => {
-    setCurrentView('landing');
+    setCurrentView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
     setPersonalizationData(null);
   };
 
@@ -112,6 +146,11 @@ function App() {
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
+    
+    // Update user data to mark as authenticated
+    if (userData) {
+      updateUserData({ isAuthenticated: true });
+    }
     
     // Route user based on their chosen path
     if (userPath === 'trial_path') {
@@ -154,7 +193,12 @@ function App() {
 
   // Dashboard handlers
   const handleStartNewSession = () => {
-    setCurrentView('personalization');
+    // If user has personalization data, skip to session
+    if (userData && userData.name) {
+      setCurrentView('session');
+    } else {
+      setCurrentView('personalization');
+    }
   };
 
   const handleResumeSession = () => {
@@ -271,9 +315,9 @@ function App() {
       case 'session':
         return (
           <TherapySession 
-            userName={personalizationData?.name || 'there'} 
-            userCountry={personalizationData?.country}
-            userFeeling={personalizationData?.feeling}
+            userName={userData?.name || personalizationData?.name || 'there'} 
+            userCountry={userData?.country || personalizationData?.country}
+            userFeeling={userData?.feeling || personalizationData?.feeling}
             onEndSession={handleEndSession}
             onSignUp={handleSignUp}
             onSignIn={handleSignIn}
@@ -321,6 +365,16 @@ function App() {
       {/* Demo buttons for testing */}
       {renderDemoButtons()}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <UserProvider>
+      <ChatProvider>
+        <AppContent />
+      </ChatProvider>
+    </UserProvider>
   );
 }
 
