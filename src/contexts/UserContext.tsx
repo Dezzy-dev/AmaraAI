@@ -7,6 +7,9 @@ interface UserData {
   feeling?: string;
   isAuthenticated: boolean;
   currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
+  dailyMessagesUsed?: number;
+  voiceNotesUsed?: number;
+  lastResetDate?: string;
 }
 
 interface UserContextType {
@@ -15,6 +18,7 @@ interface UserContextType {
   updateUserData: (updates: Partial<UserData>) => void;
   clearUserData: () => void;
   isUserDataLoaded: boolean;
+  resetDailyLimits: () => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -34,6 +38,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         const storedUserData = localStorage.getItem('amaraUserData');
         if (storedUserData) {
           const parsedData = JSON.parse(storedUserData);
+          
+          // Check if we need to reset daily limits
+          const today = new Date().toDateString();
+          if (parsedData.lastResetDate !== today) {
+            parsedData.dailyMessagesUsed = 0;
+            parsedData.lastResetDate = today;
+          }
+          
           setUserDataState(parsedData);
         }
       } catch (error) {
@@ -60,11 +72,46 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, [userData, isUserDataLoaded]);
 
   const setUserData = (data: UserData | null) => {
-    setUserDataState(data);
+    if (data) {
+      // Ensure daily limits are initialized
+      const today = new Date().toDateString();
+      const enhancedData = {
+        ...data,
+        dailyMessagesUsed: data.dailyMessagesUsed || 0,
+        voiceNotesUsed: data.voiceNotesUsed || 0,
+        lastResetDate: data.lastResetDate || today
+      };
+      setUserDataState(enhancedData);
+    } else {
+      setUserDataState(data);
+    }
   };
 
   const updateUserData = (updates: Partial<UserData>) => {
-    setUserDataState(prev => prev ? { ...prev, ...updates } : null);
+    setUserDataState(prev => {
+      if (!prev) return null;
+      
+      const updated = { ...prev, ...updates };
+      
+      // If updating daily usage, ensure we don't exceed limits
+      if (updates.dailyMessagesUsed !== undefined && prev.currentPlan === 'freemium') {
+        updated.dailyMessagesUsed = Math.min(updates.dailyMessagesUsed, 5);
+      }
+      
+      if (updates.voiceNotesUsed !== undefined && prev.currentPlan === 'freemium') {
+        updated.voiceNotesUsed = Math.min(updates.voiceNotesUsed, 1);
+      }
+      
+      return updated;
+    });
+  };
+
+  const resetDailyLimits = () => {
+    const today = new Date().toDateString();
+    updateUserData({
+      dailyMessagesUsed: 0,
+      lastResetDate: today
+    });
   };
 
   const clearUserData = () => {
@@ -77,7 +124,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setUserData,
     updateUserData,
     clearUserData,
-    isUserDataLoaded
+    isUserDataLoaded,
+    resetDailyLimits
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb, ArrowLeft } from 'lucide-react';
+import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb, ArrowLeft, Lock, Zap, Crown } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
@@ -41,9 +41,41 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const { messages, addMessage, startSession, endSession } = useChat();
   const { userData } = useUser();
 
-  // Trial limits
-  const MAX_TEXT_MESSAGES = 3;
-  const MAX_VOICE_NOTES = 1;
+  // Determine if user is on freemium plan
+  const isFreemiumUser = userData?.currentPlan === 'freemium' || (!userData?.isAuthenticated && userData?.currentPlan !== 'trial_path');
+
+  // Freemium limits
+  const FREEMIUM_DAILY_MESSAGES = 5;
+  const FREEMIUM_VOICE_NOTES = 1;
+
+  // Trial limits (for non-authenticated users)
+  const TRIAL_MESSAGES = 3;
+  const TRIAL_VOICE_NOTES = 1;
+
+  // Get current limits based on user type
+  const getCurrentLimits = () => {
+    if (isFreemiumUser) {
+      return {
+        maxMessages: FREEMIUM_DAILY_MESSAGES,
+        maxVoiceNotes: FREEMIUM_VOICE_NOTES,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount)
+      };
+    } else {
+      return {
+        maxMessages: TRIAL_MESSAGES,
+        maxVoiceNotes: TRIAL_VOICE_NOTES,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Math.max(0, TRIAL_MESSAGES - messageCount),
+        voiceNotesRemaining: Math.max(0, TRIAL_VOICE_NOTES - voiceNoteCount)
+      };
+    }
+  };
+
+  const limits = getCurrentLimits();
 
   // Quick reply suggestions
   const quickReplies = [
@@ -83,13 +115,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Check trial limits
+  // Check limits
   useEffect(() => {
-    if (messageCount >= MAX_TEXT_MESSAGES || voiceNoteCount >= MAX_VOICE_NOTES) {
+    const messagesLimitReached = messageCount >= limits.maxMessages;
+    const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
+    
+    if (messagesLimitReached || voiceNotesLimitReached) {
       setIsTrialLimited(true);
-      setShowTrialModal(true);
+      if (!userData?.isAuthenticated) {
+        setShowTrialModal(true);
+      }
     }
-  }, [messageCount, voiceNoteCount]);
+  }, [messageCount, voiceNoteCount, limits, userData?.isAuthenticated]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -132,7 +169,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleSendMessage = () => {
-    if (currentMessage.trim() && !isTrialLimited) {
+    if (currentMessage.trim() && limits.messagesRemaining > 0) {
       addMessage('user', currentMessage.trim());
       setCurrentMessage('');
       setMessageCount(prev => prev + 1);
@@ -157,7 +194,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleQuickReply = (reply: string) => {
-    if (!isTrialLimited) {
+    if (limits.messagesRemaining > 0) {
       addMessage('user', reply);
       setMessageCount(prev => prev + 1);
       
@@ -174,7 +211,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleVoiceNote = () => {
-    if (!isTrialLimited && voiceNoteCount < MAX_VOICE_NOTES) {
+    if (limits.voiceNotesRemaining > 0) {
       setIsRecording(!isRecording);
       if (!isRecording) {
         // Simulate voice note
@@ -198,7 +235,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const addReaction = (messageId: string, emoji: string) => {
-    // This would be implemented with the chat context if needed
     console.log('Adding reaction:', emoji, 'to message:', messageId);
   };
 
@@ -211,6 +247,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const handleEndSessionClick = () => {
     endSession();
     onEndSession();
+  };
+
+  const getMessageCounterColor = () => {
+    if (limits.messagesRemaining <= 1) return 'text-red-500 dark:text-red-400';
+    if (limits.messagesRemaining <= 2) return 'text-orange-500 dark:text-orange-400';
+    return 'text-gray-500 dark:text-gray-400';
+  };
+
+  const getVoiceCounterColor = () => {
+    if (limits.voiceNotesRemaining === 0) return 'text-red-500 dark:text-red-400';
+    return 'text-purple-500 dark:text-purple-400';
   };
 
   if (isLoading) {
@@ -228,18 +275,22 @@ const TherapySession: React.FC<TherapySessionProps> = ({
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white truncate">Chat with Amara</h1>
-              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center space-x-1">
-                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{formatTime(sessionDuration)}</span>
+                  <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 text-gray-500 dark:text-gray-400" />
+                  <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">{formatTime(sessionDuration)}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{messageCount}/{MAX_TEXT_MESSAGES}</span>
+                  <span className={`whitespace-nowrap font-medium ${getMessageCounterColor()}`}>
+                    {isFreemiumUser ? `${limits.messagesRemaining} left` : `${limits.messagesUsed}/${limits.maxMessages}`}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <Mic className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{voiceNoteCount}/{MAX_VOICE_NOTES}</span>
+                  <span className={`whitespace-nowrap font-medium ${getVoiceCounterColor()}`}>
+                    {isFreemiumUser ? `${limits.voiceNotesRemaining} left` : `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -265,6 +316,40 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           </button>
         </div>
       </header>
+
+      {/* Usage Warning Banner */}
+      {isFreemiumUser && (limits.messagesRemaining <= 2 || limits.voiceNotesRemaining === 0) && (
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-b border-orange-200 dark:border-orange-700 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                  {limits.messagesRemaining === 0 
+                    ? "Daily message limit reached" 
+                    : limits.messagesRemaining === 1
+                    ? "1 message remaining today"
+                    : `${limits.messagesRemaining} messages remaining today`
+                  }
+                </p>
+                {limits.voiceNotesRemaining === 0 && (
+                  <p className="text-xs text-orange-700 dark:text-orange-300">
+                    You've used your free voice note. Upgrade for unlimited voice notes!
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => onSignUp('trial_path')}
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+            >
+              Upgrade Now
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
@@ -338,9 +423,9 @@ const TherapySession: React.FC<TherapySessionProps> = ({
             <button
               key={index}
               onClick={() => handleQuickReply(reply)}
-              disabled={isTrialLimited}
+              disabled={limits.messagesRemaining === 0}
               className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border transition-all duration-200 ${
-                isTrialLimited
+                limits.messagesRemaining === 0
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-600'
               }`}
@@ -353,11 +438,67 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
       {/* Chat Input */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-4">
-        {isTrialLimited && (
-          <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-center">
-            <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200">
-              Trial limit reached. Sign up to continue your conversation with Amara.
-            </p>
+        {/* Message Limit Warning */}
+        {isFreemiumUser && limits.messagesRemaining <= 2 && limits.messagesRemaining > 0 && (
+          <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                You have {limits.messagesRemaining} message{limits.messagesRemaining === 1 ? '' : 's'} remaining today. Upgrade for unlimited conversations.
+              </p>
+              <button
+                onClick={() => onSignUp('trial_path')}
+                className="ml-3 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded transition-colors duration-200 whitespace-nowrap"
+              >
+                Upgrade
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Message Limit Reached */}
+        {limits.messagesRemaining === 0 && (
+          <div className="mb-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-3">
+                <Lock className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-2" />
+                <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200">
+                  {isFreemiumUser ? "Daily limit reached" : "Trial limit reached"}
+                </h3>
+              </div>
+              <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
+                {isFreemiumUser 
+                  ? "Your daily message limit has been reached. Upgrade for unlimited conversations and features!"
+                  : "Upgrade for unlimited conversations with Amara and access to all premium features."
+                }
+              </p>
+              <button
+                onClick={() => onSignUp('trial_path')}
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              >
+                <Crown className="w-5 h-5 mr-2" />
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Voice Note Limit Warning */}
+        {isFreemiumUser && limits.voiceNotesRemaining === 0 && (
+          <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Mic className="w-5 h-5 text-purple-600 dark:text-purple-400 mr-2" />
+                <p className="text-sm text-purple-800 dark:text-purple-200">
+                  You've used your free voice note. Upgrade for unlimited voice notes and enhanced communication!
+                </p>
+              </div>
+              <button
+                onClick={() => onSignUp('trial_path')}
+                className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded transition-colors duration-200 whitespace-nowrap"
+              >
+                Upgrade
+              </button>
+            </div>
           </div>
         )}
         
@@ -367,10 +508,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isTrialLimited ? "Sign up to continue..." : "Share what's on your mind..."}
-              disabled={isTrialLimited}
+              placeholder={
+                limits.messagesRemaining === 0 
+                  ? "Upgrade to continue..." 
+                  : "Share what's on your mind..."
+              }
+              disabled={limits.messagesRemaining === 0}
               className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl border resize-none transition-all duration-200 text-sm sm:text-base ${
-                isTrialLimited
+                limits.messagesRemaining === 0
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20'
               }`}
@@ -382,24 +527,27 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           {/* Voice Button */}
           <button
             onClick={handleVoiceNote}
-            disabled={isTrialLimited}
-            className={`p-2.5 sm:p-3 rounded-full transition-all duration-200 ${
+            disabled={limits.voiceNotesRemaining === 0}
+            className={`p-2.5 sm:p-3 rounded-full transition-all duration-200 relative ${
               isRecording
                 ? 'bg-red-500 text-white animate-pulse'
-                : isTrialLimited
+                : limits.voiceNotesRemaining === 0
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400'
             }`}
           >
             <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+            {limits.voiceNotesRemaining === 0 && (
+              <Lock className="absolute -top-1 -right-1 w-3 h-3 text-red-500" />
+            )}
           </button>
           
           {/* Send Button */}
           <button
             onClick={handleSendMessage}
-            disabled={!currentMessage.trim() || isTrialLimited}
+            disabled={!currentMessage.trim() || limits.messagesRemaining === 0}
             className={`p-2.5 sm:p-3 rounded-full transition-all duration-200 ${
-              !currentMessage.trim() || isTrialLimited
+              !currentMessage.trim() || limits.messagesRemaining === 0
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                 : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transform hover:scale-105'
             }`}

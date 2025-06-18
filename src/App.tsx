@@ -123,7 +123,11 @@ function AppContent() {
         name: data.name,
         country: data.country,
         feeling: data.feeling,
-        isAuthenticated: false
+        isAuthenticated: false,
+        currentPlan: 'freemium', // Default to freemium for anonymous users
+        dailyMessagesUsed: 0,
+        voiceNotesUsed: 0,
+        lastResetDate: new Date().toDateString()
       });
     }
     
@@ -147,9 +151,13 @@ function AppContent() {
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
     
-    // Update user data to mark as authenticated
+    // Update user data to mark as authenticated and set plan
     if (userData) {
-      updateUserData({ isAuthenticated: true });
+      const planType = userPath === 'freemium_path' ? 'freemium' : 'monthly_trial';
+      updateUserData({ 
+        isAuthenticated: true,
+        currentPlan: planType
+      });
     }
     
     // Route user based on their chosen path
@@ -179,6 +187,14 @@ function AppContent() {
       current_plan: selectedPlan === 'monthly' ? 'monthly_trial' as const : 'yearly_trial' as const
     };
     setCurrentUser(trialUser);
+    
+    // Update user context with trial plan
+    if (userData) {
+      updateUserData({
+        currentPlan: selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial'
+      });
+    }
+    
     setCurrentView('dashboard');
   };
 
@@ -241,6 +257,15 @@ function AppContent() {
         <button
           onClick={() => {
             setCurrentUser(mockUsers.freemium);
+            setUserData({
+              name: 'Alex',
+              email: 'alex@example.com',
+              isAuthenticated: true,
+              currentPlan: 'freemium',
+              dailyMessagesUsed: 3,
+              voiceNotesUsed: 0,
+              lastResetDate: new Date().toDateString()
+            });
             setCurrentView('dashboard');
           }}
           className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
@@ -250,6 +275,15 @@ function AppContent() {
         <button
           onClick={() => {
             setCurrentUser(mockUsers.trial);
+            setUserData({
+              name: 'Jordan',
+              email: 'jordan@example.com',
+              isAuthenticated: true,
+              currentPlan: 'yearly_trial',
+              dailyMessagesUsed: 0,
+              voiceNotesUsed: 0,
+              lastResetDate: new Date().toDateString()
+            });
             setCurrentView('dashboard');
           }}
           className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
@@ -259,6 +293,15 @@ function AppContent() {
         <button
           onClick={() => {
             setCurrentUser(mockUsers.premium);
+            setUserData({
+              name: 'Sam',
+              email: 'sam@example.com',
+              isAuthenticated: true,
+              currentPlan: 'yearly_premium',
+              dailyMessagesUsed: 0,
+              voiceNotesUsed: 0,
+              lastResetDate: new Date().toDateString()
+            });
             setCurrentView('dashboard');
           }}
           className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
@@ -268,6 +311,7 @@ function AppContent() {
         <button
           onClick={() => {
             setCurrentUser(null);
+            setUserData(null);
             setCurrentView('landing');
           }}
           className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
