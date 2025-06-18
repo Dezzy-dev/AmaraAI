@@ -41,36 +41,58 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const { messages, addMessage, startSession, endSession } = useChat();
   const { userData } = useUser();
 
-  // Determine if user is on freemium plan
-  const isFreemiumUser = userData?.currentPlan === 'freemium' || (!userData?.isAuthenticated && userData?.currentPlan !== 'trial_path');
+  // Determine user type
+  const isPremiumUser = () => {
+    return userData?.currentPlan === 'monthly_premium' || userData?.currentPlan === 'yearly_premium';
+  };
 
-  // Freemium limits
+  const isTrialUser = () => {
+    return userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
+  };
+
+  const isFreemiumUser = () => {
+    return userData?.currentPlan === 'freemium' || (!userData?.isAuthenticated && userData?.currentPlan !== 'trial_path');
+  };
+
+  // Limits only apply to non-premium users
   const FREEMIUM_DAILY_MESSAGES = 5;
   const FREEMIUM_VOICE_NOTES = 1;
-
-  // Trial limits (for non-authenticated users)
   const TRIAL_MESSAGES = 3;
   const TRIAL_VOICE_NOTES = 1;
 
   // Get current limits based on user type
   const getCurrentLimits = () => {
-    if (isFreemiumUser) {
+    if (isPremiumUser()) {
+      // Premium users have no limits
+      return {
+        maxMessages: Infinity,
+        maxVoiceNotes: Infinity,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Infinity,
+        voiceNotesRemaining: Infinity,
+        hasLimits: false
+      };
+    } else if (isFreemiumUser()) {
       return {
         maxMessages: FREEMIUM_DAILY_MESSAGES,
         maxVoiceNotes: FREEMIUM_VOICE_NOTES,
         messagesUsed: messageCount,
         voiceNotesUsed: voiceNoteCount,
         messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount)
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
+        hasLimits: true
       };
     } else {
+      // Trial users
       return {
         maxMessages: TRIAL_MESSAGES,
         maxVoiceNotes: TRIAL_VOICE_NOTES,
         messagesUsed: messageCount,
         voiceNotesUsed: voiceNoteCount,
         messagesRemaining: Math.max(0, TRIAL_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, TRIAL_VOICE_NOTES - voiceNoteCount)
+        voiceNotesRemaining: Math.max(0, TRIAL_VOICE_NOTES - voiceNoteCount),
+        hasLimits: true
       };
     }
   };
@@ -115,18 +137,20 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Check limits
+  // Check limits (only for non-premium users)
   useEffect(() => {
-    const messagesLimitReached = messageCount >= limits.maxMessages;
-    const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
-    
-    if (messagesLimitReached || voiceNotesLimitReached) {
-      setIsTrialLimited(true);
-      if (!userData?.isAuthenticated) {
-        setShowTrialModal(true);
+    if (!isPremiumUser() && limits.hasLimits) {
+      const messagesLimitReached = messageCount >= limits.maxMessages;
+      const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
+      
+      if (messagesLimitReached || voiceNotesLimitReached) {
+        setIsTrialLimited(true);
+        if (!userData?.isAuthenticated) {
+          setShowTrialModal(true);
+        }
       }
     }
-  }, [messageCount, voiceNoteCount, limits, userData?.isAuthenticated]);
+  }, [messageCount, voiceNoteCount, limits, userData?.isAuthenticated, isPremiumUser]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -151,6 +175,10 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       greeting += feelingResponses[userFeeling as keyof typeof feelingResponses] || "";
     }
     
+    if (isPremiumUser()) {
+      greeting += "As a premium member, you have unlimited access to all my features. ";
+    }
+    
     greeting += "What's on your mind today? Feel free to share anything - I'm here to listen without judgment.";
     
     return greeting;
@@ -169,7 +197,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleSendMessage = () => {
-    if (currentMessage.trim() && limits.messagesRemaining > 0) {
+    if (currentMessage.trim() && (isPremiumUser() || limits.messagesRemaining > 0)) {
       addMessage('user', currentMessage.trim());
       setCurrentMessage('');
       setMessageCount(prev => prev + 1);
@@ -194,7 +222,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleQuickReply = (reply: string) => {
-    if (limits.messagesRemaining > 0) {
+    if (isPremiumUser() || limits.messagesRemaining > 0) {
       addMessage('user', reply);
       setMessageCount(prev => prev + 1);
       
@@ -211,7 +239,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const handleVoiceNote = () => {
-    if (limits.voiceNotesRemaining > 0) {
+    if (isPremiumUser() || limits.voiceNotesRemaining > 0) {
       setIsRecording(!isRecording);
       if (!isRecording) {
         // Simulate voice note
@@ -250,14 +278,28 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const getMessageCounterColor = () => {
+    if (isPremiumUser()) return 'text-green-500 dark:text-green-400'; // Green for unlimited
     if (limits.messagesRemaining <= 1) return 'text-red-500 dark:text-red-400';
     if (limits.messagesRemaining <= 2) return 'text-orange-500 dark:text-orange-400';
     return 'text-gray-500 dark:text-gray-400';
   };
 
   const getVoiceCounterColor = () => {
+    if (isPremiumUser()) return 'text-green-500 dark:text-green-400'; // Green for unlimited
     if (limits.voiceNotesRemaining === 0) return 'text-red-500 dark:text-red-400';
     return 'text-purple-500 dark:text-purple-400';
+  };
+
+  const shouldShowLimitWarnings = () => {
+    return !isPremiumUser() && limits.hasLimits;
+  };
+
+  const shouldDisableInput = () => {
+    return !isPremiumUser() && limits.hasLimits && limits.messagesRemaining === 0;
+  };
+
+  const shouldDisableVoice = () => {
+    return !isPremiumUser() && limits.hasLimits && limits.voiceNotesRemaining === 0;
   };
 
   if (isLoading) {
@@ -274,24 +316,45 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-white" fill="currentColor" />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white truncate">Chat with Amara</h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white truncate">Chat with Amara</h1>
+                {isPremiumUser() && (
+                  <Crown className="w-4 h-4 text-yellow-500 flex-shrink-0" fill="currentColor" />
+                )}
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
                 <div className="flex items-center space-x-1">
                   <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 text-gray-500 dark:text-gray-400" />
                   <span className="whitespace-nowrap text-gray-500 dark:text-gray-400">{formatTime(sessionDuration)}</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className={`whitespace-nowrap font-medium ${getMessageCounterColor()}`}>
-                    {isFreemiumUser ? `${limits.messagesRemaining} left` : `${limits.messagesUsed}/${limits.maxMessages}`}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <Mic className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className={`whitespace-nowrap font-medium ${getVoiceCounterColor()}`}>
-                    {isFreemiumUser ? `${limits.voiceNotesRemaining} left` : `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}`}
-                  </span>
-                </div>
+                
+                {/* Only show counters for non-premium users */}
+                {!isPremiumUser() && (
+                  <>
+                    <div className="flex items-center space-x-1">
+                      <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                      <span className={`whitespace-nowrap font-medium ${getMessageCounterColor()}`}>
+                        {isFreemiumUser() ? `${limits.messagesRemaining} left` : `${limits.messagesUsed}/${limits.maxMessages}`}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Mic className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                      <span className={`whitespace-nowrap font-medium ${getVoiceCounterColor()}`}>
+                        {isFreemiumUser() ? `${limits.voiceNotesRemaining} left` : `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}`}
+                      </span>
+                    </div>
+                  </>
+                )}
+                
+                {/* Premium indicator */}
+                {isPremiumUser() && (
+                  <div className="flex items-center space-x-1">
+                    <Crown className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 text-yellow-500" />
+                    <span className="whitespace-nowrap font-medium text-yellow-600 dark:text-yellow-400">
+                      Premium
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -317,8 +380,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         </div>
       </header>
 
-      {/* Usage Warning Banner */}
-      {isFreemiumUser && (limits.messagesRemaining <= 2 || limits.voiceNotesRemaining === 0) && (
+      {/* Usage Warning Banner - Only for non-premium users */}
+      {shouldShowLimitWarnings() && (limits.messagesRemaining <= 2 || limits.voiceNotesRemaining === 0) && (
         <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-b border-orange-200 dark:border-orange-700 px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -423,9 +486,9 @@ const TherapySession: React.FC<TherapySessionProps> = ({
             <button
               key={index}
               onClick={() => handleQuickReply(reply)}
-              disabled={limits.messagesRemaining === 0}
+              disabled={shouldDisableInput()}
               className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full border transition-all duration-200 ${
-                limits.messagesRemaining === 0
+                shouldDisableInput()
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
                   : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-300 dark:hover:border-purple-600'
               }`}
@@ -438,8 +501,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
       {/* Chat Input */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-4">
-        {/* Message Limit Warning */}
-        {isFreemiumUser && limits.messagesRemaining <= 2 && limits.messagesRemaining > 0 && (
+        {/* Message Limit Warning - Only for non-premium users */}
+        {shouldShowLimitWarnings() && limits.messagesRemaining <= 2 && limits.messagesRemaining > 0 && (
           <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-center justify-between">
               <p className="text-sm text-amber-800 dark:text-amber-200">
@@ -455,18 +518,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           </div>
         )}
 
-        {/* Message Limit Reached */}
-        {limits.messagesRemaining === 0 && (
+        {/* Message Limit Reached - Only for non-premium users */}
+        {shouldShowLimitWarnings() && limits.messagesRemaining === 0 && (
           <div className="mb-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
             <div className="text-center">
               <div className="flex items-center justify-center mb-3">
                 <Lock className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-2" />
                 <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200">
-                  {isFreemiumUser ? "Daily limit reached" : "Trial limit reached"}
+                  {isFreemiumUser() ? "Daily limit reached" : "Trial limit reached"}
                 </h3>
               </div>
               <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
-                {isFreemiumUser 
+                {isFreemiumUser() 
                   ? "Your daily message limit has been reached. Upgrade for unlimited conversations and features!"
                   : "Upgrade for unlimited conversations with Amara and access to all premium features."
                 }
@@ -482,8 +545,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           </div>
         )}
 
-        {/* Voice Note Limit Warning */}
-        {isFreemiumUser && limits.voiceNotesRemaining === 0 && (
+        {/* Voice Note Limit Warning - Only for non-premium users */}
+        {shouldShowLimitWarnings() && limits.voiceNotesRemaining === 0 && (
           <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
@@ -509,14 +572,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={
-                limits.messagesRemaining === 0 
+                shouldDisableInput()
                   ? "Upgrade to continue..." 
+                  : isPremiumUser()
+                  ? "Share anything on your mind... unlimited conversations await!"
                   : "Share what's on your mind..."
               }
-              disabled={limits.messagesRemaining === 0}
+              disabled={shouldDisableInput()}
               className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-2xl border resize-none transition-all duration-200 text-sm sm:text-base ${
-                limits.messagesRemaining === 0
+                shouldDisableInput()
                   ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
+                  : isPremiumUser()
+                  ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-green-300 dark:border-green-600 focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20'
                   : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20'
               }`}
               rows={1}
@@ -527,17 +594,19 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           {/* Voice Button */}
           <button
             onClick={handleVoiceNote}
-            disabled={limits.voiceNotesRemaining === 0}
+            disabled={shouldDisableVoice()}
             className={`p-2.5 sm:p-3 rounded-full transition-all duration-200 relative ${
               isRecording
                 ? 'bg-red-500 text-white animate-pulse'
-                : limits.voiceNotesRemaining === 0
+                : shouldDisableVoice()
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : isPremiumUser()
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:text-purple-600 dark:hover:text-purple-400'
             }`}
           >
             <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
-            {limits.voiceNotesRemaining === 0 && (
+            {shouldDisableVoice() && (
               <Lock className="absolute -top-1 -right-1 w-3 h-3 text-red-500" />
             )}
           </button>
@@ -545,10 +614,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           {/* Send Button */}
           <button
             onClick={handleSendMessage}
-            disabled={!currentMessage.trim() || limits.messagesRemaining === 0}
+            disabled={!currentMessage.trim() || shouldDisableInput()}
             className={`p-2.5 sm:p-3 rounded-full transition-all duration-200 ${
-              !currentMessage.trim() || limits.messagesRemaining === 0
+              !currentMessage.trim() || shouldDisableInput()
                 ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                : isPremiumUser()
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transform hover:scale-105'
                 : 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 transform hover:scale-105'
             }`}
           >
@@ -566,23 +637,25 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         />
       )}
 
-      {/* Trial Limit Modal */}
-      <TrialLimitModal
-        isOpen={showTrialModal}
-        onClose={() => setShowTrialModal(false)}
-        onStartTrial={() => {
-          setShowTrialModal(false);
-          onSignUp('trial_path');
-        }}
-        onChooseFreemium={() => {
-          setShowTrialModal(false);
-          onSignUp('freemium_path');
-        }}
-        onSignIn={() => {
-          setShowTrialModal(false);
-          onSignIn();
-        }}
-      />
+      {/* Trial Limit Modal - Only for non-premium users */}
+      {!isPremiumUser() && (
+        <TrialLimitModal
+          isOpen={showTrialModal}
+          onClose={() => setShowTrialModal(false)}
+          onStartTrial={() => {
+            setShowTrialModal(false);
+            onSignUp('trial_path');
+          }}
+          onChooseFreemium={() => {
+            setShowTrialModal(false);
+            onSignUp('freemium_path');
+          }}
+          onSignIn={() => {
+            setShowTrialModal(false);
+            onSignIn();
+          }}
+        />
+      )}
     </div>
   );
 };

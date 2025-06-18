@@ -3,12 +3,8 @@ import {
   MessageCircle,
   Heart,
   PenTool,
-  BarChart3, // Not used in the provided JSX, consider removing if truly unused
   Settings,
   HelpCircle,
-  User, // Not used in the provided JSX, consider removing if truly unused
-  Clock, // Not used in the provided JSX, consider removing if truly unused
-  Calendar, // Not used in the provided JSX, consider removing if truly unused
   Sparkles,
   Crown,
   Zap,
@@ -18,10 +14,16 @@ import {
   ArrowRight,
   Play,
   Plus,
-  Edit3, // Not used in the provided JSX, consider removing if truly unused
   Activity,
-  Brain
+  Brain,
+  BarChart3,
+  Calendar,
+  Shield,
+  Star,
+  Award,
+  Infinity
 } from 'lucide-react';
+import { useUser } from '../contexts/UserContext';
 
 interface UserProfile {
   id: string;
@@ -61,6 +63,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [journalEntry, setJournalEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  
+  const { userData } = useUser();
 
   useEffect(() => {
     setIsVisible(true);
@@ -141,9 +145,12 @@ const Dashboard: React.FC<DashboardProps> = ({
               >
                 𝒜𝓂𝒶𝓇𝒶
               </span>
+              {isPremiumUser() && (
+                <Crown className="w-5 h-5 text-yellow-500 ml-2" fill="currentColor" />
+              )}
             </div>
 
-            {/* Right side navigation - Uses flexbox for horizontal alignment, handles overflow implicitly */}
+            {/* Right side navigation */}
             <div className="flex items-center space-x-4">
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <HelpCircle className="w-5 h-5" />
@@ -151,8 +158,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <Settings className="w-5 h-5" />
               </button>
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative">
                 {user.name.charAt(0).toUpperCase()}
+                {isPremiumUser() && (
+                  <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
+                )}
               </div>
             </div>
           </div>
@@ -162,12 +172,21 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Message */}
         <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          {/* Responsive font sizes: text-3xl for small, md:text-4xl for medium and up */}
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            {getGreeting()}, {user.name}!
-          </h1>
+          <div className="flex items-center space-x-3 mb-2">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              {getGreeting()}, {user.name}!
+            </h1>
+            {isPremiumUser() && (
+              <div className="flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full border border-yellow-200 dark:border-yellow-700">
+                <Crown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="currentColor" />
+                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Premium Member</span>
+              </div>
+            )}
+          </div>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            {isTrialUser()
+            {isPremiumUser()
+              ? "Welcome to your unlimited healing journey. All features are at your fingertips."
+              : isTrialUser() 
               ? "Your healing journey continues with full access to all features."
               : isFreemiumUser()
               ? "Welcome to your safe space. Ready to explore what's on your mind?"
@@ -176,11 +195,40 @@ const Dashboard: React.FC<DashboardProps> = ({
           </p>
         </div>
 
-        {/* Trial Status Banner (for trial users) */}
+        {/* Premium Welcome Banner */}
+        {isPremiumUser() && (
+          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
+            <div className="bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-red-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl p-6">
+              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                    <Award className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center md:text-left flex items-center">
+                      <Infinity className="w-5 h-5 mr-2 text-green-600" />
+                      Unlimited Access Activated
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-center md:text-left">
+                      Enjoy unlimited conversations, voice notes, and all premium features
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={onManageSubscription}
+                  className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold rounded-full hover:from-yellow-700 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
+                >
+                  Manage Subscription
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Trial Status Banner (for trial users only) */}
         {isTrialUser() && (
           <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-6">
-              {/* Flexbox with wrapping for smaller screens */}
               <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
@@ -206,11 +254,10 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
 
-        {/* Upgrade Banner (for freemium users) */}
+        {/* Upgrade Banner (for freemium users only) */}
         {isFreemiumUser() && (
           <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-              {/* Flexbox with wrapping for smaller screens */}
               <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex items-center space-x-4">
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -234,18 +281,23 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
 
-        {/* Main Content Grid - Changes from 1 column to 3 on large screens */}
+        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content Area - Takes 2 columns on large screens */}
+          {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-8">
             {/* Chat Session Management */}
             <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.2s' }}>
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <MessageCircle className="w-6 h-6 mr-3 text-purple-600" />
                 Your Conversations
+                {isPremiumUser() && (
+                  <div className="ml-3 flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+                    <Infinity className="w-4 h-4 text-green-600 dark:text-green-400" />
+                    <span className="text-xs font-medium text-green-700 dark:text-green-300">Unlimited</span>
+                  </div>
+                )}
               </h2>
 
-              {/* Grid for session buttons - Changes from 1 column to 2 on medium screens */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={onStartNewSession}
@@ -253,6 +305,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                   className={`group p-6 rounded-xl border-2 border-dashed transition-all duration-200 ${
                     isFreemiumUser() && getFreemiumLimits().remaining === 0
                       ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed'
+                      : isPremiumUser()
+                      ? 'border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                       : 'border-purple-300 dark:border-purple-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
                   }`}
                 >
@@ -260,11 +314,15 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
                       isFreemiumUser() && getFreemiumLimits().remaining === 0
                         ? 'bg-gray-200 dark:bg-gray-600'
+                        : isPremiumUser()
+                        ? 'bg-green-100 dark:bg-green-900/30 group-hover:bg-green-200 dark:group-hover:bg-green-900/50'
                         : 'bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50'
                     }`}>
                       <Plus className={`w-6 h-6 ${
                         isFreemiumUser() && getFreemiumLimits().remaining === 0
                           ? 'text-gray-400'
+                          : isPremiumUser()
+                          ? 'text-green-600 dark:text-green-400'
                           : 'text-purple-600 dark:text-purple-400'
                       }`} />
                     </div>
@@ -282,6 +340,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     }`}>
                       {isFreemiumUser() && getFreemiumLimits().remaining === 0
                         ? 'Daily limit reached'
+                        : isPremiumUser()
+                        ? 'Unlimited conversations await'
                         : 'Begin a fresh conversation with Amara'
                       }
                     </p>
@@ -290,11 +350,23 @@ const Dashboard: React.FC<DashboardProps> = ({
 
                 <button
                   onClick={onResumeSession}
-                  className="group p-6 rounded-xl border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
+                  className={`group p-6 rounded-xl border transition-all duration-200 ${
+                    isPremiumUser()
+                      ? 'border-green-200 dark:border-green-600 hover:border-green-300 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                  }`}
                 >
                   <div className="text-center">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 mx-auto mb-4 rounded-full flex items-center justify-center">
-                      <Play className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                      isPremiumUser()
+                        ? 'bg-green-100 dark:bg-green-900/30 group-hover:bg-green-200 dark:group-hover:bg-green-900/50'
+                        : 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50'
+                    }`}>
+                      <Play className={`w-6 h-6 ${
+                        isPremiumUser()
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-blue-600 dark:text-blue-400'
+                      }`} />
                     </div>
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Resume Session</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -307,7 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
 
-              {/* Freemium Usage Indicator */}
+              {/* Freemium Usage Indicator - Only show for freemium users */}
               {isFreemiumUser() && (
                 <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
                   <div className="flex items-center justify-between mb-2">
@@ -333,9 +405,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <Smile className="w-6 h-6 mr-3 text-pink-600" />
                 How are you feeling today?
+                {isPremiumUser() && (
+                  <Star className="w-5 h-5 ml-2 text-yellow-500" fill="currentColor" />
+                )}
               </h2>
 
-              {/* Responsive grid for moods - Changes from 3 columns to 6 on medium screens */}
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
                 {moods.map((mood) => (
                   <button
@@ -344,9 +418,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                     disabled={isFreemiumUser()}
                     className={`p-4 rounded-xl border-2 transition-all duration-200 ${
                       selectedMood === mood.value
-                        ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
+                        ? isPremiumUser()
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                          : 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
                         : isFreemiumUser()
                         ? 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed opacity-60'
+                        : isPremiumUser()
+                        ? 'border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
                         : 'border-gray-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20'
                     }`}
                   >
@@ -358,9 +436,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                 ))}
               </div>
 
+              {/* Freemium upgrade prompt - Only show for freemium users */}
               {isFreemiumUser() && (
                 <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between flex-wrap gap-2"> {/* Added flex-wrap and gap */}
+                  <div className="flex items-center justify-between flex-wrap gap-2">
                     <span className="text-sm text-gray-600 dark:text-gray-400">
                       🔒 Mood tracking available with Premium
                     </span>
@@ -380,28 +459,47 @@ const Dashboard: React.FC<DashboardProps> = ({
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <PenTool className="w-6 h-6 mr-3 text-blue-600" />
                 Quick Journal Entry
+                {isPremiumUser() && (
+                  <div className="ml-3 flex items-center space-x-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
+                    <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">AI Enhanced</span>
+                  </div>
+                )}
               </h2>
 
               <div className="space-y-4">
                 <textarea
                   value={journalEntry}
                   onChange={(e) => setJournalEntry(e.target.value)}
-                  placeholder={isFreemiumUser() ? "Upgrade to Premium to unlock journaling..." : "What's on your mind today?"}
+                  placeholder={
+                    isFreemiumUser() 
+                      ? "Upgrade to Premium to unlock journaling..." 
+                      : isPremiumUser()
+                      ? "Share your thoughts... AI insights will help you reflect deeper"
+                      : "What's on your mind today?"
+                  }
                   disabled={isFreemiumUser()}
                   className={`w-full p-4 border rounded-xl resize-none transition-colors duration-200 ${
                     isFreemiumUser()
                       ? 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-400 cursor-not-allowed'
+                      : isPremiumUser()
+                      ? 'bg-white dark:bg-gray-700 border-green-200 dark:border-green-600 text-gray-900 dark:text-white focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20'
                       : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20'
                   }`}
                   rows={3}
                 />
 
-                <div className="flex items-center justify-between flex-wrap gap-3"> {/* Added flex-wrap and gap */}
+                <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center space-x-3">
+                    {/* AI Prompt button - Available for trial and premium users */}
                     {!isFreemiumUser() && (isTrialUser() || isPremiumUser()) && (
                       <button
                         onClick={onGetAIPrompt}
-                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors duration-200"
+                        className={`inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 ${
+                          isPremiumUser()
+                            ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
+                            : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
+                        }`}
                       >
                         <Sparkles className="w-4 h-4 mr-2" />
                         Get AI Prompt
@@ -415,6 +513,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                     className={`px-6 py-2 rounded-full font-medium transition-all duration-200 ${
                       !journalEntry.trim() || isFreemiumUser()
                         ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
+                        : isPremiumUser()
+                        ? 'bg-green-600 text-white hover:bg-green-700 transform hover:scale-105'
                         : 'bg-blue-600 text-white hover:bg-blue-700 transform hover:scale-105'
                     }`}
                   >
@@ -422,9 +522,10 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </button>
                 </div>
 
+                {/* Freemium upgrade prompt - Only show for freemium users */}
                 {isFreemiumUser() && (
                   <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between flex-wrap gap-2"> {/* Added flex-wrap and gap */}
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         🔒 Journaling available with Premium
                       </span>
@@ -493,31 +594,52 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             </div>
 
-            {/* AI Insights (Trial/Premium only) */}
+            {/* AI Insights - Available for trial and premium users */}
             {(isTrialUser() || isPremiumUser()) && (
               <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.6s' }}>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                   <Brain className="w-5 h-5 mr-2 text-indigo-600" />
                   Amara's Insights
+                  {isPremiumUser() && (
+                    <div className="ml-2 flex items-center space-x-1 px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
+                      <BarChart3 className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                      <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Advanced</span>
+                    </div>
+                  )}
                 </h3>
 
                 <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                  <div className={`p-4 rounded-lg border ${
+                    isPremiumUser()
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700'
+                      : 'bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700'
+                  }`}>
                     <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                      "You've been focusing on self-reflection this week. This shows great emotional awareness."
+                      {isPremiumUser()
+                        ? "Your emotional patterns show consistent growth and self-awareness. Your premium insights reveal deeper connections between your mood and activities."
+                        : "You've been focusing on self-reflection this week. This shows great emotional awareness."
+                      }
                     </p>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                        Weekly Pattern
+                      <span className={`text-xs font-medium ${
+                        isPremiumUser()
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-indigo-600 dark:text-indigo-400'
+                      }`}>
+                        {isPremiumUser() ? 'Premium Analysis' : 'Weekly Pattern'}
                       </span>
-                      <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                      <TrendingUp className={`w-4 h-4 ${
+                        isPremiumUser()
+                          ? 'text-green-600 dark:text-green-400'
+                          : 'text-indigo-600 dark:text-indigo-400'
+                      }`} />
                     </div>
                   </div>
 
                   <button className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
-                        View Detailed Insights
+                        {isPremiumUser() ? 'View Advanced Analytics' : 'View Detailed Insights'}
                       </span>
                       <ArrowRight className="w-4 h-4 text-gray-400" />
                     </div>
@@ -526,7 +648,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               </div>
             )}
 
-            {/* Subscription Management (Premium users) */}
+            {/* Subscription Management - Only for premium users */}
             {isPremiumUser() && (
               <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.7s' }}>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
@@ -537,8 +659,17 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white capitalize flex items-center">
                       {user.current_plan.replace('_', ' ')}
+                      <Shield className="w-4 h-4 ml-2 text-green-500" />
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center">
+                      <Infinity className="w-4 h-4 mr-1" />
+                      Unlimited Access
                     </span>
                   </div>
 
