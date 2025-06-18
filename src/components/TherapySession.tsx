@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb, ArrowLeft, Lock, Zap, Crown } from 'lucide-react';
+import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb, ArrowLeft, Lock, Zap, Crown, UserPlus, LogIn } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
@@ -52,6 +52,10 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
   const isFreemiumUser = () => {
     return userData?.currentPlan === 'freemium' || (!userData?.isAuthenticated && userData?.currentPlan !== 'trial_path');
+  };
+
+  const isAuthenticated = () => {
+    return userData?.isAuthenticated === true;
   };
 
   // Limits only apply to non-premium users
@@ -361,22 +365,45 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         </div>
         
         <div className="flex items-center space-x-2 flex-shrink-0">
-          {/* End Session Button */}
-          <button
-            onClick={handleEndSessionClick}
-            className="inline-flex items-center px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
-          >
-            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-            <span className="hidden xs:inline">End Session</span>
-          </button>
-          
-          {/* Close Button */}
-          <button
-            onClick={handleEndSessionClick}
-            className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
-          >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />
-          </button>
+          {/* Conditional Header Buttons */}
+          {isAuthenticated() ? (
+            // Authenticated users see End Session button
+            <>
+              <button
+                onClick={handleEndSessionClick}
+                className="inline-flex items-center px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+              >
+                <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">End Session</span>
+              </button>
+              
+              <button
+                onClick={handleEndSessionClick}
+                className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+              >
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+            </>
+          ) : (
+            // Anonymous users see Sign Up and Sign In buttons
+            <>
+              <button
+                onClick={onSignIn}
+                className="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200"
+              >
+                <LogIn className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden xs:inline">Sign In</span>
+              </button>
+              
+              <button
+                onClick={() => onSignUp('trial_path')}
+                className="inline-flex items-center px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 rounded-lg transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md"
+              >
+                <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                <span className="hidden xs:inline">Sign Up</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
