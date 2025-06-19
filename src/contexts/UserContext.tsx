@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 interface UserData {
   // User identification
+  id?: string;
   name: string;
+  email?: string;
   
   // Personalization data
   country?: string;
@@ -11,7 +13,12 @@ interface UserData {
   // Authentication state
   isAuthenticated: boolean;
   
-  // Usage tracking (client-side only)
+  // Plan and trial information
+  currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_paid' | 'yearly_paid';
+  trialStartDate?: string;
+  trialEndDate?: string;
+  
+  // Usage tracking
   dailyMessagesUsed?: number;
   voiceNotesUsed?: number;
   lastResetDate?: string;
@@ -60,6 +67,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             setUserDataState({
               name: userName,
               isAuthenticated: false,
+              currentPlan: 'freemium',
               dailyMessagesUsed: 0,
               voiceNotesUsed: 0,
               lastResetDate: new Date().toISOString().split('T')[0]
