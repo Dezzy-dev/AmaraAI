@@ -89,23 +89,26 @@ function AppContent() {
   };
 
   const handleStartTalking = () => {
-    // Check if user has personalization data stored
-    if (userData && userData.name && userData.isAuthenticated) {
-      // Skip personalization and go directly to session
+    // Check if user is authenticated
+    if (userData && userData.isAuthenticated) {
+      // Authenticated users go directly to session
       setCurrentView('session');
     } else {
-      // Start with welcome flow for new users
-      setCurrentView('welcome');
+      // Anonymous user flow
+      const onboardingComplete = localStorage.getItem('amaraOnboardingComplete') === 'true';
+      if (onboardingComplete) {
+        // Returning anonymous user: skip welcome and personalization, go straight to session
+        setCurrentView('session');
+      } else {
+        // New anonymous user: start with welcome flow
+        setCurrentView('welcome');
+      }
     }
   };
 
   const handleWelcomeComplete = () => {
-    // Check if user already has personalization data
-    if (userData && userData.name) {
-      setCurrentView('session');
-    } else {
-      setCurrentView('personalization');
-    }
+    // After welcome, always go to personalization for new users
+    setCurrentView('personalization');
   };
 
   const handlePersonalizationComplete = (data: PersonalizationData) => {
@@ -131,6 +134,10 @@ function AppContent() {
         lastResetDate: new Date().toDateString()
       });
     }
+    
+    // Set localStorage flags for anonymous user onboarding completion
+    localStorage.setItem('amaraUserName', data.name);
+    localStorage.setItem('amaraOnboardingComplete', 'true');
     
     setCurrentView('session');
   };
@@ -338,6 +345,19 @@ function AppContent() {
         >
           Back to Landing
         </button>
+        <button
+          onClick={() => {
+            // Clear localStorage to test new user flow
+            localStorage.removeItem('amaraOnboardingComplete');
+            localStorage.removeItem('amaraUserName');
+            setCurrentUser(null);
+            setUserData(null);
+            setCurrentView('landing');
+          }}
+          className="block px-3 py-2 bg-red-500 text-white text-xs rounded shadow hover:bg-red-600"
+        >
+          Clear Onboarding
+        </button>
       </div>
     );
   };
@@ -392,7 +412,7 @@ function AppContent() {
       case 'session':
         return (
           <TherapySession 
-            userName={userData?.name || personalizationData?.name || 'there'} 
+            userName={userData?.name || personalizationData?.name || localStorage.getItem('amaraUserName') || 'there'} 
             userCountry={userData?.country || personalizationData?.country}
             userFeeling={userData?.feeling || personalizationData?.feeling}
             onEndSession={handleEndSession}
