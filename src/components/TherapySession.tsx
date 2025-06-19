@@ -207,11 +207,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   // Check limits (only for non-premium users and non-active trial users)
   useEffect(() => {
     if (!isPremiumUser() && !isActiveTrialUser() && limits.hasLimits) {
-      const messagesLimitReached = messageCount >= limits.maxMessages;
-      const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
-      
-      if (messagesLimitReached || voiceNotesLimitReached) {
-        setShowTrialModal(true);
+      // For anonymous users, only show modal after message limit is reached
+      if (isAnonymousUser()) {
+        if (messageCount >= limits.maxMessages) {
+          setShowTrialModal(true);
+        }
+      } else {
+        const messagesLimitReached = messageCount >= limits.maxMessages;
+        const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
+        if (messagesLimitReached || voiceNotesLimitReached) {
+          setShowTrialModal(true);
+        }
       }
     }
   }, [messageCount, voiceNoteCount, limits, isPremiumUser, isActiveTrialUser]);
