@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Sun, Moon, LogIn } from 'lucide-react';
+import { Menu, X, Sun, Moon } from 'lucide-react';
 
 interface NavigationProps {
   isDark: boolean;
   toggleDarkMode: () => void;
-  onSignIn?: () => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignIn }) => {
+const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -79,17 +78,6 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignI
               </button>
             ))}
             
-            {/* Sign In Button */}
-            {onSignIn && (
-              <button
-                onClick={onSignIn}
-                className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium transition-colors duration-200 text-sm xl:text-base whitespace-nowrap opacity-0 animate-fade-in-up animate-delay-400"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>Sign In</span>
-              </button>
-            )}
-            
             <button
               onClick={handleStartTalking}
               className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-4 xl:px-6 py-2 xl:py-2.5 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md text-sm xl:text-base whitespace-nowrap opacity-0 animate-fade-in-up animate-delay-500"
@@ -141,20 +129,6 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignI
                   {item.label}
                 </button>
               ))}
-              
-              {/* Sign In Button - Mobile */}
-              {onSignIn && (
-                <button
-                  onClick={() => {
-                    onSignIn();
-                    setIsMobileMenuOpen(false);
-                  }}
-                  className="flex items-center space-x-2 w-full text-left text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 font-medium py-3 px-2 transition-colors duration-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 opacity-0 animate-fade-in-up animate-delay-400"
-                >
-                  <LogIn className="w-4 h-4" />
-                  <span>Sign In</span>
-                </button>
-              )}
               
               <button
                 onClick={handleStartTalking}
