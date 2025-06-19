@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle } from 'lucide-react';
 
 interface SignUpPageProps {
-  onSignUp: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string, name: string) => void;
   onSocialSignUp: (provider: 'google' | 'apple') => void;
   onNavigateToSignIn: () => void;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 const SignUpPage: React.FC<SignUpPageProps> = ({
   onSignUp,
   onSocialSignUp,
   onNavigateToSignIn,
-  onClose
+  onClose,
+  isLoading = false
 }) => {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -22,10 +25,16 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,6 +49,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
     }
 
     // Confirm password validation
@@ -56,16 +67,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm() || isLoading) return;
 
-    setIsLoading(true);
-    try {
-      await onSignUp(formData.email, formData.password);
-    } catch (error) {
-      console.error('Sign up error:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    onSignUp(formData.email, formData.password, formData.name);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -79,7 +83,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
   const getPasswordStrength = (password: string) => {
     if (password.length === 0) return { strength: 0, text: '' };
     if (password.length < 6) return { strength: 1, text: 'Weak', color: 'text-red-500' };
-    if (password.length < 10) return { strength: 2, text: 'Good', color: 'text-yellow-500' };
+    if (password.length < 8 || !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      return { strength: 2, text: 'Good', color: 'text-yellow-500' };
+    }
     return { strength: 3, text: 'Strong', color: 'text-green-500' };
   };
 
@@ -121,6 +127,32 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Name Field */}
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Full Name
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  id="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 dark:focus:border-purple-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                    errors.name ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                  placeholder="Enter your full name"
+                  disabled={isLoading}
+                />
+              </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+              )}
+            </div>
+
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -139,6 +171,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
                     errors.email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Enter your email"
+                  disabled={isLoading}
                 />
               </div>
               {errors.email && (
@@ -164,11 +197,13 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
                     errors.password ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Create a password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -221,11 +256,13 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
                     errors.confirmPassword ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Confirm your password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
                 >
                   {showConfirmPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -267,7 +304,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => onSocialSignUp('google')}
-              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center"
+              disabled={isLoading}
+              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -280,7 +318,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
 
             <button
               onClick={() => onSocialSignUp('apple')}
-              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center"
+              disabled={isLoading}
+              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -295,7 +334,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({
               Already have an account?{' '}
               <button
                 onClick={onNavigateToSignIn}
-                className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors duration-200"
+                disabled={isLoading}
+                className="font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors duration-200 disabled:opacity-50"
               >
                 Sign In
               </button>

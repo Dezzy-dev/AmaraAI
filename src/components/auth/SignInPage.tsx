@@ -5,8 +5,9 @@ interface SignInPageProps {
   onSignIn: (email: string, password: string) => void;
   onSocialSignIn: (provider: 'google' | 'apple') => void;
   onNavigateToSignUp: () => void;
-  onForgotPassword: () => void;
+  onForgotPassword: (email: string) => void;
   onClose: () => void;
+  isLoading?: boolean;
 }
 
 const SignInPage: React.FC<SignInPageProps> = ({
@@ -14,7 +15,8 @@ const SignInPage: React.FC<SignInPageProps> = ({
   onSocialSignIn,
   onNavigateToSignUp,
   onForgotPassword,
-  onClose
+  onClose,
+  isLoading = false
 }) => {
   const [formData, setFormData] = useState({
     email: '',
@@ -22,7 +24,7 @@ const SignInPage: React.FC<SignInPageProps> = ({
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -47,16 +49,21 @@ const SignInPage: React.FC<SignInPageProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm() || isLoading) return;
 
-    setIsLoading(true);
-    try {
-      await onSignIn(formData.email, formData.password);
-    } catch (error) {
-      console.error('Sign in error:', error);
-    } finally {
-      setIsLoading(false);
+    onSignIn(formData.email, formData.password);
+  };
+
+  const handleForgotPasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email) {
+      setErrors({ email: 'Please enter your email address' });
+      return;
     }
+
+    onForgotPassword(formData.email);
+    setShowForgotPassword(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -66,6 +73,80 @@ const SignInPage: React.FC<SignInPageProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10 flex items-center justify-center p-4">
+        <div className="relative w-full max-w-md">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-2xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-8">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Reset Your Password
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Enter your email and we'll send you a reset link
+              </p>
+            </div>
+
+            <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    className={`w-full pl-10 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-colors duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 ${
+                      errors.email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    placeholder="Enter your email"
+                    disabled={isLoading}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center"
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Send Reset Link
+                    <ArrowRight className="ml-2 w-5 h-5" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => setShowForgotPassword(false)}
+                disabled={isLoading}
+                className="text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10 flex items-center justify-center p-4">
@@ -111,6 +192,7 @@ const SignInPage: React.FC<SignInPageProps> = ({
                     errors.email ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Enter your email"
+                  disabled={isLoading}
                 />
               </div>
               {errors.email && (
@@ -136,11 +218,13 @@ const SignInPage: React.FC<SignInPageProps> = ({
                     errors.password ? 'border-red-300 dark:border-red-600' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Enter your password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  disabled={isLoading}
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -158,8 +242,9 @@ const SignInPage: React.FC<SignInPageProps> = ({
             <div className="text-right">
               <button
                 type="button"
-                onClick={onForgotPassword}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                onClick={() => setShowForgotPassword(true)}
+                disabled={isLoading}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
               >
                 Forgot your password?
               </button>
@@ -193,7 +278,8 @@ const SignInPage: React.FC<SignInPageProps> = ({
           <div className="space-y-3">
             <button
               onClick={() => onSocialSignIn('google')}
-              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center"
+              disabled={isLoading}
+              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -206,7 +292,8 @@ const SignInPage: React.FC<SignInPageProps> = ({
 
             <button
               onClick={() => onSocialSignIn('apple')}
-              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center"
+              disabled={isLoading}
+              className="w-full py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-xl font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -221,7 +308,8 @@ const SignInPage: React.FC<SignInPageProps> = ({
               Don't have an account?{' '}
               <button
                 onClick={onNavigateToSignUp}
-                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200"
+                disabled={isLoading}
+                className="font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors duration-200 disabled:opacity-50"
               >
                 Sign Up
               </button>
