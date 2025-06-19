@@ -26,6 +26,8 @@ import {
   Moon
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import Joyride, { CallBackProps, Step } from 'react-joyride';
+import WelcomeModal from './WelcomeModal';
 
 interface UserProfile {
   id: string;
@@ -71,6 +73,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [journalEntry, setJournalEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState('');
   const [isVisible, setIsVisible] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+  const [tourRun, setTourRun] = useState(false);
   
   const { userData } = useUser();
 
@@ -79,6 +84,13 @@ const Dashboard: React.FC<DashboardProps> = ({
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    // Only show for new users who haven't seen the tour
+    if (user && user.created_at && localStorage.getItem('amaraUserTourShown') !== 'true') {
+      setShowWelcome(true);
+    }
+  }, [user]);
 
   // Helper functions
   const getGreeting = () => {
@@ -135,10 +147,108 @@ const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  const handleStartTour = () => {
+    setShowWelcome(false);
+    setShowTour(true);
+    setTourRun(true);
+  };
+
+  const handleTourCallback = (data: CallBackProps) => {
+    const { status, action } = data;
+    if (
+      status === 'finished' ||
+      status === 'skipped' ||
+      action === 'close'
+    ) {
+      setShowTour(false);
+      setTourRun(false);
+      localStorage.setItem('amaraUserTourShown', 'true');
+    }
+  };
+
+  // Define tour steps
+  const steps: Step[] = [
+    {
+      target: '[data-tour="dashboard-nav"]',
+      content: 'This is your personal Amara dashboard. From here, you can easily access all your tools.',
+      placement: 'bottom',
+      disableBeacon: true,
+    },
+    {
+      target: '[data-tour="start-session"]',
+      content: 'Ready to talk? Click here to start a new conversation with Amara or pick up where you left off.',
+      placement: 'bottom',
+    },
+    {
+      target: '[data-tour="mood-check"]',
+      content: 'Quickly log your mood throughout the day. It\'s a great way to track your emotional journey.',
+      placement: 'top',
+    },
+    {
+      target: '[data-tour="journal-entry"]',
+      content: 'Your private space to jot down thoughts, reflections, or insights from your conversations.',
+      placement: 'top',
+    },
+    // AI Insights (trial/premium only)
+    ...(isPremiumUser() || isTrialUser()
+      ? [{
+          target: '[data-tour="ai-insights"]',
+          content: 'Unlock deeper understanding with Amara\'s AI-powered insights, personalized just for you.',
+          placement: 'top',
+        }]
+      : []),
+    {
+      target: '[data-tour="profile-settings"]',
+      content: 'Manage your profile, update personal information, and access account settings here.',
+      placement: 'left',
+    },
+    // Plan awareness (freemium only)
+    ...((isFreemiumUser())
+      ? [{
+          target: '[data-tour="upgrade-banner"]',
+          content: 'Enjoy essential features on your Freemium plan. Ready for unlimited access? Upgrade anytime!',
+          placement: 'top',
+        }]
+      : []),
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20">
+      {/* Joyride Tour */}
+      <Joyride
+        steps={steps}
+        run={tourRun}
+        continuous
+        showSkipButton
+        showProgress
+        disableOverlayClose
+        styles={{
+          options: {
+            zIndex: 10000,
+            primaryColor: '#a78bfa',
+            backgroundColor: isDark ? '#18181b' : '#fff',
+            textColor: isDark ? '#fff' : '#222',
+            arrowColor: isDark ? '#18181b' : '#fff',
+          },
+          overlay: {
+            backgroundColor: 'rgba(30, 27, 75, 0.4)',
+          },
+        }}
+        callback={handleTourCallback}
+        locale={{
+          back: 'Back',
+          close: 'End Tour',
+          last: 'Finish',
+          next: 'Next',
+          skip: 'Skip Tour',
+        }}
+      />
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <WelcomeModal userName={user.name} onStartTour={handleStartTour} />
+      )}
       {/* Top Navigation */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40" data-tour="dashboard-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
@@ -183,6 +293,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button
                 onClick={onNavigateToSettings}
                 className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
+                data-tour="profile-settings"
               >
                 {user.name.charAt(0).toUpperCase()}
                 {isPremiumUser() && (
@@ -281,7 +392,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {/* Upgrade Banner (for freemium users only) */}
         {isFreemiumUser() && (
-          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
+          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }} data-tour="upgrade-banner">
             <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
               <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                 <div className="flex items-center space-x-4">
@@ -334,6 +445,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       ? 'border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
                       : 'border-purple-300 dark:border-purple-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
                   }`}
+                  data-tour="start-session"
                 >
                   <div className="text-center">
                     <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
@@ -426,7 +538,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Mood Check */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.3s' }}>
+            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.3s' }} data-tour="mood-check">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <Smile className="w-6 h-6 mr-3 text-pink-600" />
                 How are you feeling today?
@@ -480,7 +592,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
 
             {/* Journal Quick Entry */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.4s' }}>
+            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.4s' }} data-tour="journal-entry">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
                 <PenTool className="w-6 h-6 mr-3 text-blue-600" />
                 Quick Journal Entry
@@ -621,7 +733,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             {/* AI Insights - Available for trial and premium users */}
             {(isTrialUser() || isPremiumUser()) && (
-              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.6s' }}>
+              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.6s' }} data-tour="ai-insights">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                   <Brain className="w-5 h-5 mr-2 text-indigo-600" />
                   Amara's Insights
