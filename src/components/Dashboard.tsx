@@ -21,7 +21,9 @@ import {
   Shield,
   Star,
   Award,
-  Infinity
+  Infinity,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
@@ -47,6 +49,9 @@ interface DashboardProps {
   onLogMood: (mood: string) => void;
   onQuickJournal: (entry: string) => void;
   onGetAIPrompt: () => void;
+  onNavigateToSettings: () => void;
+  isDark: boolean;
+  toggleDarkMode: () => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
@@ -57,7 +62,10 @@ const Dashboard: React.FC<DashboardProps> = ({
   onManageSubscription,
   onLogMood,
   onQuickJournal,
-  onGetAIPrompt
+  onGetAIPrompt,
+  onNavigateToSettings,
+  isDark,
+  toggleDarkMode
 }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [journalEntry, setJournalEntry] = useState('');
@@ -155,15 +163,32 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <HelpCircle className="w-5 h-5" />
               </button>
+              
+              {/* Theme Toggle */}
+              <button 
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+                aria-label="Toggle dark mode"
+              >
+                {isDark ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
+              </button>
+              
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <Settings className="w-5 h-5" />
               </button>
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative">
+              <button
+                onClick={onNavigateToSettings}
+                className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
+              >
                 {user.name.charAt(0).toUpperCase()}
                 {isPremiumUser() && (
                   <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
                 )}
-              </div>
+              </button>
             </div>
           </div>
         </div>

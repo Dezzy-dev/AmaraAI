@@ -21,9 +21,10 @@ import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { ChatProvider } from './contexts/ChatContext';
+import Settings from './components/Settings';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
-type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard';
+type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
 
 interface UserProfile {
   id: string;
@@ -181,17 +182,24 @@ function AppContent() {
 
   const handleCreditCardSuccess = () => {
     console.log(`Starting ${selectedPlan} free trial...`);
+    
+    // Calculate trial end date (7 days from now)
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 7);
+    
     // Simulate successful trial start
     const trialUser = {
       ...mockUsers.trial,
-      current_plan: selectedPlan === 'monthly' ? 'monthly_trial' as const : 'yearly_trial' as const
+      current_plan: selectedPlan === 'monthly' ? 'monthly_trial' as const : 'yearly_trial' as const,
+      trial_end_date: trialEndDate.toISOString()
     };
     setCurrentUser(trialUser);
     
-    // Update user context with trial plan
+    // Update user context with trial plan and end date
     if (userData) {
       updateUserData({
-        currentPlan: selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial'
+        currentPlan: selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial',
+        trialEndDate: trialEndDate.toISOString()
       });
     }
     
@@ -247,6 +255,10 @@ function AppContent() {
     console.log('Getting AI prompt...');
   };
 
+  const handleNavigateToSettings = () => {
+    setCurrentView('settings');
+  };
+
   // Demo buttons for testing different user states (hidden in production)
   const renderDemoButtons = () => {
     // Hide demo buttons in production
@@ -274,7 +286,14 @@ function AppContent() {
         </button>
         <button
           onClick={() => {
-            setCurrentUser(mockUsers.trial);
+            // Set trial end date to 3 days from now for demo
+            const trialEndDate = new Date();
+            trialEndDate.setDate(trialEndDate.getDate() + 3);
+            
+            setCurrentUser({
+              ...mockUsers.trial,
+              trial_end_date: trialEndDate.toISOString()
+            });
             setUserData({
               name: 'Jordan',
               email: 'jordan@example.com',
@@ -282,7 +301,8 @@ function AppContent() {
               currentPlan: 'yearly_trial',
               dailyMessagesUsed: 0,
               voiceNotesUsed: 0,
-              lastResetDate: new Date().toDateString()
+              lastResetDate: new Date().toDateString(),
+              trialEndDate: trialEndDate.toISOString()
             });
             setCurrentView('dashboard');
           }}
@@ -336,6 +356,19 @@ function AppContent() {
             onLogMood={handleLogMood}
             onQuickJournal={handleQuickJournal}
             onGetAIPrompt={handleGetAIPrompt}
+            onNavigateToSettings={handleNavigateToSettings}
+            isDark={isDark}
+            toggleDarkMode={toggleDarkMode}
+          />
+        ) : null;
+
+      case 'settings':
+        return currentUser ? (
+          <Settings
+            user={currentUser}
+            onBackToDashboard={() => setCurrentView('dashboard')}
+            isDark={isDark}
+            toggleDarkMode={toggleDarkMode}
           />
         ) : null;
 
@@ -377,7 +410,7 @@ function AppContent() {
       default:
         return (
           <>
-            <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} />
+            <Navigation isDark={isDark} toggleDarkMode={toggleDarkMode} onSignIn={handleSignIn} />
             <Hero onStartTalking={handleStartTalking} />
             <Brands />
             <Features />

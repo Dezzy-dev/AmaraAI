@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Clock, MessageSquare, Mic, Send, Heart, ThumbsUp, Smile, Lightbulb, ArrowLeft, Lock, Zap, Crown, UserPlus, LogIn } from 'lucide-react';
+import { X, Clock, MessageSquare, Mic, Send, Heart, ArrowLeft, Lock, Zap, Crown, UserPlus, LogIn } from 'lucide-react';
 import LoadingScreen from './LoadingScreen';
 import TypingIndicator from './TypingIndicator';
 import TypewriterText from './TypewriterText';
@@ -30,7 +30,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const [isTyping, setIsTyping] = useState(false);
   const [messageCount, setMessageCount] = useState(0);
   const [voiceNoteCount, setVoiceNoteCount] = useState(0);
-  const [isTrialLimited, setIsTrialLimited] = useState(false);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -50,19 +49,50 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
   };
 
+  const isActiveTrialUser = () => {
+    if (!isTrialUser()) return false;
+    
+    // Check if trial has expired
+    if (userData?.trialEndDate) {
+      const trialEndDate = new Date(userData.trialEndDate);
+      const now = new Date();
+      return now < trialEndDate;
+    }
+    
+    // If no trial end date, assume trial is active (fallback)
+    return true;
+  };
+
+  const isExpiredTrialUser = () => {
+    return isTrialUser() && !isActiveTrialUser();
+  };
+
   const isFreemiumUser = () => {
-    return userData?.currentPlan === 'freemium' || (!userData?.isAuthenticated && userData?.currentPlan !== 'trial_path');
+    return userData?.currentPlan === 'freemium';
+  };
+
+  const isAnonymousUser = () => {
+    return !userData?.isAuthenticated;
   };
 
   const isAuthenticated = () => {
     return userData?.isAuthenticated === true;
   };
 
+  // Get trial days remaining
+  const getTrialDaysRemaining = () => {
+    if (!userData?.trialEndDate) return 0;
+    const trialEndDate = new Date(userData.trialEndDate);
+    const now = new Date();
+    const diffTime = trialEndDate.getTime() - now.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   // Limits only apply to non-premium users
   const FREEMIUM_DAILY_MESSAGES = 5;
   const FREEMIUM_VOICE_NOTES = 1;
-  const TRIAL_MESSAGES = 3;
-  const TRIAL_VOICE_NOTES = 1;
+  const ANONYMOUS_MESSAGES = 3;
+  const ANONYMOUS_VOICE_NOTES = 0;
 
   // Get current limits based on user type
   const getCurrentLimits = () => {
@@ -77,6 +107,39 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         voiceNotesRemaining: Infinity,
         hasLimits: false
       };
+    } else if (isActiveTrialUser()) {
+      // Active trial users have unlimited access (premium features)
+      return {
+        maxMessages: Infinity,
+        maxVoiceNotes: Infinity,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Infinity,
+        voiceNotesRemaining: Infinity,
+        hasLimits: false
+      };
+    } else if (isExpiredTrialUser()) {
+      // Expired trial users have freemium limits
+      return {
+        maxMessages: FREEMIUM_DAILY_MESSAGES,
+        maxVoiceNotes: FREEMIUM_VOICE_NOTES,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
+        hasLimits: true
+      };
+    } else if (isAnonymousUser()) {
+      // Anonymous users have 3 message limit, no voice notes
+      return {
+        maxMessages: ANONYMOUS_MESSAGES,
+        maxVoiceNotes: ANONYMOUS_VOICE_NOTES,
+        messagesUsed: messageCount,
+        voiceNotesUsed: voiceNoteCount,
+        messagesRemaining: Math.max(0, ANONYMOUS_MESSAGES - messageCount),
+        voiceNotesRemaining: 0,
+        hasLimits: true
+      };
     } else if (isFreemiumUser()) {
       return {
         maxMessages: FREEMIUM_DAILY_MESSAGES,
@@ -88,14 +151,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         hasLimits: true
       };
     } else {
-      // Trial users
+      // Fallback for any other case
       return {
-        maxMessages: TRIAL_MESSAGES,
-        maxVoiceNotes: TRIAL_VOICE_NOTES,
+        maxMessages: FREEMIUM_DAILY_MESSAGES,
+        maxVoiceNotes: FREEMIUM_VOICE_NOTES,
         messagesUsed: messageCount,
         voiceNotesUsed: voiceNoteCount,
-        messagesRemaining: Math.max(0, TRIAL_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, TRIAL_VOICE_NOTES - voiceNoteCount),
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
         hasLimits: true
       };
     }
@@ -141,20 +204,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Check limits (only for non-premium users)
+  // Check limits (only for non-premium users and non-active trial users)
   useEffect(() => {
-    if (!isPremiumUser() && limits.hasLimits) {
+    if (!isPremiumUser() && !isActiveTrialUser() && limits.hasLimits) {
       const messagesLimitReached = messageCount >= limits.maxMessages;
       const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
       
       if (messagesLimitReached || voiceNotesLimitReached) {
-        setIsTrialLimited(true);
-        if (!userData?.isAuthenticated) {
-          setShowTrialModal(true);
-        }
+        setShowTrialModal(true);
       }
     }
-  }, [messageCount, voiceNoteCount, limits, userData?.isAuthenticated, isPremiumUser]);
+  }, [messageCount, voiceNoteCount, limits, isPremiumUser, isActiveTrialUser]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -181,6 +241,15 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     
     if (isPremiumUser()) {
       greeting += "As a premium member, you have unlimited access to all my features. ";
+    } else if (isActiveTrialUser()) {
+      const daysRemaining = getTrialDaysRemaining();
+      if (daysRemaining > 0) {
+        greeting += `You're currently enjoying your free trial with unlimited access! You have ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} remaining. `;
+      } else {
+        greeting += "You're currently enjoying your free trial with unlimited access! ";
+      }
+    } else if (isExpiredTrialUser()) {
+      greeting += "Your trial period has ended. You can continue with freemium access or upgrade to premium for unlimited features. ";
     }
     
     greeting += "What's on your mind today? Feel free to share anything - I'm here to listen without judgment.";
@@ -189,6 +258,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   };
 
   const generateAmaraResponse = (userMessage: string) => {
+    // Simple response generation based on message content
     const responses = [
       "I hear you, and what you're sharing is really important. Can you tell me more about how that makes you feel?",
       "Thank you for trusting me with that. It sounds like you're going through something significant. What would feel most helpful right now?",
@@ -197,7 +267,9 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       "I'm glad you felt comfortable sharing that with me. Sometimes just putting our thoughts into words can be healing. What comes up for you when you think about this?"
     ];
     
-    return responses[Math.floor(Math.random() * responses.length)];
+    // Use message length to add some variety to responses
+    const responseIndex = userMessage.length % responses.length;
+    return responses[responseIndex];
   };
 
   const handleSendMessage = () => {
@@ -333,21 +405,41 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                 </div>
                 
                 {/* Only show counters for non-premium users */}
-                {!isPremiumUser() && (
+                {!isPremiumUser() && !isActiveTrialUser() && (
                   <>
                     <div className="flex items-center space-x-1">
                       <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                       <span className={`whitespace-nowrap font-medium ${getMessageCounterColor()}`}>
-                        {isFreemiumUser() ? `${limits.messagesRemaining} left` : `${limits.messagesUsed}/${limits.maxMessages}`}
+                        {isAnonymousUser() 
+                          ? `${limits.messagesUsed}/${limits.maxMessages}` 
+                          : isFreemiumUser() 
+                          ? `${limits.messagesRemaining} left` 
+                          : `${limits.messagesUsed}/${limits.maxMessages}`
+                        }
                       </span>
                     </div>
                     <div className="flex items-center space-x-1">
                       <Mic className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                       <span className={`whitespace-nowrap font-medium ${getVoiceCounterColor()}`}>
-                        {isFreemiumUser() ? `${limits.voiceNotesRemaining} left` : `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}`}
+                        {isAnonymousUser() 
+                          ? `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}` 
+                          : isFreemiumUser() 
+                          ? `${limits.voiceNotesRemaining} left` 
+                          : `${limits.voiceNotesUsed}/${limits.maxVoiceNotes}`
+                        }
                       </span>
                     </div>
                   </>
+                )}
+                
+                {/* Trial indicator */}
+                {isActiveTrialUser() && (
+                  <div className="flex items-center space-x-1">
+                    <Zap className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0 text-purple-500" />
+                    <span className="whitespace-nowrap font-medium text-purple-600 dark:text-purple-400">
+                      Trial ({getTrialDaysRemaining()}d left)
+                    </span>
+                  </div>
                 )}
                 
                 {/* Premium indicator */}
@@ -418,15 +510,20 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <div>
                 <p className="text-sm font-medium text-orange-800 dark:text-orange-200">
                   {limits.messagesRemaining === 0 
-                    ? "Daily message limit reached" 
+                    ? (isAnonymousUser() ? "Anonymous message limit reached" : "Daily message limit reached")
                     : limits.messagesRemaining === 1
-                    ? "1 message remaining today"
-                    : `${limits.messagesRemaining} messages remaining today`
+                    ? (isAnonymousUser() ? "1 message remaining" : "1 message remaining today")
+                    : (isAnonymousUser() 
+                        ? `${limits.messagesRemaining} messages remaining` 
+                        : `${limits.messagesRemaining} messages remaining today`)
                   }
                 </p>
                 {limits.voiceNotesRemaining === 0 && (
                   <p className="text-xs text-orange-700 dark:text-orange-300">
-                    You've used your free voice note. Upgrade for unlimited voice notes!
+                    {isAnonymousUser() 
+                      ? "Voice notes require an account. Sign up for free access!"
+                      : "You've used your free voice note. Upgrade for unlimited voice notes!"
+                    }
                   </p>
                 )}
               </div>
@@ -435,7 +532,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               onClick={() => onSignUp('trial_path')}
               className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors duration-200"
             >
-              Upgrade Now
+              {isAnonymousUser() ? "Sign Up Free" : "Upgrade Now"}
             </button>
           </div>
         </div>
@@ -533,13 +630,16 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-center justify-between">
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                You have {limits.messagesRemaining} message{limits.messagesRemaining === 1 ? '' : 's'} remaining today. Upgrade for unlimited conversations.
+                {isAnonymousUser() 
+                  ? `You have ${limits.messagesRemaining} message${limits.messagesRemaining === 1 ? '' : 's'} remaining. Sign up for unlimited conversations.`
+                  : `You have ${limits.messagesRemaining} message${limits.messagesRemaining === 1 ? '' : 's'} remaining today. Upgrade for unlimited conversations.`
+                }
               </p>
               <button
                 onClick={() => onSignUp('trial_path')}
                 className="ml-3 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium rounded transition-colors duration-200 whitespace-nowrap"
               >
-                Upgrade
+                {isAnonymousUser() ? "Sign Up Free" : "Upgrade"}
               </button>
             </div>
           </div>
@@ -552,11 +652,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <div className="flex items-center justify-center mb-3">
                 <Lock className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-2" />
                 <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200">
-                  {isFreemiumUser() ? "Daily limit reached" : "Trial limit reached"}
+                  {isAnonymousUser() 
+                    ? "Anonymous limit reached" 
+                    : isFreemiumUser() 
+                    ? "Daily limit reached" 
+                    : "Trial limit reached"
+                  }
                 </h3>
               </div>
               <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
-                {isFreemiumUser() 
+                {isAnonymousUser()
+                  ? "You've reached the limit for anonymous users. Sign up for free access to unlimited conversations with Amara!"
+                  : isFreemiumUser() 
                   ? "Your daily message limit has been reached. Upgrade for unlimited conversations and features!"
                   : "Upgrade for unlimited conversations with Amara and access to all premium features."
                 }
@@ -566,7 +673,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
                 className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-full transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
               >
                 <Crown className="w-5 h-5 mr-2" />
-                Upgrade Now
+                {isAnonymousUser() ? "Sign Up Free" : "Upgrade Now"}
               </button>
             </div>
           </div>
@@ -579,14 +686,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <div className="flex items-center">
                 <Mic className="w-5 h-5 text-purple-600 dark:text-purple-400 mr-2" />
                 <p className="text-sm text-purple-800 dark:text-purple-200">
-                  You've used your free voice note. Upgrade for unlimited voice notes and enhanced communication!
+                  {isAnonymousUser()
+                    ? "Voice notes require an account. Sign up for free access to voice features!"
+                    : "You've used your free voice note. Upgrade for unlimited voice notes and enhanced communication!"
+                  }
                 </p>
               </div>
               <button
                 onClick={() => onSignUp('trial_path')}
                 className="ml-3 px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded transition-colors duration-200 whitespace-nowrap"
               >
-                Upgrade
+                {isAnonymousUser() ? "Sign Up Free" : "Upgrade"}
               </button>
             </div>
           </div>
@@ -600,7 +710,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               onKeyPress={handleKeyPress}
               placeholder={
                 shouldDisableInput()
-                  ? "Upgrade to continue..." 
+                  ? (isAnonymousUser() ? "Sign up to continue..." : "Upgrade to continue...")
                   : isPremiumUser()
                   ? "Share anything on your mind... unlimited conversations await!"
                   : "Share what's on your mind..."

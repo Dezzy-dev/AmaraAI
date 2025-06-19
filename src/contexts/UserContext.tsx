@@ -10,6 +10,7 @@ interface UserData {
   dailyMessagesUsed?: number;
   voiceNotesUsed?: number;
   lastResetDate?: string;
+  trialEndDate?: string; // ISO string for trial expiration date
 }
 
 interface UserContextType {
