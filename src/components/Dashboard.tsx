@@ -24,14 +24,11 @@ import {
   Infinity,
   Sun,
   Moon,
-  LogOut,
-  UserPlus,
-  Camera
+  LogOut
 } from 'lucide-react';
 import { useUser, UserData } from '../contexts/UserContext';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
 import WelcomeModal from './WelcomeModal';
-import { supabase } from '../lib/supabase';
 
 interface DashboardProps {
   user: UserData;
@@ -69,9 +66,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [tourRun, setTourRun] = useState(false);
-  const [isProfileDropdownOpen, setProfileDropdownOpen] = useState(false);
   
-  const { userData, updateUserData } = useUser();
+  const { userData } = useUser();
 
   useEffect(() => {
     setIsVisible(true);
@@ -264,10 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             {/* Right side navigation */}
             <div className="flex items-center space-x-4">
-              <button
-                onClick={onNavigateToSettings}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
-              >
+              <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <HelpCircle className="w-5 h-5" />
               </button>
               
@@ -284,49 +277,29 @@ const Dashboard: React.FC<DashboardProps> = ({
                 )}
               </button>
               
-              <div className="relative">
-                <button
-                  onClick={() => setProfileDropdownOpen(!isProfileDropdownOpen)}
-                  onBlur={() => setTimeout(() => setProfileDropdownOpen(false), 150)}
-                  className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
-                  data-tour="profile-settings"
-                >
-                  {user.profileImageUrl ? (
-                    <img src={user.profileImageUrl} alt="Profile" className="w-full h-full rounded-full object-cover" />
-                  ) : (
-                    user.name.charAt(0).toUpperCase()
-                  )}
-                  {isPremiumUser() && (
-                    <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
-                  )}
-                </button>
-                
-                {/* Dropdown Menu */}
-                {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700 z-50">
-                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</p>
-                    </div>
-                    <div className="py-1">
-                      <button
-                        onClick={onNavigateToSettings}
-                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <Settings className="w-4 h-4 mr-3" />
-                        Settings
-                      </button>
-                      <button
-                        onClick={onLogout}
-                        className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <LogOut className="w-4 h-4 mr-3" />
-                        Logout
-                      </button>
-                    </div>
-                  </div>
+              <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={onLogout}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+              
+              <button
+                onClick={onNavigateToSettings}
+                className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
+                data-tour="profile-settings"
+              >
+                {user.name.charAt(0).toUpperCase()}
+                {isPremiumUser() && (
+                  <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
                 )}
-              </div>
+              </button>
             </div>
           </div>
         </div>
