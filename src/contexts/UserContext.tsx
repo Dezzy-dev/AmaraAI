@@ -140,17 +140,52 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const loadAnonymousUser = async () => {
     try {
       const deviceId = generateDeviceId();
-      let device = await db.anonymousDevices.get(deviceId);
+      let device: AnonymousDevice | null = null;
       
-      // Create device record if it doesn't exist
+      // First, try to get existing device record
+      try {
+        device = await db.anonymousDevices.get(deviceId);
+      } catch (error) {
+        console.log('Device record not found, will create new one');
+      }
+      
+      // If device doesn't exist, create it
       if (!device) {
-        device = await db.anonymousDevices.create(deviceId);
+        try {
+          device = await db.anonymousDevices.create(deviceId);
+        } catch (createError: any) {
+          // If creation fails due to duplicate key, try to fetch again
+          if (createError.code === '23505') {
+            console.log('Device already exists (race condition), fetching existing record');
+            try {
+              device = await db.anonymousDevices.get(deviceId);
+            } catch (fetchError) {
+              console.error('Failed to fetch existing device after duplicate key error:', fetchError);
+              // Fall back to creating a new device ID
+              const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+              localStorage.setItem('amara_device_id', newDeviceId);
+              device = await db.anonymousDevices.create(newDeviceId);
+            }
+          } else {
+            throw createError;
+          }
+        }
       } else {
         // Check if we need to reset daily limits
         const today = new Date().toISOString().split('T')[0];
         if (device.last_active_date !== today) {
-          device = await db.anonymousDevices.resetDailyLimits(deviceId);
+          try {
+            device = await db.anonymousDevices.resetDailyLimits(deviceId);
+          } catch (resetError) {
+            console.error('Failed to reset daily limits:', resetError);
+            // Continue with existing device data if reset fails
+          }
         }
+      }
+
+      // Ensure we have a valid device at this point
+      if (!device) {
+        throw new Error('Failed to create or retrieve device record');
       }
 
       setUserDataState({
@@ -165,12 +200,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       });
     } catch (error) {
       console.error('Error loading anonymous user:', error);
-      // Fallback to basic anonymous user
+      // Fallback to basic anonymous user without database persistence
+      const fallbackDeviceId = generateDeviceId();
       setUserDataState({
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: generateDeviceId(),
+        deviceId: fallbackDeviceId,
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
@@ -210,7 +246,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (updates.lastResetDate) deviceUpdates.last_active_date = updates.lastResetDate;
 
         if (Object.keys(deviceUpdates).length > 0) {
-          await db.anonymousDevices.update(userData.deviceId, deviceUpdates);
+          try {
+            await db.anonymousDevices.update(userData.deviceId, deviceUpdates);
+          } catch (updateError) {
+            console.error('Error updating anonymous device:', updateError);
+            // Don't throw here to avoid breaking the UI
+          }
         }
       }
     } catch (error) {
