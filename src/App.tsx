@@ -34,6 +34,7 @@ function AppContent() {
   const [userPath, setUserPath] = useState<UserPath>(null);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
+  const [authSuccessTrigger, setAuthSuccessTrigger] = useState(false);
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading } = useUser();
 
@@ -107,28 +108,26 @@ function AppContent() {
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
-    
-    // Update user data to mark as authenticated and set plan
-    if (userData) {
-      const planType = userPath === 'freemium_path' ? 'freemium' : 'monthly_trial';
-      updateUserData({ 
-        isAuthenticated: true,
-        currentPlan: planType
-      });
-    }
-    
-    // Route user based on their chosen path
-    if (userPath === 'trial_path') {
-      // Redirect to comparison/pricing page
-      setCurrentView('comparison');
-    } else if (userPath === 'freemium_path') {
-      // Redirect to dashboard with freemium user
-      setCurrentView('dashboard');
-    }
-    
-    // Reset path
-    setUserPath(null);
+    setAuthSuccessTrigger(true);
   };
+
+  // Handle post-authentication routing
+  useEffect(() => {
+    if (authSuccessTrigger && !isUserDataLoading && userData?.isAuthenticated) {
+      // Route user based on their chosen path
+      if (userPath === 'trial_path') {
+        // Redirect to comparison/pricing page
+        setCurrentView('comparison');
+      } else if (userPath === 'freemium_path') {
+        // Redirect to dashboard with freemium user
+        setCurrentView('dashboard');
+      }
+      
+      // Reset states
+      setUserPath(null);
+      setAuthSuccessTrigger(false);
+    }
+  }, [authSuccessTrigger, isUserDataLoading, userData?.isAuthenticated, userPath]);
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);

@@ -33,14 +33,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
       await auth.signUp(email, password, name);
       setSuccess('Account created successfully! Please check your email to verify your account.');
       
-      // Auto-close after success
-      setTimeout(() => {
-        if (onAuthSuccess) {
-          onAuthSuccess();
-        } else {
-          onClose();
-        }
-      }, 2000);
+      // Call onAuthSuccess immediately after successful authentication
+      if (onAuthSuccess) {
+        onAuthSuccess();
+      } else {
+        onClose();
+      }
     } catch (error: any) {
       console.error('Sign up error:', error);
       setError(error.message || 'Failed to create account. Please try again.');
@@ -58,14 +56,12 @@ const AuthModal: React.FC<AuthModalProps> = ({
       await auth.signIn(email, password);
       setSuccess('Signed in successfully!');
       
-      // Auto-close after success
-      setTimeout(() => {
-        if (onAuthSuccess) {
-          onAuthSuccess();
-        } else {
-          onClose();
-        }
-      }, 1000);
+      // Call onAuthSuccess immediately after successful authentication
+      if (onAuthSuccess) {
+        onAuthSuccess();
+      } else {
+        onClose();
+      }
     } catch (error: any) {
       console.error('Sign in error:', error);
       setError(error.message || 'Failed to sign in. Please check your credentials.');
