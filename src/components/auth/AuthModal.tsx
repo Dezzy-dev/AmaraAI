@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import SignUpPage from './SignUpPage';
 import SignInPage from './SignInPage';
+import { auth } from '../../lib/supabase';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -29,11 +30,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Demo: Always succeed
-      setSuccess('Account created successfully! Welcome to Amara.');
+      await auth.signUp(email, password, name);
+      setSuccess('Account created successfully! Please check your email to verify your account.');
       
       // Auto-close after success
       setTimeout(() => {
@@ -57,10 +55,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Demo: Always succeed
+      await auth.signIn(email, password);
       setSuccess('Signed in successfully!');
       
       // Auto-close after success
@@ -85,19 +80,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
-      // Simulate OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Demo: Always succeed
-      setSuccess(`${action === 'signup' ? 'Account created' : 'Signed in'} successfully with ${provider}!`);
-      
-      setTimeout(() => {
-        if (onAuthSuccess) {
-          onAuthSuccess();
-        } else {
-          onClose();
-        }
-      }, 1000);
+      await auth.signInWithOAuth(provider);
+      // OAuth will redirect, so we don't need to handle success here
     } catch (error: any) {
       console.error(`${action} with ${provider} error:`, error);
       setError(error.message || `Failed to ${action} with ${provider}. Please try again.`);
@@ -111,9 +95,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await auth.resetPassword(email);
       setSuccess('Password reset email sent! Please check your inbox.');
     } catch (error: any) {
       console.error('Password reset error:', error);

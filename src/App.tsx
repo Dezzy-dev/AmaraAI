@@ -51,43 +51,6 @@ function AppContent() {
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading } = useUser();
 
-  // Mock user data for demonstration
-  const mockUsers = {
-    freemium: {
-      id: '1',
-      name: 'Alex',
-      email: 'alex@example.com',
-      current_plan: 'freemium' as const,
-      messages_used_today: 3,
-      last_session_date: '2025-01-08',
-      last_mood: 'Happy 😊',
-      created_at: '2025-01-01'
-    },
-    trial: {
-      id: '2',
-      name: 'Jordan',
-      email: 'jordan@example.com',
-      current_plan: 'yearly_trial' as const,
-      trial_end_date: '2025-01-15',
-      messages_used_today: 0,
-      last_session_date: '2025-01-08',
-      last_mood: 'Anxious 😰',
-      last_journal_entry: 'Today was challenging but I learned something new about myself...',
-      created_at: '2025-01-08'
-    },
-    premium: {
-      id: '3',
-      name: 'Sam',
-      email: 'sam@example.com',
-      current_plan: 'yearly_premium' as const,
-      messages_used_today: 0,
-      last_session_date: '2025-01-08',
-      last_mood: 'Excited 😄',
-      last_journal_entry: 'Feeling grateful for the progress I\'ve made this month...',
-      created_at: '2024-12-01'
-    }
-  };
-
   const handleStartTalking = () => {
     // Check if user is authenticated
     if (userData && userData.isAuthenticated) {
@@ -174,7 +137,6 @@ function AppContent() {
       setCurrentView('comparison');
     } else if (userPath === 'freemium_path') {
       // Redirect to dashboard with freemium user
-      setCurrentUser(mockUsers.freemium);
       setCurrentView('dashboard');
     }
     
@@ -193,14 +155,6 @@ function AppContent() {
     // Calculate trial end date (7 days from now)
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 7);
-    
-    // Simulate successful trial start
-    const trialUser = {
-      ...mockUsers.trial,
-      current_plan: selectedPlan === 'monthly' ? 'monthly_trial' as const : 'yearly_trial' as const,
-      trial_end_date: trialEndDate.toISOString()
-    };
-    setCurrentUser(trialUser);
     
     // Update user context with trial plan and end date
     if (userData) {
@@ -246,16 +200,10 @@ function AppContent() {
 
   const handleLogMood = (mood: string) => {
     console.log('Logging mood:', mood);
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, last_mood: mood });
-    }
   };
 
   const handleQuickJournal = (entry: string) => {
     console.log('Saving journal entry:', entry);
-    if (currentUser) {
-      setCurrentUser({ ...currentUser, last_journal_entry: entry });
-    }
   };
 
   const handleGetAIPrompt = () => {
@@ -264,6 +212,24 @@ function AppContent() {
 
   const handleNavigateToSettings = () => {
     setCurrentView('settings');
+  };
+
+  // Create mock user for dashboard when authenticated
+  const getMockUser = (): UserProfile | null => {
+    if (!userData || !userData.isAuthenticated) return null;
+    
+    return {
+      id: userData.id || '1',
+      name: userData.name,
+      email: userData.email || 'user@example.com',
+      current_plan: userData.currentPlan || 'freemium',
+      trial_end_date: userData.trialEndDate,
+      messages_used_today: userData.dailyMessagesUsed || 0,
+      last_session_date: new Date().toISOString(),
+      last_mood: 'Happy 😊',
+      last_journal_entry: 'Today was a good day...',
+      created_at: new Date().toISOString()
+    };
   };
 
   // Demo buttons for testing different user states (hidden in production)
@@ -275,7 +241,6 @@ function AppContent() {
       <div className="fixed bottom-4 right-4 space-y-2 z-50">
         <button
           onClick={() => {
-            setCurrentUser(mockUsers.freemium);
             setUserData({
               name: 'Alex',
               email: 'alex@example.com',
@@ -297,10 +262,6 @@ function AppContent() {
             const trialEndDate = new Date();
             trialEndDate.setDate(trialEndDate.getDate() + 3);
             
-            setCurrentUser({
-              ...mockUsers.trial,
-              trial_end_date: trialEndDate.toISOString()
-            });
             setUserData({
               name: 'Jordan',
               email: 'jordan@example.com',
@@ -319,7 +280,6 @@ function AppContent() {
         </button>
         <button
           onClick={() => {
-            setCurrentUser(mockUsers.premium);
             setUserData({
               name: 'Sam',
               email: 'sam@example.com',
@@ -337,7 +297,6 @@ function AppContent() {
         </button>
         <button
           onClick={() => {
-            setCurrentUser(null);
             setUserData(null);
             setCurrentView('landing');
           }}
@@ -350,7 +309,6 @@ function AppContent() {
             // Clear localStorage to test new user flow
             localStorage.removeItem('amaraOnboardingComplete');
             localStorage.removeItem('amaraUserName');
-            setCurrentUser(null);
             setUserData(null);
             setCurrentView('landing');
           }}
@@ -364,11 +322,13 @@ function AppContent() {
 
   // Render current view
   const renderCurrentView = () => {
+    const mockUser = getMockUser();
+    
     switch (currentView) {
       case 'dashboard':
-        return currentUser ? (
+        return mockUser ? (
           <Dashboard
-            user={currentUser}
+            user={mockUser}
             onStartNewSession={handleStartNewSession}
             onResumeSession={handleResumeSession}
             onUpgrade={handleUpgrade}
@@ -383,9 +343,9 @@ function AppContent() {
         ) : null;
 
       case 'settings':
-        return currentUser ? (
+        return mockUser ? (
           <Settings
-            user={currentUser}
+            user={mockUser}
             onBackToDashboard={() => setCurrentView('dashboard')}
             isDark={isDark}
             toggleDarkMode={toggleDarkMode}
