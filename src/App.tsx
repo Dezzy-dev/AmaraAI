@@ -19,25 +19,12 @@ import ComparisonPricingPage from './components/ComparisonPricingPage';
 import CreditCardPage from './components/CreditCardPage';
 import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
-import { UserProvider, useUser } from './contexts/UserContext';
+import { UserProvider, useUser, UserData } from './contexts/UserContext';
 import { ChatProvider } from './contexts/ChatContext';
 import Settings from './components/Settings';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
-
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
-  trial_end_date?: string;
-  messages_used_today?: number;
-  last_session_date?: string;
-  last_mood?: string;
-  last_journal_entry?: string;
-  created_at: string;
-}
 
 function AppContent() {
   const [isDark, toggleDarkMode] = useDarkMode();
@@ -47,7 +34,6 @@ function AppContent() {
   const [userPath, setUserPath] = useState<UserPath>(null);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading } = useUser();
 
@@ -200,10 +186,15 @@ function AppContent() {
 
   const handleLogMood = (mood: string) => {
     console.log('Logging mood:', mood);
+    // Update user data with mood if needed
+    if (userData) {
+      updateUserData({ feeling: mood });
+    }
   };
 
   const handleQuickJournal = (entry: string) => {
     console.log('Saving journal entry:', entry);
+    // In a real app, this would save to the database
   };
 
   const handleGetAIPrompt = () => {
@@ -212,24 +203,6 @@ function AppContent() {
 
   const handleNavigateToSettings = () => {
     setCurrentView('settings');
-  };
-
-  // Create mock user for dashboard when authenticated
-  const getMockUser = (): UserProfile | null => {
-    if (!userData || !userData.isAuthenticated) return null;
-    
-    return {
-      id: userData.id || '1',
-      name: userData.name,
-      email: userData.email || 'user@example.com',
-      current_plan: userData.currentPlan || 'freemium',
-      trial_end_date: userData.trialEndDate,
-      messages_used_today: userData.dailyMessagesUsed || 0,
-      last_session_date: new Date().toISOString(),
-      last_mood: 'Happy 😊',
-      last_journal_entry: 'Today was a good day...',
-      created_at: new Date().toISOString()
-    };
   };
 
   // Demo buttons for testing different user states (hidden in production)
@@ -322,13 +295,11 @@ function AppContent() {
 
   // Render current view
   const renderCurrentView = () => {
-    const mockUser = getMockUser();
-    
     switch (currentView) {
       case 'dashboard':
-        return mockUser ? (
+        return userData && userData.isAuthenticated ? (
           <Dashboard
-            user={mockUser}
+            user={userData}
             onStartNewSession={handleStartNewSession}
             onResumeSession={handleResumeSession}
             onUpgrade={handleUpgrade}
@@ -343,9 +314,9 @@ function AppContent() {
         ) : null;
 
       case 'settings':
-        return mockUser ? (
+        return userData && userData.isAuthenticated ? (
           <Settings
-            user={mockUser}
+            user={userData}
             onBackToDashboard={() => setCurrentView('dashboard')}
             isDark={isDark}
             toggleDarkMode={toggleDarkMode}

@@ -1,16 +1,9 @@
 import React, { useState } from 'react';
 import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useUser, UserData } from '../contexts/UserContext';
 
 interface SettingsProps {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
-    trial_end_date?: string;
-    created_at?: string;
-  };
+  user: UserData;
   onBackToDashboard: () => void;
   isDark: boolean;
   toggleDarkMode: () => void;
@@ -23,18 +16,18 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
   const { userData, updateUserData } = useUser();
 
   const isPremiumUser = () => {
-    return user.current_plan === 'monthly_premium' || user.current_plan === 'yearly_premium';
+    return user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
   };
 
   const isTrialUser = () => {
-    return user.current_plan === 'monthly_trial' || user.current_plan === 'yearly_trial';
+    return user.currentPlan === 'monthly_trial' || user.currentPlan === 'yearly_trial';
   };
 
   const isActiveTrialUser = () => {
     if (!isTrialUser()) return false;
     
-    if (user.trial_end_date) {
-      const trialEndDate = new Date(user.trial_end_date);
+    if (user.trialEndDate) {
+      const trialEndDate = new Date(user.trialEndDate);
       const now = new Date();
       return now < trialEndDate;
     }
@@ -43,8 +36,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
   };
 
   const getTrialDaysRemaining = () => {
-    if (!user.trial_end_date) return 0;
-    const trialEndDate = new Date(user.trial_end_date);
+    if (!user.trialEndDate) return 0;
+    const trialEndDate = new Date(user.trialEndDate);
     const now = new Date();
     const diffTime = trialEndDate.getTime() - now.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -214,7 +207,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
                   </label>
                   <input
                     type="email"
-                    value={user.email}
+                    value={user.email || ''}
                     disabled
                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
                     placeholder="Email address"
@@ -242,15 +235,15 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
                 <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-600">
                   <span className="text-gray-600 dark:text-gray-400">Member Since</span>
                   <span className="font-medium text-gray-900 dark:text-white">
-                    {new Date(user.created_at || Date.now()).toLocaleDateString()}
+                    {new Date().toLocaleDateString()}
                   </span>
                 </div>
                 
-                {isActiveTrialUser() && (
+                {isActiveTrialUser() && user.trialEndDate && (
                   <div className="flex items-center justify-between py-3 border-b border-gray-200 dark:border-gray-600">
                     <span className="text-gray-600 dark:text-gray-400">Trial Ends</span>
                     <span className="font-medium text-purple-600 dark:text-purple-400">
-                      {new Date(user.trial_end_date!).toLocaleDateString()}
+                      {new Date(user.trialEndDate).toLocaleDateString()}
                     </span>
                   </div>
                 )}

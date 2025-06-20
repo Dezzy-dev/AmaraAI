@@ -25,25 +25,12 @@ import {
   Sun,
   Moon
 } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import { useUser, UserData } from '../contexts/UserContext';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
 import WelcomeModal from './WelcomeModal';
 
-interface UserProfile {
-  id: string;
-  name: string;
-  email: string;
-  current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
-  trial_end_date?: string;
-  messages_used_today?: number;
-  last_session_date?: string;
-  last_mood?: string;
-  last_journal_entry?: string;
-  created_at: string;
-}
-
 interface DashboardProps {
-  user: UserProfile;
+  user: UserData;
   onStartNewSession: () => void;
   onResumeSession: () => void;
   onUpgrade: () => void;
@@ -87,7 +74,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     // Only show for new users who haven't seen the tour
-    if (user && user.created_at && localStorage.getItem('amaraUserTourShown') !== 'true') {
+    if (user && localStorage.getItem('amaraUserTourShown') !== 'true') {
       setShowWelcome(true);
     }
   }, [user]);
@@ -101,28 +88,28 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const getTrialDaysRemaining = () => {
-    if (!user.trial_end_date) return 0;
-    const endDate = new Date(user.trial_end_date);
+    if (!user.trialEndDate) return 0;
+    const endDate = new Date(user.trialEndDate);
     const today = new Date();
     const diffTime = endDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const isTrialUser = () => {
-    return user.current_plan === 'monthly_trial' || user.current_plan === 'yearly_trial';
+    return user.currentPlan === 'monthly_trial' || user.currentPlan === 'yearly_trial';
   };
 
   const isFreemiumUser = () => {
-    return user.current_plan === 'freemium';
+    return user.currentPlan === 'freemium';
   };
 
   const isPremiumUser = () => {
-    return user.current_plan === 'monthly_premium' || user.current_plan === 'yearly_premium';
+    return user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
   };
 
   const getFreemiumLimits = () => {
     const dailyLimit = 5;
-    const used = user.messages_used_today || 0;
+    const used = user.dailyMessagesUsed || 0;
     return { used, limit: dailyLimit, remaining: Math.max(0, dailyLimit - used) };
   };
 
@@ -507,10 +494,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                     <h3 className="font-medium text-gray-900 dark:text-white mb-2">Resume Session</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-300">
-                      {user.last_session_date
-                        ? `Continue from ${new Date(user.last_session_date).toLocaleDateString()}`
-                        : 'No previous session found'
-                      }
+                      Continue from your last conversation
                     </p>
                   </div>
                 </button>
@@ -689,45 +673,41 @@ const Dashboard: React.FC<DashboardProps> = ({
               </h3>
 
               <div className="space-y-3">
-                {user.last_mood && (
+                {user.feeling && (
                   <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
                       <Heart className="w-4 h-4 text-pink-600" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Last Mood</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{user.last_mood}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">Current Mood</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{user.feeling}</p>
                     </div>
                   </div>
                 )}
 
-                {user.last_journal_entry && (
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <BookOpen className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Last Journal</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                        {user.last_journal_entry.substring(0, 30)}...
-                      </p>
-                    </div>
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                    <MessageCircle className="w-4 h-4 text-purple-600" />
                   </div>
-                )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Messages Today</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      {user.dailyMessagesUsed || 0} sent
+                    </p>
+                  </div>
+                </div>
 
-                {user.last_session_date && (
-                  <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                      <MessageCircle className="w-4 h-4 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-white">Last Session</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        {new Date(user.last_session_date).toLocaleDateString()}
-                      </p>
-                    </div>
+                <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-blue-600" />
                   </div>
-                )}
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">Account Status</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">
+                      {user.currentPlan?.replace('_', ' ') || 'Active'}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -797,7 +777,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
                     <span className="text-sm font-medium text-gray-900 dark:text-white capitalize flex items-center">
-                      {user.current_plan.replace('_', ' ')}
+                      {user.currentPlan?.replace('_', ' ')}
                       <Shield className="w-4 h-4 ml-2 text-green-500" />
                     </span>
                   </div>
