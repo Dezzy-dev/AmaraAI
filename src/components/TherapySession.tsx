@@ -9,21 +9,17 @@ import { useChat } from '../contexts/ChatContext';
 import { useUser } from '../contexts/UserContext';
 
 interface TherapySessionProps {
-  userName: string;
-  userCountry?: string;
-  userFeeling?: string;
   onEndSession: () => void;
   onSignUp: (path?: 'trial_path' | 'freemium_path') => void;
   onSignIn: () => void;
+  onChooseFreemium: () => void;
 }
 
-const TherapySession: React.FC<TherapySessionProps> = ({ 
-  userName, 
-  userCountry, 
-  userFeeling, 
+const TherapySession: React.FC<TherapySessionProps> = ({
   onEndSession,
   onSignUp,
-  onSignIn
+  onSignIn,
+  onChooseFreemium,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentMessage, setCurrentMessage] = useState('');
@@ -31,12 +27,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
+  const [showSignUpNudge, setShowSignUpNudge] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionStartTime = useRef<Date>(new Date());
 
   const { messages, addMessage, startSession, endSession } = useChat();
   const { userData, incrementMessageCount, incrementVoiceNoteCount } = useUser();
+
+  const userName = userData?.name || 'there';
+  const userCountry = userData?.country;
+  const userFeeling = userData?.feeling;
 
   // Determine user type
   const isPremiumUser = () => {
@@ -784,12 +785,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
         </div>
       </div>
 
-      {/* Persistent Sign-Up Nudge - Only show for non-authenticated users */}
-      {!userData?.isAuthenticated && (
-        <SignUpNudge 
-          onSignUp={() => onSignUp('trial_path')} 
+      {/* Sign Up Nudge */}
+      {!userData?.isAuthenticated && showSignUpNudge && (
+        <SignUpNudge
+          onSignUp={onSignUp}
           onSignIn={onSignIn}
-          onChooseFreemium={() => onSignUp('freemium_path')}
+          onChooseFreemium={onChooseFreemium}
         />
       )}
 

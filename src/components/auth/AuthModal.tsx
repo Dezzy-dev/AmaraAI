@@ -31,7 +31,10 @@ const AuthModal: React.FC<AuthModalProps> = ({
 
     try {
       await auth.signUp(email, password, name);
-      setSuccess('Account created successfully! Please check your email to verify your account.');
+      // Automatically sign in the user after successful sign-up
+      await auth.signIn(email, password);
+      
+      setSuccess('Account created and signed in successfully!');
       
       // Call onAuthSuccess immediately after successful authentication
       if (onAuthSuccess) {
@@ -53,10 +56,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
     setSuccess(null);
 
     try {
-      await auth.signIn(email, password);
+      const result = await auth.signIn(email, password);
       setSuccess('Signed in successfully!');
-      
-      // Call onAuthSuccess immediately after successful authentication
       if (onAuthSuccess) {
         onAuthSuccess();
       } else {

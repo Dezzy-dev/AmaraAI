@@ -64,17 +64,26 @@ export const db = {
   // User profiles operations
   profiles: {
     async get(userId: string): Promise<UserProfile | null> {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        throw error;
+      try {
+        const { data, error, status } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .eq('id', userId);
+
+        if (error && status !== 406) { // 406 is "Not Acceptable", happens when RLS fails but isn't a critical error
+          console.error('Error fetching user profile:', error);
+          throw error;
+        }
+        
+        if (data && data.length > 1) {
+          console.warn(`Multiple profiles found for user ID: ${userId}. Using the first one.`);
+        }
+
+        return data && data.length > 0 ? data[0] : null;
+      } catch (e: any) {
+        console.error(`A critical error occurred during profile fetch:`, e);
+        return null;
       }
-      return data;
     },
 
     async create(userId: string, email: string, name: string, plan: string = 'freemium'): Promise<UserProfile> {

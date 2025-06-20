@@ -11,6 +11,7 @@ interface Message {
 interface ChatContextType {
   messages: Message[];
   addMessage: (sender: 'user' | 'amara', text: string) => void;
+  loadMessages: (messages: Message[]) => void;
   clearMessages: () => void;
   isInSession: boolean;
   startSession: () => void;
@@ -39,6 +40,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  const loadMessages = (newMessages: Message[]) => {
+    setMessages(newMessages);
+  };
+
   const clearMessages = () => {
     setMessages([]);
   };
@@ -55,6 +60,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const value: ChatContextType = {
     messages,
     addMessage,
+    loadMessages,
     clearMessages,
     isInSession,
     startSession,

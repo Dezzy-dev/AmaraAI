@@ -57,42 +57,36 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   // Initialize user data and auth state
   useEffect(() => {
     let mounted = true;
+    setIsLoading(true);
 
-    const initializeUser = async () => {
-      try {
-        // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          setSupabaseUser(session.user);
-          await loadAuthenticatedUser(session.user);
-        } else {
-          await loadAnonymousUser();
-        }
-      } catch (error) {
-        console.error('Error initializing user:', error);
-        await loadAnonymousUser();
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    // Listen for auth changes
+    // The onAuthStateChange listener will handle all auth events.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      setSupabaseUser(session?.user || null);
-
-      if (event === 'SIGNED_IN' && session?.user) {
-        await loadAuthenticatedUser(session.user);
+      // We only care about the initial session establishment and SIGNED_IN events.
+      // SIGNED_OUT is handled manually by the handleLogout function in App.tsx.
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        try {
+          if (session?.user) {
+            setSupabaseUser(session.user);
+            await loadAuthenticatedUser(session.user);
+          } else {
+            await loadAnonymousUser();
+          }
+        } catch (error) {
+          console.error('Error in onAuthStateChange handler:', error);
+        } finally {
+          if (mounted) {
+            setIsLoading(false);
+          }
+        }
       } else if (event === 'SIGNED_OUT') {
-        await loadAnonymousUser();
+        // When logout happens, App.tsx handles state clearing and navigation.
+        // The context will be re-initialized with an anonymous user on the next page load
+        // or when the user signs in again. Here, we just ensure loading is false.
+        setIsLoading(false);
       }
     });
-
-    initializeUser();
 
     return () => {
       mounted = false;
@@ -101,62 +95,51 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   const loadAuthenticatedUser = async (user: User) => {
+    let profile: UserProfile | null = null;
     try {
-      let profile = await db.profiles.get(user.id);
-      
-      // Create profile if it doesn't exist (this handles the RLS issue properly)
+      profile = await db.profiles.get(user.id);
+
+      // Create profile if it doesn't exist
       if (!profile) {
+        console.log(`No profile found for user ${user.id}, creating a new one.`);
         const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
         try {
           profile = await db.profiles.create(user.id, user.email!, name);
-          console.log('User profile created successfully');
         } catch (createError: any) {
           console.error('Error creating user profile:', createError);
-          // If profile creation fails, continue with basic user data
-          // This ensures the app doesn't break if there are RLS issues
-          setUserDataState({
-            id: user.id,
-            name: name,
-            email: user.email,
-            isAuthenticated: true,
-            currentPlan: 'freemium',
-            createdAt: new Date().toISOString(),
-            dailyMessagesUsed: 0,
-            voiceNotesUsed: 0,
-            lastResetDate: new Date().toISOString().split('T')[0]
-          });
-          return;
+          // If profile creation fails, we cannot proceed.
+          // Log out the user to prevent an inconsistent state.
+          await supabase.auth.signOut();
+          return; 
         }
       }
-
-      setUserDataState({
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        isAuthenticated: true,
-        currentPlan: profile.current_plan,
-        trialStartDate: profile.trial_start_date,
-        trialEndDate: profile.trial_end_date,
-        createdAt: profile.created_at,
-        dailyMessagesUsed: 0, // Reset for authenticated users daily
-        voiceNotesUsed: 0,
-        lastResetDate: new Date().toISOString().split('T')[0]
-      });
-    } catch (error) {
-      console.error('Error loading authenticated user:', error);
-      // Fallback to basic user data
-      setUserDataState({
-        id: user.id,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        email: user.email,
-        isAuthenticated: true,
-        currentPlan: 'freemium',
-        createdAt: new Date().toISOString(),
-        dailyMessagesUsed: 0,
-        voiceNotesUsed: 0,
-        lastResetDate: new Date().toISOString().split('T')[0]
-      });
+    } catch (error: any) {
+      console.error('Error loading or creating authenticated user profile:', error);
+      // If we can't get or create a profile, something is wrong. Log out.
+      await supabase.auth.signOut();
+      return;
     }
+
+    // If, after all attempts, the profile is still not available, we can't continue.
+    if (!profile) {
+      console.error('Failed to load or create a user profile. Aborting sign-in.');
+      await supabase.auth.signOut();
+      return;
+    }
+
+    setUserDataState({
+      id: profile.id,
+      name: profile.name,
+      email: profile.email,
+      isAuthenticated: true,
+      currentPlan: profile.current_plan,
+      trialStartDate: profile.trial_start_date,
+      trialEndDate: profile.trial_end_date,
+      createdAt: profile.created_at,
+      dailyMessagesUsed: 0, // Reset for authenticated users daily
+      voiceNotesUsed: 0,
+      lastResetDate: new Date().toISOString().split('T')[0]
+    });
   };
 
   const loadAnonymousUser = async () => {
@@ -230,7 +213,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
       // Set user data - only include deviceId if we have a valid database record
       setUserDataState({
-        name: 'Anonymous User',
+        name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
         deviceId: validDeviceId, // Only set if we have a valid database record
@@ -325,7 +308,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if (!userData) return;
 
     const newCount = (userData.dailyMessagesUsed || 0) + 1;
-    await updateUserData({ dailyMessagesUsed: newCount });
+
+    // Optimistically update local state
+    setUserDataState(prev => prev ? { ...prev, dailyMessagesUsed: newCount } : null);
+
+    // Persist to database
+    if (userData.isAuthenticated && userData.id) {
+      // This part is for authenticated users and may be implemented later
+      // For now, we are focusing on anonymous users
+    } else if (!userData.isAuthenticated && userData.deviceId) {
+      try {
+        await db.anonymousDevices.update(userData.deviceId, { messages_today: newCount });
+      } catch (error) {
+        console.error('Failed to update message count for anonymous user:', error);
+        // Optionally, revert optimistic update
+        setUserDataState(prev => prev ? { ...prev, dailyMessagesUsed: prev.dailyMessagesUsed! - 1 } : null);
+      }
+    }
   };
 
   const incrementVoiceNoteCount = async () => {

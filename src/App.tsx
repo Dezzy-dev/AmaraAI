@@ -20,9 +20,9 @@ import CreditCardPage from './components/CreditCardPage';
 import Dashboard from './components/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 import { UserProvider, useUser, UserData } from './contexts/UserContext';
-import { ChatProvider } from './contexts/ChatContext';
+import { ChatProvider, useChat } from './contexts/ChatContext';
 import Settings from './components/Settings';
-import { auth } from './lib/supabase';
+import { auth, db } from './lib/supabase';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
@@ -30,6 +30,7 @@ type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparis
 function AppContent() {
   const [isDark, toggleDarkMode] = useDarkMode();
   const [currentView, setCurrentView] = useState<AppView>('landing');
+  const [previousView, setPreviousView] = useState<AppView | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
   const [userPath, setUserPath] = useState<UserPath>(null);
@@ -37,29 +38,45 @@ function AppContent() {
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
   const [authSuccessTrigger, setAuthSuccessTrigger] = useState(false);
   
-  const { userData, setUserData, updateUserData, isLoading: isUserDataLoading } = useUser();
+  const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
+  const { clearMessages, loadMessages } = useChat();
+
+  const navigateTo = (view: AppView) => {
+    setPreviousView(currentView);
+    setCurrentView(view);
+  };
+
+  const handleBack = () => {
+    if (previousView) {
+      setCurrentView(previousView);
+      setPreviousView(null); // Clear after one use
+    } else {
+      // Default back behavior
+      setCurrentView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
+    }
+  };
 
   const handleStartTalking = () => {
     // Check if user is authenticated
     if (userData && userData.isAuthenticated) {
       // Authenticated users go directly to session
-      setCurrentView('session');
+      navigateTo('session');
     } else {
       // Anonymous user flow
       const onboardingComplete = localStorage.getItem('amaraOnboardingComplete') === 'true';
       if (onboardingComplete) {
         // Returning anonymous user: skip welcome and personalization, go straight to session
-        setCurrentView('session');
+        navigateTo('session');
       } else {
         // New anonymous user: start with welcome flow
-        setCurrentView('welcome');
+        navigateTo('welcome');
       }
     }
   };
 
   const handleWelcomeComplete = () => {
     // After welcome, always go to personalization for new users
-    setCurrentView('personalization');
+    navigateTo('personalization');
   };
 
   const handlePersonalizationComplete = (data: PersonalizationData) => {
@@ -90,11 +107,11 @@ function AppContent() {
     localStorage.setItem('amaraUserName', data.name);
     localStorage.setItem('amaraOnboardingComplete', 'true');
     
-    setCurrentView('session');
+    navigateTo('session');
   };
 
   const handleEndSession = () => {
-    setCurrentView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
+    navigateTo(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
     setPersonalizationData(null);
   };
 
@@ -105,7 +122,14 @@ function AppContent() {
   };
 
   const handleSignUp = (path: UserPath = 'trial_path') => openAuthModal('signup', path);
-  const handleSignIn = () => openAuthModal('signin');
+  const handleSignIn = () => {
+    setAuthMode('signin');
+    setShowAuthModal(true);
+  };
+
+  const handleChooseFreemium = () => {
+    openAuthModal('signup', 'freemium_path');
+  };
 
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
@@ -118,10 +142,13 @@ function AppContent() {
       // Route user based on their chosen path
       if (userPath === 'trial_path') {
         // Redirect to comparison/pricing page
-        setCurrentView('comparison');
+        navigateTo('comparison');
       } else if (userPath === 'freemium_path') {
         // Redirect to dashboard with freemium user
-        setCurrentView('dashboard');
+        navigateTo('dashboard');
+      } else {
+        // Default redirect for any other successful auth (e.g., direct sign-in)
+        navigateTo('dashboard');
       }
       
       // Reset states
@@ -132,7 +159,7 @@ function AppContent() {
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);
-    setCurrentView('credit-card');
+    navigateTo('credit-card');
   };
 
   const handleCreditCardSuccess = () => {
@@ -150,34 +177,50 @@ function AppContent() {
       });
     }
     
-    setCurrentView('dashboard');
+    navigateTo('dashboard');
   };
 
   const handleBackToAuth = () => {
-    setCurrentView('landing');
+    navigateTo('landing');
     setShowAuthModal(true);
   };
 
   const handleBackToComparison = () => {
-    setCurrentView('comparison');
+    navigateTo('comparison');
   };
 
   // Dashboard handlers
   const handleStartNewSession = () => {
-    // If user has personalization data, skip to session
+    clearMessages();
     if (userData && userData.name) {
-      setCurrentView('session');
+      navigateTo('session');
     } else {
-      setCurrentView('personalization');
+      navigateTo('personalization');
     }
   };
 
   const handleResumeSession = () => {
-    setCurrentView('session');
+    navigateTo('session');
+  };
+
+  const handleViewSessionHistory = async (sessionId: string) => {
+    try {
+      // 1. Fetch the messages for the selected session
+      const messages = await db.messages.getBySession(sessionId);
+      
+      // 2. Load these messages into the chat context
+      loadMessages(messages);
+      
+      // 3. Navigate to the session view
+      navigateTo('session');
+
+    } catch (error) {
+      console.error('Error loading session history:', error);
+    }
   };
 
   const handleUpgrade = () => {
-    setCurrentView('comparison');
+    navigateTo('comparison');
   };
 
   const handleManageSubscription = () => {
@@ -198,33 +241,41 @@ function AppContent() {
   };
 
   const handleGetAIPrompt = () => {
-    console.log('Getting AI prompt...');
+    console.log('Get AI Prompt clicked');
   };
 
   const handleNavigateToSettings = () => {
-    setCurrentView('settings');
+    navigateTo('settings');
   };
 
   const handleLogout = async () => {
     try {
-      // Sign out from Supabase
-      await auth.signOut();
+      // 1. Sign out from Supabase
+      const { error } = await auth.signOut();
+      if (error) throw error;
       
-      // Clear user data and redirect to landing page
-      setUserData(null);
-      setCurrentView('landing');
+      // 2. Clear all local user state (but not messages)
+      clearUserData();
       
-      // Clear any stored onboarding data
+      // 3. Reset any other local storage items if necessary
       localStorage.removeItem('amaraOnboardingComplete');
       localStorage.removeItem('amaraUserName');
-      
-      console.log('User logged out successfully');
+
+      // 4. Navigate to landing and show sign-in
+      setCurrentView('landing');
+      openAuthModal('signin');
+
     } catch (error) {
       console.error('Error logging out:', error);
-      // Even if there's an error, clear local state and redirect
-      setUserData(null);
-      setCurrentView('landing');
+      // Fallback in case of error
+      clearUserData();
+      navigateTo('landing');
     }
+  };
+
+  const handleCloseAuthModal = () => {
+    setShowAuthModal(false);
+    setUserPath(null); // Reset user path when closing modal
   };
 
   // Demo buttons for testing different user states (hidden in production)
@@ -245,7 +296,7 @@ function AppContent() {
               voiceNotesUsed: 0,
               lastResetDate: new Date().toDateString()
             });
-            setCurrentView('dashboard');
+            navigateTo('dashboard');
           }}
           className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
         >
@@ -267,7 +318,7 @@ function AppContent() {
               lastResetDate: new Date().toDateString(),
               trialEndDate: trialEndDate.toISOString()
             });
-            setCurrentView('dashboard');
+            navigateTo('dashboard');
           }}
           className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
         >
@@ -284,7 +335,7 @@ function AppContent() {
               voiceNotesUsed: 0,
               lastResetDate: new Date().toDateString()
             });
-            setCurrentView('dashboard');
+            navigateTo('dashboard');
           }}
           className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
         >
@@ -293,7 +344,7 @@ function AppContent() {
         <button
           onClick={() => {
             setUserData(null);
-            setCurrentView('landing');
+            navigateTo('landing');
           }}
           className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
         >
@@ -305,7 +356,7 @@ function AppContent() {
             localStorage.removeItem('amaraOnboardingComplete');
             localStorage.removeItem('amaraUserName');
             setUserData(null);
-            setCurrentView('landing');
+            navigateTo('landing');
           }}
           className="block px-3 py-2 bg-red-500 text-white text-xs rounded shadow hover:bg-red-600"
         >
@@ -320,7 +371,7 @@ function AppContent() {
     switch (currentView) {
       case 'dashboard':
         return userData && userData.isAuthenticated ? (
-          <Dashboard
+          <Dashboard 
             user={userData}
             onStartNewSession={handleStartNewSession}
             onResumeSession={handleResumeSession}
@@ -331,25 +382,26 @@ function AppContent() {
             onGetAIPrompt={handleGetAIPrompt}
             onNavigateToSettings={handleNavigateToSettings}
             onLogout={handleLogout}
+            onViewSessionHistory={handleViewSessionHistory}
             isDark={isDark}
             toggleDarkMode={toggleDarkMode}
           />
         ) : null;
 
       case 'settings':
-        return userData && userData.isAuthenticated ? (
-          <Settings
+        return (
+          <Settings 
             user={userData}
-            onBackToDashboard={() => setCurrentView('dashboard')}
-            isDark={isDark}
+            onBack={handleBack}
+            isDark={isDark} 
             toggleDarkMode={toggleDarkMode}
           />
-        ) : null;
+        );
 
       case 'credit-card':
         return (
           <CreditCardPage
-            selectedPlan={selectedPlan}
+            planType={selectedPlan}
             onSuccess={handleCreditCardSuccess}
             onBack={handleBackToComparison}
           />
@@ -359,19 +411,17 @@ function AppContent() {
         return (
           <ComparisonPricingPage 
             onStartFreeTrial={handleStartFreeTrial}
-            onBack={handleBackToAuth}
+            onBack={handleBack}
           />
         );
 
       case 'session':
         return (
-          <TherapySession 
-            userName={userData?.name || personalizationData?.name || localStorage.getItem('amaraUserName') || 'there'} 
-            userCountry={userData?.country || personalizationData?.country}
-            userFeeling={userData?.feeling || personalizationData?.feeling}
+          <TherapySession
             onEndSession={handleEndSession}
             onSignUp={handleSignUp}
             onSignIn={handleSignIn}
+            onChooseFreemium={handleChooseFreemium}
           />
         );
 
@@ -380,6 +430,23 @@ function AppContent() {
 
       case 'welcome':
         return <WelcomeFlow onComplete={handleWelcomeComplete} />;
+
+      case 'landing':
+        return (
+          <>
+            <Navigation onSignUp={handleSignUp} onSignIn={handleSignIn} />
+            <Hero onStartTalking={handleStartTalking} onSignUp={handleSignUp} />
+            <Brands />
+            <Features />
+            <Unique />
+            <HowItWorks />
+            <Testimonials />
+            <Privacy />
+            <CallToAction onSignUp={handleSignUp} />
+            <FAQ />
+            <Footer />
+          </>
+        );
 
       default:
         return (

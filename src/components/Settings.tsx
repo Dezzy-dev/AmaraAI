@@ -1,19 +1,29 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon } from 'lucide-react';
+import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon, MapPin, UserPlus } from 'lucide-react';
 import { useUser, UserData } from '../contexts/UserContext';
+import { supabase } from '../lib/supabase';
 
 interface SettingsProps {
   user: UserData;
-  onBackToDashboard: () => void;
+  onBack: () => void;
   isDark: boolean;
   toggleDarkMode: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, toggleDarkMode }) => {
-  const [name, setName] = useState(user.name);
-  const [showSaveMessage, setShowSaveMessage] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMode }) => {
   const { userData, updateUserData } = useUser();
+
+  // State for form fields
+  const [editName, setEditName] = useState(user.name);
+  const [editCountry, setEditCountry] = useState(user.country || '');
+  
+  // State for image handling
+  const [profileImage, setProfileImage] = useState<string | null>(user.profileImageUrl || null);
+  const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
+
+  // State for UI feedback
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showSaveMessage, setShowSaveMessage] = useState(false);
 
   const isPremiumUser = () => {
     return user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
@@ -43,25 +53,75 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const handleSaveChanges = () => {
-    // Update user data in context
-    if (userData) {
-      updateUserData({ name });
-    }
-    
-    // Show success message
-    setShowSaveMessage(true);
-    setTimeout(() => setShowSaveMessage(false), 3000);
-  };
-
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      setProfileImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setProfileImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!userData) return;
+    
+    setSavingProfile(true);
+    let imageUrl = userData.profileImageUrl || null;
+
+    if (profileImageFile) {
+      try {
+        const fileExt = profileImageFile.name.split('.').pop();
+        const fileName = `${userData.id}-profile-${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('profile-images')
+          .upload(fileName, profileImageFile, {
+            cacheControl: '3600',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(fileName);
+
+        if (publicUrlData) {
+            imageUrl = publicUrlData.publicUrl;
+        } else {
+            console.error("Could not get public URL for the uploaded image.");
+        }
+        
+      } catch (error: any) {
+        console.error('Error uploading profile image:', error);
+        alert(`Failed to upload image: ${error.message}`);
+        setSavingProfile(false);
+        return;
+      }
+    }
+
+    try {
+      const profileUpdates: Partial<UserData> = {
+        name: editName,
+        country: editCountry,
+        profileImageUrl: imageUrl,
+      };
+      
+      await updateUserData(profileUpdates);
+      
+      setShowSaveMessage(true);
+      setTimeout(() => setShowSaveMessage(false), 3000);
+
+    } catch (error: any) {
+      console.error('Error updating user profile:', error);
+      alert(`Failed to save profile: ${error.message}`);
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -85,11 +145,11 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
           <div className="flex items-center justify-between h-16">
             {/* Back Button */}
             <button
-              onClick={onBackToDashboard}
+              onClick={onBack}
               className="flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
             >
               <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Back to Dashboard</span>
+              <span className="font-medium">Back</span>
             </button>
 
             {/* Page Title */}
@@ -113,10 +173,11 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
               {/* Save Button */}
               <button
                 onClick={handleSaveChanges}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200"
+                disabled={savingProfile}
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors duration-200 disabled:bg-purple-400"
               >
                 <Save className="w-4 h-4" />
-                <span>Save Changes</span>
+                <span>{savingProfile ? 'Saving...' : 'Save Changes'}</span>
               </button>
             </div>
           </div>
@@ -138,83 +199,83 @@ const Settings: React.FC<SettingsProps> = ({ user, onBackToDashboard, isDark, to
           <div className="lg:col-span-2 space-y-6">
             {/* Profile Header */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Your Profile</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
+                <UserPlus className="w-6 h-6 mr-3 text-purple-600" />
+                Edit Your Profile
+              </h2>
               
-              {/* Profile Image */}
-              <div className="flex items-center space-x-6 mb-8">
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-2xl relative">
-                    {profileImage ? (
-                      <img 
-                        src={profileImage} 
-                        alt="Profile" 
-                        className="w-24 h-24 rounded-full object-cover"
-                      />
-                    ) : (
-                      name.charAt(0).toUpperCase()
-                    )}
-                    {isPremiumUser() && (
-                      <Crown className="absolute -top-1 -right-1 w-5 h-5 text-yellow-400" fill="currentColor" />
-                    )}
-                  </div>
-                  <label className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
-                    <Camera className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{name}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">{user.email}</p>
-                  <div className="flex items-center space-x-2 mt-2">
-                    {getPlanIcon()}
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {getPlanDisplayName()}
-                      {isActiveTrialUser() && (
-                        <span className="ml-1 text-purple-600 dark:text-purple-400">
-                          ({getTrialDaysRemaining()}d left)
-                        </span>
+              {/* Profile Image & Form */}
+              <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
+                {/* Image Uploader */}
+                <div className="flex-shrink-0 flex flex-col items-center space-y-3 mb-6 md:mb-0">
+                  <div className="relative">
+                    <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-3xl relative overflow-hidden">
+                      {profileImage ? (
+                        <img 
+                          src={profileImage} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        editName.charAt(0).toUpperCase()
                       )}
-                    </span>
+                    </div>
+                    <label className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors duration-200">
+                      <Camera className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageUpload}
+                        className="hidden"
+                      />
+                    </label>
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Click to upload</p>
                 </div>
-              </div>
+                
+                {/* Form Fields */}
+                <div className="w-full space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <User className="w-4 h-4 inline mr-2" />
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="Enter your full name"
+                    />
+                  </div>
 
-              {/* Profile Form */}
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <User className="w-4 h-4 inline mr-2" />
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder="Enter your full name"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <Mail className="w-4 h-4 inline mr-2" />
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={user.email || ''}
+                      disabled
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                      placeholder="Email address"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Mail className="w-4 h-4 inline mr-2" />
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={user.email || ''}
-                    disabled
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                    placeholder="Email address"
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Email address cannot be changed at this time
-                  </p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <MapPin className="w-4 h-4 inline mr-2" />
+                      Country
+                    </label>
+                    <input
+                      type="text"
+                      value={editCountry}
+                      onChange={(e) => setEditCountry(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      placeholder="e.g., United States"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
