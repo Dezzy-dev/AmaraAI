@@ -22,6 +22,7 @@ import { useDarkMode } from './hooks/useDarkMode';
 import { UserProvider, useUser, UserData } from './contexts/UserContext';
 import { ChatProvider } from './contexts/ChatContext';
 import Settings from './components/Settings';
+import { auth } from './lib/supabase';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
@@ -204,6 +205,28 @@ function AppContent() {
     setCurrentView('settings');
   };
 
+  const handleLogout = async () => {
+    try {
+      // Sign out from Supabase
+      await auth.signOut();
+      
+      // Clear user data and redirect to landing page
+      setUserData(null);
+      setCurrentView('landing');
+      
+      // Clear any stored onboarding data
+      localStorage.removeItem('amaraOnboardingComplete');
+      localStorage.removeItem('amaraUserName');
+      
+      console.log('User logged out successfully');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      // Even if there's an error, clear local state and redirect
+      setUserData(null);
+      setCurrentView('landing');
+    }
+  };
+
   // Demo buttons for testing different user states (hidden in production)
   const renderDemoButtons = () => {
     // Hide demo buttons in production
@@ -307,6 +330,7 @@ function AppContent() {
             onQuickJournal={handleQuickJournal}
             onGetAIPrompt={handleGetAIPrompt}
             onNavigateToSettings={handleNavigateToSettings}
+            onLogout={handleLogout}
             isDark={isDark}
             toggleDarkMode={toggleDarkMode}
           />

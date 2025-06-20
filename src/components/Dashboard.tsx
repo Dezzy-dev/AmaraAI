@@ -23,7 +23,8 @@ import {
   Award,
   Infinity,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from 'lucide-react';
 import { useUser, UserData } from '../contexts/UserContext';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
@@ -39,6 +40,7 @@ interface DashboardProps {
   onQuickJournal: (entry: string) => void;
   onGetAIPrompt: () => void;
   onNavigateToSettings: () => void;
+  onLogout: () => void;
   isDark: boolean;
   toggleDarkMode: () => void;
 }
@@ -53,6 +55,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   onQuickJournal,
   onGetAIPrompt,
   onNavigateToSettings,
+  onLogout,
   isDark,
   toggleDarkMode
 }) => {
@@ -277,6 +280,16 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
                 <Settings className="w-5 h-5" />
               </button>
+
+              {/* Logout Button */}
+              <button
+                onClick={onLogout}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
+                title="Logout"
+              >
+                <LogOut className="w-5 h-5" />
+              </button>
+              
               <button
                 onClick={onNavigateToSettings}
                 className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
