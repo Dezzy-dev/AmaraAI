@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase, db, generateDeviceId, UserProfile, AnonymousDevice } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
-interface UserData {
+export interface UserData {
   // User identification
   id?: string;
   name: string;
@@ -16,9 +16,10 @@ interface UserData {
   isAuthenticated: boolean;
   
   // Plan and trial information
-  currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_paid' | 'yearly_paid';
+  currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
   trialStartDate?: string;
   trialEndDate?: string;
+  createdAt?: string;
   
   // Usage tracking
   dailyMessagesUsed?: number;
@@ -117,7 +118,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         currentPlan: profile.current_plan,
         trialStartDate: profile.trial_start_date,
         trialEndDate: profile.trial_end_date,
-        dailyMessagesUsed: 0, // Reset for authenticated users
+        createdAt: profile.created_at,
+        dailyMessagesUsed: 0, // Reset for authenticated users daily
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0]
       });
@@ -129,7 +131,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
         email: user.email,
         isAuthenticated: true,
-        currentPlan: 'freemium'
+        currentPlan: 'freemium',
+        createdAt: new Date().toISOString()
       });
     }
   };
@@ -157,7 +160,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         deviceId: device.device_id,
         dailyMessagesUsed: device.messages_today,
         voiceNotesUsed: device.voice_notes_used ? 1 : 0,
-        lastResetDate: device.last_active_date
+        lastResetDate: device.last_active_date,
+        createdAt: device.created_at
       });
     } catch (error) {
       console.error('Error loading anonymous user:', error);
@@ -169,7 +173,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         deviceId: generateDeviceId(),
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
-        lastResetDate: new Date().toISOString().split('T')[0]
+        lastResetDate: new Date().toISOString().split('T')[0],
+        createdAt: new Date().toISOString()
       });
     }
   };

@@ -28,8 +28,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [messageCount, setMessageCount] = useState(0);
-  const [voiceNoteCount, setVoiceNoteCount] = useState(0);
   const [showTrialModal, setShowTrialModal] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -38,7 +36,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const sessionStartTime = useRef<Date>(new Date());
 
   const { messages, addMessage, startSession, endSession } = useChat();
-  const { userData } = useUser();
+  const { userData, incrementMessageCount, incrementVoiceNoteCount } = useUser();
 
   // Determine user type
   const isPremiumUser = () => {
@@ -101,8 +99,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       return {
         maxMessages: Infinity,
         maxVoiceNotes: Infinity,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
         messagesRemaining: Infinity,
         voiceNotesRemaining: Infinity,
         hasLimits: false
@@ -112,53 +110,61 @@ const TherapySession: React.FC<TherapySessionProps> = ({
       return {
         maxMessages: Infinity,
         maxVoiceNotes: Infinity,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
         messagesRemaining: Infinity,
         voiceNotesRemaining: Infinity,
         hasLimits: false
       };
     } else if (isExpiredTrialUser()) {
       // Expired trial users have freemium limits
+      const messagesUsed = userData?.dailyMessagesUsed || 0;
+      const voiceNotesUsed = userData?.voiceNotesUsed || 0;
       return {
         maxMessages: FREEMIUM_DAILY_MESSAGES,
         maxVoiceNotes: FREEMIUM_VOICE_NOTES,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
-        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
+        messagesUsed,
+        voiceNotesUsed,
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messagesUsed),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNotesUsed),
         hasLimits: true
       };
     } else if (isAnonymousUser()) {
       // Anonymous users have 3 message limit, no voice notes
+      const messagesUsed = userData?.dailyMessagesUsed || 0;
+      const voiceNotesUsed = userData?.voiceNotesUsed || 0;
       return {
         maxMessages: ANONYMOUS_MESSAGES,
         maxVoiceNotes: ANONYMOUS_VOICE_NOTES,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
-        messagesRemaining: Math.max(0, ANONYMOUS_MESSAGES - messageCount),
+        messagesUsed,
+        voiceNotesUsed,
+        messagesRemaining: Math.max(0, ANONYMOUS_MESSAGES - messagesUsed),
         voiceNotesRemaining: 0,
         hasLimits: true
       };
     } else if (isFreemiumUser()) {
+      const messagesUsed = userData?.dailyMessagesUsed || 0;
+      const voiceNotesUsed = userData?.voiceNotesUsed || 0;
       return {
         maxMessages: FREEMIUM_DAILY_MESSAGES,
         maxVoiceNotes: FREEMIUM_VOICE_NOTES,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
-        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
+        messagesUsed,
+        voiceNotesUsed,
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messagesUsed),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNotesUsed),
         hasLimits: true
       };
     } else {
       // Fallback for any other case
+      const messagesUsed = userData?.dailyMessagesUsed || 0;
+      const voiceNotesUsed = userData?.voiceNotesUsed || 0;
       return {
         maxMessages: FREEMIUM_DAILY_MESSAGES,
         maxVoiceNotes: FREEMIUM_VOICE_NOTES,
-        messagesUsed: messageCount,
-        voiceNotesUsed: voiceNoteCount,
-        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messageCount),
-        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNoteCount),
+        messagesUsed,
+        voiceNotesUsed,
+        messagesRemaining: Math.max(0, FREEMIUM_DAILY_MESSAGES - messagesUsed),
+        voiceNotesRemaining: Math.max(0, FREEMIUM_VOICE_NOTES - voiceNotesUsed),
         hasLimits: true
       };
     }
@@ -209,18 +215,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     if (!isPremiumUser() && !isActiveTrialUser() && limits.hasLimits) {
       // For anonymous users, only show modal after message limit is reached
       if (isAnonymousUser()) {
-        if (messageCount >= limits.maxMessages) {
+        if (limits.messagesUsed >= limits.maxMessages) {
           setShowTrialModal(true);
         }
       } else {
-        const messagesLimitReached = messageCount >= limits.maxMessages;
-        const voiceNotesLimitReached = voiceNoteCount >= limits.maxVoiceNotes;
+        const messagesLimitReached = limits.messagesUsed >= limits.maxMessages;
+        const voiceNotesLimitReached = limits.voiceNotesUsed >= limits.maxVoiceNotes;
         if (messagesLimitReached || voiceNotesLimitReached) {
           setShowTrialModal(true);
         }
       }
     }
-  }, [messageCount, voiceNoteCount, limits, isPremiumUser, isActiveTrialUser]);
+  }, [limits.messagesUsed, limits.voiceNotesUsed, limits, isPremiumUser, isActiveTrialUser]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -278,11 +284,13 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return responses[responseIndex];
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (currentMessage.trim() && (isPremiumUser() || limits.messagesRemaining > 0)) {
       addMessage('user', currentMessage.trim());
       setCurrentMessage('');
-      setMessageCount(prev => prev + 1);
+      
+      // Increment message count in database
+      await incrementMessageCount();
       
       // Simulate Amara's response
       setTimeout(() => {
@@ -303,10 +311,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     }
   };
 
-  const handleQuickReply = (reply: string) => {
+  const handleQuickReply = async (reply: string) => {
     if (isPremiumUser() || limits.messagesRemaining > 0) {
       addMessage('user', reply);
-      setMessageCount(prev => prev + 1);
+      
+      // Increment message count in database
+      await incrementMessageCount();
       
       // Simulate Amara's response
       setTimeout(() => {
@@ -320,14 +330,17 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     }
   };
 
-  const handleVoiceNote = () => {
+  const handleVoiceNote = async () => {
     if (isPremiumUser() || limits.voiceNotesRemaining > 0) {
       setIsRecording(!isRecording);
       if (!isRecording) {
         // Simulate voice note
-        setTimeout(() => {
+        setTimeout(async () => {
           setIsRecording(false);
-          setVoiceNoteCount(prev => prev + 1);
+          
+          // Increment voice note count in database
+          await incrementVoiceNoteCount();
+          
           addMessage('user', '[Voice message: "I just wanted to talk about how I\'ve been feeling lately..."]');
           
           // Simulate Amara's response
