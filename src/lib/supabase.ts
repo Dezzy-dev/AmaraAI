@@ -317,16 +317,8 @@ export const auth = {
 
     if (error) throw error;
 
-    // Create user profile if sign up was successful
-    if (data.user && !error) {
-      try {
-        await db.profiles.create(data.user.id, email, name);
-      } catch (profileError) {
-        console.error('Error creating user profile:', profileError);
-        // Don't throw here as the user was created successfully
-      }
-    }
-
+    // Note: User profile creation is now handled in UserContext.tsx
+    // after the user is fully authenticated to avoid RLS violations
     return data;
   },
 

@@ -104,10 +104,29 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       let profile = await db.profiles.get(user.id);
       
-      // Create profile if it doesn't exist
+      // Create profile if it doesn't exist (this handles the RLS issue properly)
       if (!profile) {
         const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
-        profile = await db.profiles.create(user.id, user.email!, name);
+        try {
+          profile = await db.profiles.create(user.id, user.email!, name);
+          console.log('User profile created successfully');
+        } catch (createError: any) {
+          console.error('Error creating user profile:', createError);
+          // If profile creation fails, continue with basic user data
+          // This ensures the app doesn't break if there are RLS issues
+          setUserDataState({
+            id: user.id,
+            name: name,
+            email: user.email,
+            isAuthenticated: true,
+            currentPlan: 'freemium',
+            createdAt: new Date().toISOString(),
+            dailyMessagesUsed: 0,
+            voiceNotesUsed: 0,
+            lastResetDate: new Date().toISOString().split('T')[0]
+          });
+          return;
+        }
       }
 
       setUserDataState({
@@ -132,7 +151,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         email: user.email,
         isAuthenticated: true,
         currentPlan: 'freemium',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        dailyMessagesUsed: 0,
+        voiceNotesUsed: 0,
+        lastResetDate: new Date().toISOString().split('T')[0]
       });
     }
   };
@@ -267,11 +289,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           try {
             await db.anonymousDevices.update(userData.deviceId, deviceUpdates);
           } catch (updateError: any) {
-            console.error('Error updating anonymous device:', updateError);
+            console.warn('Error updating anonymous device (switching to local-only mode):', updateError);
             
-            // If the record doesn't exist, remove deviceId from userData to prevent future attempts
-            if (updateError.message?.includes('0 rows') || updateError.code === 'PGRST116') {
-              console.log('Device record no longer exists, switching to local-only mode');
+            // If the record doesn't exist or there's an RLS issue, remove deviceId from userData
+            // This prevents future database update attempts and switches to local-only mode
+            if (updateError.message?.includes('0 rows') || 
+                updateError.code === 'PGRST116' || 
+                updateError.code === '42501') {
+              console.log('Device record no longer exists or access denied, switching to local-only mode');
               setUserDataState(prev => prev ? { ...prev, deviceId: undefined } : null);
             }
           }
