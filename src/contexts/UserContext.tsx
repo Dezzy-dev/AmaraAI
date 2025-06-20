@@ -141,10 +141,14 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       const deviceId = generateDeviceId();
       let device: AnonymousDevice | null = null;
+      let validDeviceId: string | undefined = undefined;
       
       // First, try to get existing device record
       try {
         device = await db.anonymousDevices.get(deviceId);
+        if (device) {
+          validDeviceId = device.device_id;
+        }
       } catch (error) {
         console.log('Device record not found, will create new one');
       }
@@ -153,21 +157,36 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       if (!device) {
         try {
           device = await db.anonymousDevices.create(deviceId);
+          if (device) {
+            validDeviceId = device.device_id;
+          }
         } catch (createError: any) {
           // If creation fails due to duplicate key, try to fetch again
           if (createError.code === '23505') {
             console.log('Device already exists (race condition), fetching existing record');
             try {
               device = await db.anonymousDevices.get(deviceId);
+              if (device) {
+                validDeviceId = device.device_id;
+              }
             } catch (fetchError) {
               console.error('Failed to fetch existing device after duplicate key error:', fetchError);
               // Fall back to creating a new device ID
               const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
               localStorage.setItem('amara_device_id', newDeviceId);
-              device = await db.anonymousDevices.create(newDeviceId);
+              try {
+                device = await db.anonymousDevices.create(newDeviceId);
+                if (device) {
+                  validDeviceId = device.device_id;
+                }
+              } catch (finalError) {
+                console.error('Failed to create fallback device:', finalError);
+                // Don't set validDeviceId, will fall back to local-only mode
+              }
             }
           } else {
-            throw createError;
+            console.error('Failed to create device record:', createError);
+            // Don't set validDeviceId, will fall back to local-only mode
           }
         }
       } else {
@@ -176,37 +195,36 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (device.last_active_date !== today) {
           try {
             device = await db.anonymousDevices.resetDailyLimits(deviceId);
+            if (device) {
+              validDeviceId = device.device_id;
+            }
           } catch (resetError) {
             console.error('Failed to reset daily limits:', resetError);
             // Continue with existing device data if reset fails
+            validDeviceId = device.device_id;
           }
         }
       }
 
-      // Ensure we have a valid device at this point
-      if (!device) {
-        throw new Error('Failed to create or retrieve device record');
-      }
-
+      // Set user data - only include deviceId if we have a valid database record
       setUserDataState({
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: device.device_id,
-        dailyMessagesUsed: device.messages_today,
-        voiceNotesUsed: device.voice_notes_used ? 1 : 0,
-        lastResetDate: device.last_active_date,
-        createdAt: device.created_at
+        deviceId: validDeviceId, // Only set if we have a valid database record
+        dailyMessagesUsed: device?.messages_today || 0,
+        voiceNotesUsed: device?.voice_notes_used ? 1 : 0,
+        lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
+        createdAt: device?.created_at || new Date().toISOString()
       });
     } catch (error) {
       console.error('Error loading anonymous user:', error);
       // Fallback to basic anonymous user without database persistence
-      const fallbackDeviceId = generateDeviceId();
       setUserDataState({
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: fallbackDeviceId,
+        // No deviceId - this will prevent database operations
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
@@ -239,7 +257,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           await db.profiles.update(userData.id, profileUpdates);
         }
       } else if (userData.deviceId) {
-        // Update anonymous device
+        // Only attempt to update if we have a valid deviceId (meaning the record exists in the database)
         const deviceUpdates: Partial<AnonymousDevice> = {};
         if (updates.dailyMessagesUsed !== undefined) deviceUpdates.messages_today = updates.dailyMessagesUsed;
         if (updates.voiceNotesUsed !== undefined) deviceUpdates.voice_notes_used = updates.voiceNotesUsed > 0;
@@ -248,12 +266,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (Object.keys(deviceUpdates).length > 0) {
           try {
             await db.anonymousDevices.update(userData.deviceId, deviceUpdates);
-          } catch (updateError) {
+          } catch (updateError: any) {
             console.error('Error updating anonymous device:', updateError);
-            // Don't throw here to avoid breaking the UI
+            
+            // If the record doesn't exist, remove deviceId from userData to prevent future attempts
+            if (updateError.message?.includes('0 rows') || updateError.code === 'PGRST116') {
+              console.log('Device record no longer exists, switching to local-only mode');
+              setUserDataState(prev => prev ? { ...prev, deviceId: undefined } : null);
+            }
           }
         }
       }
+      // If no deviceId, we're in local-only mode and don't persist to database
     } catch (error) {
       console.error('Error updating user data:', error);
     }
