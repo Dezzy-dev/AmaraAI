@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import * as Sentry from "@sentry/react";
+import { UserProvider } from './contexts/UserContext';
+import { ChatProvider } from './contexts/ChatContext';
 
 Sentry.init({
   dsn: "https://f460fb6d3310986a4d87cc4f21106982@o4509533063086080.ingest.us.sentry.io/4509533110272000",
@@ -29,7 +31,11 @@ if (container) {
   root.render(
   <StrictMode>
       <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
-    <App />
+        <UserProvider>
+          <ChatProvider>
+            <App />
+          </ChatProvider>
+        </UserProvider>
       </Sentry.ErrorBoundary>
   </StrictMode>
 );

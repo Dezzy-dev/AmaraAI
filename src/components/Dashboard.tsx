@@ -69,6 +69,15 @@ const Dashboard: React.FC<DashboardProps> = ({
   isDark,
   toggleDarkMode
 }) => {
+  const moods = [
+    { emoji: '😊', label: 'Happy', value: 'happy' },
+    { emoji: '😐', label: 'Neutral', value: 'neutral' },
+    { emoji: '😔', label: 'Sad', value: 'sad' },
+    { emoji: '😰', label: 'Anxious', value: 'anxious' },
+    { emoji: '😴', label: 'Tired', value: 'tired' },
+    { emoji: '😄', label: 'Excited', value: 'excited' }
+  ];
+
   const [currentTime, setCurrentTime] = useState(new Date());
   const [journalEntry, setJournalEntry] = useState('');
   const [selectedMood, setSelectedMood] = useState('');
@@ -286,16 +295,6 @@ const Dashboard: React.FC<DashboardProps> = ({
       }
     }
   };
-
-  // Moods array for mood selection
-  const moods = [
-    { emoji: '😊', label: 'Happy', value: 'happy' },
-    { emoji: '😐', label: 'Neutral', value: 'neutral' },
-    { emoji: '😔', label: 'Sad', value: 'sad' },
-    { emoji: '😰', label: 'Anxious', value: 'anxious' },
-    { emoji: '😴', label: 'Tired', value: 'tired' },
-    { emoji: '😄', label: 'Excited', value: 'excited' }
-  ];
 
   const handleStartTour = () => {
     setShowWelcome(false);

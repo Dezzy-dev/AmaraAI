@@ -572,12 +572,7 @@ function AppContent() {
 
 function App() {
   return (
-    <UserProvider>
-      <ChatProvider>
-        <AppContent />
-        <Toaster />
-      </ChatProvider>
-    </UserProvider>
+    <AppContent />
   );
 }
 
