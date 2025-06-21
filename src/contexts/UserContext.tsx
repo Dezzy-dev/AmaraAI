@@ -7,6 +7,7 @@ export interface UserData {
   id?: string;
   name: string;
   email?: string;
+  profile_image_url?: string;
   
   // Personalization data
   country?: string;
@@ -131,6 +132,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       id: profile.id,
       name: profile.name,
       email: profile.email,
+      profile_image_url: profile.profile_image_url,
       isAuthenticated: true,
       currentPlan: profile.current_plan,
       trialStartDate: profile.trial_start_date,
@@ -254,6 +256,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         // Update authenticated user profile
         const profileUpdates: Partial<UserProfile> = {};
         if (updates.name) profileUpdates.name = updates.name;
+        if (updates.profile_image_url) profileUpdates.profile_image_url = updates.profile_image_url;
         if (updates.currentPlan) profileUpdates.current_plan = updates.currentPlan;
         if (updates.trialStartDate) profileUpdates.trial_start_date = updates.trialStartDate;
         if (updates.trialEndDate) profileUpdates.trial_end_date = updates.trialEndDate;

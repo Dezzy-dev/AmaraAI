@@ -18,7 +18,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
   const [editCountry, setEditCountry] = useState(user.country || '');
   
   // State for image handling
-  const [profileImage, setProfileImage] = useState<string | null>(user.profileImageUrl || null);
+  const [profileImage, setProfileImage] = useState<string | null>(user.profile_image_url || null);
   const [profileImageFile, setProfileImageFile] = useState<File | null>(null);
 
   // State for UI feedback
@@ -69,7 +69,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
     if (!userData) return;
     
     setSavingProfile(true);
-    let imageUrl = userData.profileImageUrl || null;
+    let imageUrl = userData.profile_image_url || null;
 
     if (profileImageFile) {
       try {
@@ -109,7 +109,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
       const profileUpdates: Partial<UserData> = {
         name: editName,
         country: editCountry,
-        profileImageUrl: imageUrl,
+        profile_image_url: imageUrl,
       };
       
       await updateUserData(profileUpdates);
@@ -362,13 +362,6 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                   </div>
                 </button>
               </div>
-            </div>
-
-            {/* Development Notice */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> This is a frontend prototype. Profile changes are not persisted to a backend yet.
-              </p>
             </div>
           </div>
         </div>

@@ -41,10 +41,32 @@ export interface TherapySession {
 
 export interface Message {
   id: string;
-  session_id: string;
+  created_at: string;
+  user_id?: string;
+  device_id?: string;
+  session_id?: string;
   sender: 'user' | 'amara';
-  message_text: string;
-  timestamp: string;
+  message_text?: string;
+  voice_note_url?: string;
+  message_type: 'text' | 'voice';
+}
+
+export interface JournalEntry {
+  id: string;
+  created_at: string;
+  user_id?: string;
+  device_id?: string;
+  session_id?: string;
+  entry_text: string;
+}
+
+export interface MoodLog {
+  id: string;
+  created_at: string;
+  user_id?: string;
+  device_id?: string;
+  session_id?: string;
+  mood: string;
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -274,16 +296,19 @@ export const db = {
 
   // Messages operations
   messages: {
-    async create(sessionId: string, sender: 'user' | 'amara', messageText: string): Promise<Message> {
+    async create(sessionId: string, sender: 'user' | 'amara', messageText: string, messageType: 'text' | 'voice' = 'text', voiceNoteUrl?: string, userId?: string, deviceId?: string): Promise<Message> {
       const messageData = {
         session_id: sessionId,
         sender,
         message_text: messageText,
-        timestamp: new Date().toISOString()
+        voice_note_url: voiceNoteUrl,
+        message_type: messageType,
+        user_id: userId,
+        device_id: deviceId
       };
 
       const { data, error } = await supabase
-        .from('messages')
+        .from('chat_messages')
         .insert(messageData)
         .select()
         .single();
@@ -297,13 +322,149 @@ export const db = {
 
     async getBySession(sessionId: string): Promise<Message[]> {
       const { data, error } = await supabase
-        .from('messages')
+        .from('chat_messages')
         .select('*')
         .eq('session_id', sessionId)
-        .order('timestamp', { ascending: true });
+        .order('created_at', { ascending: true });
       
       if (error) {
         console.error('Error fetching session messages:', error);
+        throw error;
+      }
+      return data || [];
+    },
+
+    async getByUser(userId: string): Promise<Message[]> {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching user messages:', error);
+        throw error;
+      }
+      return data || [];
+    },
+
+    async getByDevice(deviceId: string): Promise<Message[]> {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('device_id', deviceId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching device messages:', error);
+        throw error;
+      }
+      return data || [];
+    }
+  },
+
+  // Journal entries operations
+  journalEntries: {
+    async create(entryText: string, userId?: string, deviceId?: string, sessionId?: string): Promise<JournalEntry> {
+      const entryData = {
+        entry_text: entryText,
+        user_id: userId,
+        device_id: deviceId,
+        session_id: sessionId
+      };
+
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .insert(entryData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating journal entry:', error);
+        throw error;
+      }
+      return data;
+    },
+
+    async getByUser(userId: string, limit: number = 10): Promise<JournalEntry[]> {
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching user journal entries:', error);
+        throw error;
+      }
+      return data || [];
+    },
+
+    async getByDevice(deviceId: string, limit: number = 10): Promise<JournalEntry[]> {
+      const { data, error } = await supabase
+        .from('journal_entries')
+        .select('*')
+        .eq('device_id', deviceId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching device journal entries:', error);
+        throw error;
+      }
+      return data || [];
+    }
+  },
+
+  // Mood logs operations
+  moodLogs: {
+    async create(mood: string, userId?: string, deviceId?: string, sessionId?: string): Promise<MoodLog> {
+      const moodData = {
+        mood,
+        user_id: userId,
+        device_id: deviceId,
+        session_id: sessionId
+      };
+
+      const { data, error } = await supabase
+        .from('mood_logs')
+        .insert(moodData)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating mood log:', error);
+        throw error;
+      }
+      return data;
+    },
+
+    async getByUser(userId: string, limit: number = 10): Promise<MoodLog[]> {
+      const { data, error } = await supabase
+        .from('mood_logs')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching user mood logs:', error);
+        throw error;
+      }
+      return data || [];
+    },
+
+    async getByDevice(deviceId: string, limit: number = 10): Promise<MoodLog[]> {
+      const { data, error } = await supabase
+        .from('mood_logs')
+        .select('*')
+        .eq('device_id', deviceId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching device mood logs:', error);
         throw error;
       }
       return data || [];
@@ -357,7 +518,7 @@ export const auth = {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`
+        redirectTo: `${window.location.origin}`
       }
     });
 

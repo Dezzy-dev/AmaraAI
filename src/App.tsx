@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import Unique from './components/Unique';
@@ -37,9 +38,10 @@ function AppContent() {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
   const [authSuccessTrigger, setAuthSuccessTrigger] = useState(false);
+  const [sessionCounter, setSessionCounter] = useState(0);
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
-  const { clearMessages, loadMessages } = useChat();
+  const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
 
   const navigateTo = (view: AppView) => {
     setPreviousView(currentView);
@@ -134,6 +136,18 @@ function AppContent() {
   const handleAuthSuccess = () => {
     setShowAuthModal(false);
     setAuthSuccessTrigger(true);
+    
+    // Show success toast for login
+    toast.success('You have successfully logged in', {
+      duration: 4000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        borderRadius: '8px',
+        padding: '12px 16px',
+      },
+    });
   };
 
   // Handle post-authentication routing
@@ -156,6 +170,27 @@ function AppContent() {
       setAuthSuccessTrigger(false);
     }
   }, [authSuccessTrigger, isUserDataLoading, userData?.isAuthenticated, userPath]);
+
+  // Handle OAuth authentication routing (when user signs in via OAuth)
+  useEffect(() => {
+    if (!isUserDataLoading && userData?.isAuthenticated && currentView !== 'dashboard') {
+      // User just authenticated via OAuth, route them to dashboard
+      console.log('OAuth user authenticated, routing to dashboard');
+      navigateTo('dashboard');
+      
+      // Show success toast for OAuth login
+      toast.success('You have successfully signed in!', {
+        duration: 4000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '12px 16px',
+        },
+      });
+    }
+  }, [userData?.isAuthenticated, isUserDataLoading, currentView]);
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);
@@ -192,6 +227,7 @@ function AppContent() {
   // Dashboard handlers
   const handleStartNewSession = () => {
     clearMessages();
+    setSessionCounter(prev => prev + 1); // Increment session counter to force remount
     if (userData && userData.name) {
       navigateTo('session');
     } else {
@@ -204,18 +240,26 @@ function AppContent() {
   };
 
   const handleViewSessionHistory = async (sessionId: string) => {
+    // Prevent freemium users from accessing session history
+    if (userData?.currentPlan === 'freemium') {
+      navigateTo('comparison');
+      return;
+    }
+
     try {
-      // 1. Fetch the messages for the selected session
-      const messages = await db.messages.getBySession(sessionId);
+      // Load messages from the selected session using ChatContext
+      await loadMessagesFromSession(sessionId);
       
-      // 2. Load these messages into the chat context
-      loadMessages(messages);
-      
-      // 3. Navigate to the session view
+      // Navigate to the session view
       navigateTo('session');
 
     } catch (error) {
       console.error('Error loading session history:', error);
+      // Show user-friendly error message
+      toast.error('Unable to load session history. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
     }
   };
 
@@ -232,12 +276,34 @@ function AppContent() {
     // Update user data with mood if needed
     if (userData) {
       updateUserData({ feeling: mood });
+      // Show success message
+      toast.success(`Mood logged: ${mood}`, {
+        duration: 3000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '12px 16px',
+        },
+      });
     }
   };
 
   const handleQuickJournal = (entry: string) => {
     console.log('Saving journal entry:', entry);
     // In a real app, this would save to the database
+    // For now, just show a success message
+    toast.success('Journal entry saved!', {
+      duration: 3000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        borderRadius: '8px',
+        padding: '12px 16px',
+      },
+    });
   };
 
   const handleGetAIPrompt = () => {
@@ -251,8 +317,7 @@ function AppContent() {
   const handleLogout = async () => {
     try {
       // 1. Sign out from Supabase
-      const { error } = await auth.signOut();
-      if (error) throw error;
+      await auth.signOut();
       
       // 2. Clear all local user state (but not messages)
       clearUserData();
@@ -261,7 +326,19 @@ function AppContent() {
       localStorage.removeItem('amaraOnboardingComplete');
       localStorage.removeItem('amaraUserName');
 
-      // 4. Navigate to landing and show sign-in
+      // 4. Show success toast
+      toast.success('You have successfully logged out', {
+        duration: 4000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '12px 16px',
+        },
+      });
+
+      // 5. Navigate to landing and show sign-in
       setCurrentView('landing');
       openAuthModal('signin');
 
@@ -270,6 +347,12 @@ function AppContent() {
       // Fallback in case of error
       clearUserData();
       navigateTo('landing');
+      
+      // Show error toast
+      toast.error('Error logging out. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
     }
   };
 
@@ -418,6 +501,7 @@ function AppContent() {
       case 'session':
         return (
           <TherapySession
+            key={sessionCounter}
             onEndSession={handleEndSession}
             onSignUp={handleSignUp}
             onSignIn={handleSignIn}
@@ -491,6 +575,7 @@ function App() {
     <UserProvider>
       <ChatProvider>
         <AppContent />
+        <Toaster />
       </ChatProvider>
     </UserProvider>
   );

@@ -7,6 +7,7 @@ import SignUpNudge from './SignUpNudge';
 import TrialLimitModal from './TrialLimitModal';
 import { useChat } from '../contexts/ChatContext';
 import { useUser } from '../contexts/UserContext';
+import { db, generateDeviceId, TherapySession as SessionData } from '../lib/supabase';
 
 interface TherapySessionProps {
   onEndSession: () => void;
@@ -28,12 +29,15 @@ const TherapySession: React.FC<TherapySessionProps> = ({
   const [sessionDuration, setSessionDuration] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [showSignUpNudge, setShowSignUpNudge] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [isSessionCreated, setIsSessionCreated] = useState(false);
+  const [hasWelcomeMessageBeenSent, setHasWelcomeMessageBeenSent] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionStartTime = useRef<Date>(new Date());
 
   const { messages, addMessage, startSession, endSession } = useChat();
-  const { userData, incrementMessageCount, incrementVoiceNoteCount } = useUser();
+  const { userData, incrementMessageCount, incrementVoiceNoteCount, isLoading: isUserLoading } = useUser();
 
   const userName = userData?.name || 'there';
   const userCountry = userData?.country;
@@ -182,34 +186,129 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     "Can you help me reflect?"
   ];
 
+  // Create a new session in the database
+  const createDatabaseSession = async (): Promise<string | null> => {
+    try {
+      let session: SessionData;
+      
+      if (isAuthenticated() && userData?.id) {
+        // Create session for authenticated user
+        session = await db.sessions.create(userData.id);
+      } else {
+        // Create session for anonymous user
+        const deviceId = generateDeviceId();
+        session = await db.sessions.create(undefined, deviceId);
+      }
+      
+      setCurrentSessionId(session.id);
+      setIsSessionCreated(true);
+      return session.id;
+    } catch (error) {
+      console.error('Error creating database session:', error);
+      return null;
+    }
+  };
+
+  // Store a message in the database
+  const storeMessageInDatabase = async (sender: 'user' | 'amara', messageText: string, messageType: 'text' | 'voice' = 'text', voiceNoteUrl?: string) => {
+    if (!currentSessionId) return;
+    
+    try {
+      const userId = isAuthenticated() ? userData?.id : undefined;
+      const deviceId = isAnonymousUser() ? userData?.deviceId : undefined;
+      
+      await db.messages.create(currentSessionId, sender, messageText, messageType, voiceNoteUrl, userId, deviceId);
+      
+      // Update session with new message count
+      const currentMessageCount = messages.length + 1; // +1 for the new message
+      await db.sessions.update(currentSessionId, {
+        messages_used: currentMessageCount,
+        session_duration: Math.floor((new Date().getTime() - sessionStartTime.current.getTime()) / 1000)
+      });
+    } catch (error) {
+      console.error('Error storing message in database:', error);
+    }
+  };
+
+  // Update session duration periodically
+  const updateSessionDuration = async () => {
+    if (!currentSessionId) return;
+    
+    try {
+      const duration = Math.floor((new Date().getTime() - sessionStartTime.current.getTime()) / 1000);
+      await db.sessions.update(currentSessionId, {
+        session_duration: duration
+      });
+    } catch (error) {
+      console.error('Error updating session duration:', error);
+    }
+  };
+
   // Initialize session with Amara's greeting
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      startSession();
+    if (isUserLoading) {
+      return; // Wait for user data to be loaded
+    }
+    const initializeSession = async () => {
+      // Prevent duplicate initialization
+      if (hasWelcomeMessageBeenSent) return;
+      // Only send welcome if chat is empty
+      if (messages.length > 0) return;
       
-      // Add initial greeting from Amara
-      setTimeout(() => {
-        setIsTyping(true);
-        setTimeout(() => {
-          const greeting = getPersonalizedGreeting();
-          addMessage('amara', greeting);
-          setIsTyping(false);
-        }, 1500);
-      }, 500);
-    }, 2500);
+      const timer = setTimeout(async () => {
+        setIsLoading(false);
+        startSession();
+        
+        // Create database session
+        const sessionId = await createDatabaseSession();
+        setCurrentSessionId(sessionId);
+        
+        // Add initial greeting from Amara
+        setTimeout(async () => {
+          setIsTyping(true);
+          setTimeout(async () => {
+            const greeting = getPersonalizedGreeting();
+            addMessage('amara', greeting);
+            
+            // Store the greeting message in database
+            if (sessionId) {
+              await storeMessageInDatabase('amara', greeting);
+            }
+            
+            setIsTyping(false);
+            setHasWelcomeMessageBeenSent(true);
+          }, 1500);
+        }, 500);
+      }, 2500);
 
-    return () => clearTimeout(timer);
+      return () => clearTimeout(timer);
+    };
+
+    initializeSession();
+  }, [isUserLoading, hasWelcomeMessageBeenSent, messages.length]);
+
+  // Cleanup effect to reset welcome message flag when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset welcome message flag when component unmounts
+      setHasWelcomeMessageBeenSent(false);
+    };
   }, []);
 
-  // Session timer
+  // Session timer with database updates
   useEffect(() => {
     const timer = setInterval(() => {
-      setSessionDuration(Math.floor((new Date().getTime() - sessionStartTime.current.getTime()) / 1000));
+      const newDuration = Math.floor((new Date().getTime() - sessionStartTime.current.getTime()) / 1000);
+      setSessionDuration(newDuration);
+      
+      // Update session duration in database every 30 seconds
+      if (newDuration % 30 === 0 && currentSessionId) {
+        updateSessionDuration();
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [currentSessionId]);
 
   // Check limits (only for non-premium users and non-active trial users)
   useEffect(() => {
@@ -287,18 +386,26 @@ const TherapySession: React.FC<TherapySessionProps> = ({
 
   const handleSendMessage = async () => {
     if (currentMessage.trim() && (isPremiumUser() || limits.messagesRemaining > 0)) {
-      addMessage('user', currentMessage.trim());
+      const userMessage = currentMessage.trim();
+      addMessage('user', userMessage);
       setCurrentMessage('');
+      
+      // Store user message in database
+      await storeMessageInDatabase('user', userMessage);
       
       // Increment message count in database
       await incrementMessageCount();
       
       // Simulate Amara's response
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsTyping(true);
-        setTimeout(() => {
-          const response = generateAmaraResponse(currentMessage);
+        setTimeout(async () => {
+          const response = generateAmaraResponse(userMessage);
           addMessage('amara', response);
+          
+          // Store Amara's response in database
+          await storeMessageInDatabase('amara', response);
+          
           setIsTyping(false);
         }, 1500 + Math.random() * 1000);
       }, 500);
@@ -316,15 +423,22 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     if (isPremiumUser() || limits.messagesRemaining > 0) {
       addMessage('user', reply);
       
+      // Store user message in database
+      await storeMessageInDatabase('user', reply);
+      
       // Increment message count in database
       await incrementMessageCount();
       
       // Simulate Amara's response
-      setTimeout(() => {
+      setTimeout(async () => {
         setIsTyping(true);
-        setTimeout(() => {
+        setTimeout(async () => {
           const response = generateAmaraResponse(reply);
           addMessage('amara', response);
+          
+          // Store Amara's response in database
+          await storeMessageInDatabase('amara', response);
+          
           setIsTyping(false);
         }, 1500 + Math.random() * 1000);
       }, 500);
@@ -342,14 +456,22 @@ const TherapySession: React.FC<TherapySessionProps> = ({
           // Increment voice note count in database
           await incrementVoiceNoteCount();
           
-          addMessage('user', '[Voice message: "I just wanted to talk about how I\'ve been feeling lately..."]');
+          const voiceMessage = '[Voice message: "I just wanted to talk about how I\'ve been feeling lately..."]';
+          addMessage('user', voiceMessage);
+          
+          // Store voice message in database
+          await storeMessageInDatabase('user', voiceMessage, 'voice');
           
           // Simulate Amara's response
-          setTimeout(() => {
+          setTimeout(async () => {
             setIsTyping(true);
-            setTimeout(() => {
+            setTimeout(async () => {
               const response = "Thank you for sharing that voice message with me. I can hear the emotion in your voice, and I want you to know that I'm here to listen. What would you like to explore about those feelings?";
               addMessage('amara', response);
+              
+              // Store Amara's response in database
+              await storeMessageInDatabase('amara', response, 'voice');
+              
               setIsTyping(false);
             }, 1500);
           }, 500);
@@ -368,7 +490,20 @@ const TherapySession: React.FC<TherapySessionProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleEndSessionClick = () => {
+  const handleEndSessionClick = async () => {
+    // Finalize session in database
+    if (currentSessionId) {
+      try {
+        const finalDuration = Math.floor((new Date().getTime() - sessionStartTime.current.getTime()) / 1000);
+        await db.sessions.update(currentSessionId, {
+          messages_used: messages.length,
+          session_duration: finalDuration
+        });
+      } catch (error) {
+        console.error('Error finalizing session:', error);
+      }
+    }
+    
     endSession();
     onEndSession();
   };
@@ -581,12 +716,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               }`}>
                 {message.sender === 'amara' ? (
                   <TypewriterText 
-                    text={message.text} 
+                    text={message.message_text || ''} 
                     speed={30}
                     className="leading-relaxed text-sm sm:text-base"
                   />
                 ) : (
-                  <p className="leading-relaxed text-sm sm:text-base">{message.text}</p>
+                  <p className="leading-relaxed text-sm sm:text-base">{message.message_text}</p>
                 )}
               </div>
               
@@ -611,7 +746,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({
               <div className={`text-xs text-gray-500 dark:text-gray-400 mt-1 ${
                 message.sender === 'user' ? 'text-right' : 'text-left'
               }`}>
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
             </div>
           </div>

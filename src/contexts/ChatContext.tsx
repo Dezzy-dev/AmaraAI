@@ -1,17 +1,11 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-
-interface Message {
-  id: string;
-  sender: 'user' | 'amara';
-  text: string;
-  timestamp: Date;
-  reactions?: string[];
-}
+import { db, Message } from '../lib/supabase';
 
 interface ChatContextType {
   messages: Message[];
-  addMessage: (sender: 'user' | 'amara', text: string) => void;
+  addMessage: (sender: 'user' | 'amara', text: string, messageType?: 'text' | 'voice', voiceNoteUrl?: string) => void;
   loadMessages: (messages: Message[]) => void;
+  loadMessagesFromSession: (sessionId: string) => Promise<void>;
   clearMessages: () => void;
   isInSession: boolean;
   startSession: () => void;
@@ -28,13 +22,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isInSession, setIsInSession] = useState(false);
 
-  const addMessage = (sender: 'user' | 'amara', text: string) => {
+  const addMessage = (sender: 'user' | 'amara', text: string, messageType: 'text' | 'voice' = 'text', voiceNoteUrl?: string) => {
     const newMessage: Message = {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+      created_at: new Date().toISOString(),
       sender,
-      text,
-      timestamp: new Date(),
-      reactions: []
+      message_text: text,
+      voice_note_url: voiceNoteUrl,
+      message_type: messageType
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -42,6 +37,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const loadMessages = (newMessages: Message[]) => {
     setMessages(newMessages);
+  };
+
+  const loadMessagesFromSession = async (sessionId: string) => {
+    try {
+      const dbMessages = await db.messages.getBySession(sessionId);
+      setMessages(dbMessages);
+    } catch (error) {
+      console.error('Error loading messages from session:', error);
+      setMessages([]);
+    }
   };
 
   const clearMessages = () => {
@@ -61,6 +66,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     messages,
     addMessage,
     loadMessages,
+    loadMessagesFromSession,
     clearMessages,
     isInSession,
     startSession,

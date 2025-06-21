@@ -27,10 +27,10 @@ const container = document.getElementById('root');
 if (container) {
   const root = createRoot(container);
   root.render(
-    <StrictMode>
+  <StrictMode>
       <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
-        <App />
+    <App />
       </Sentry.ErrorBoundary>
-    </StrictMode>
-  );
+  </StrictMode>
+);
 }
