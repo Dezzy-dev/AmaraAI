@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { supabase, db, generateDeviceId, UserProfile, AnonymousDevice } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
 
@@ -46,7 +46,7 @@ export interface UserLimits {
   resetsOn: string;
 }
 
-interface UserContextType {
+export interface UserContextType {
   userData: UserData | null;
   supabaseUser: User | null;
   isLoading: boolean;
@@ -73,9 +73,10 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
-  const [userData, setUserDataState] = useState<UserData | null>(null);
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const today = new Date().toISOString().split('T')[0];
 
   // Initialize user data and auth state
   useEffect(() => {
@@ -150,7 +151,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       return;
     }
 
-    setUserDataState({
+    setUserData({
       id: profile.id,
       name: profile.name,
       email: profile.email,
@@ -238,7 +239,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       }
 
       // Set user data - only include deviceId if we have a valid database record
-      setUserDataState({
+      setUserData({
         name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
@@ -253,7 +254,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error loading anonymous user:', error);
       // Fallback to basic anonymous user without database persistence
-      setUserDataState({
+      setUserData({
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
@@ -268,15 +269,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  const setUserData = (data: UserData | null) => {
-    setUserDataState(data);
-  };
-
-  const updateUserData = async (updates: Partial<UserData>) => {
+  const updateUserData = useCallback(async (updates: Partial<UserData>) => {
     if (!userData) return;
 
     const updatedData = { ...userData, ...updates };
-    setUserDataState(updatedData);
+    setUserData(updatedData);
 
     // Persist changes to Supabase
     try {
@@ -311,7 +308,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
                 updateError.code === 'PGRST116' || 
                 updateError.code === '42501') {
               console.log('Device record no longer exists or access denied, switching to local-only mode');
-              setUserDataState(prev => prev ? { ...prev, deviceId: undefined } : null);
+              setUserData(prev => prev ? { ...prev, deviceId: undefined } : null);
             }
           }
         }
@@ -320,10 +317,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Error updating user data:', error);
     }
-  };
+  }, [userData]);
 
   const clearUserData = () => {
-    setUserDataState(null);
+    setUserData(null);
     setSupabaseUser(null);
   };
 
@@ -335,35 +332,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     }
   };
 
-  const incrementMessageCount = async () => {
+  const incrementMessageCount = useCallback(async () => {
     if (!userData) return;
+    await updateUserData({
+      dailyMessagesUsed: (userData.dailyMessagesUsed || 0) + 1,
+    });
+  }, [userData, updateUserData]);
 
-    const newCount = (userData.dailyMessagesUsed || 0) + 1;
-
-    // Optimistically update local state
-    setUserDataState(prev => prev ? { ...prev, dailyMessagesUsed: newCount } : null);
-
-    // Persist to database
-    if (userData.isAuthenticated && userData.id) {
-      // This part is for authenticated users and may be implemented later
-      // For now, we are focusing on anonymous users
-    } else if (!userData.isAuthenticated && userData.deviceId) {
-      try {
-        await db.anonymousDevices.update(userData.deviceId, { messages_today: newCount });
-      } catch (error) {
-        console.error('Failed to update message count for anonymous user:', error);
-        // Optionally, revert optimistic update
-        setUserDataState(prev => prev ? { ...prev, dailyMessagesUsed: prev.dailyMessagesUsed! - 1 } : null);
-      }
-    }
-  };
-
-  const incrementVoiceNoteCount = async () => {
+  const incrementVoiceNoteCount = useCallback(async () => {
     if (!userData) return;
-
-    const newCount = (userData.voiceNotesUsed || 0) + 1;
-    await updateUserData({ voiceNotesUsed: newCount });
-  };
+    await updateUserData({
+      voiceNotesUsed: (userData.voiceNotesUsed || 0) + 1,
+    });
+  }, [userData, updateUserData]);
 
   const resetDailyLimits = async () => {
     if (!userData) return;
@@ -376,40 +357,82 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
   };
 
-  const value: UserContextType = {
-    userData,
-    supabaseUser,
-    isLoading,
-    setUserData,
-    updateUserData,
-    clearUserData,
-    refreshUserData,
-    incrementMessageCount,
-    incrementVoiceNoteCount,
-    resetDailyLimits,
-    limits: {
-      hasLimits: true,
-      maxMessages: 1000,
-      messagesUsed: userData?.dailyMessagesUsed || 0,
-      messagesRemaining: Math.max(0, 1000 - (userData?.dailyMessagesUsed || 0)),
-      maxVoiceNotes: 100,
-      voiceNotesUsed: userData?.voiceNotesUsed || 0,
-      voiceNotesRemaining: Math.max(0, 100 - (userData?.voiceNotesUsed || 0)),
-      resetsOn: userData?.lastResetDate || today
-    },
-    recordMessage: () => {},
-    recordVoiceNote: () => {},
-    isPremiumUser: () => userData?.currentPlan === 'monthly_premium' || userData?.currentPlan === 'yearly_premium',
-    isFreemiumUser: () => userData?.currentPlan === 'freemium',
-    isAnonymousUser: () => !userData?.isAuthenticated && !userData?.deviceId,
-    isActiveTrialUser: () => userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial'
-  };
+  const recordMessage = useCallback(async () => {
+    if (!userData) return;
+    const newCount = (userData.dailyMessagesUsed || 0) + 1;
+    await updateUserData({ dailyMessagesUsed: newCount });
+  }, [userData, updateUserData]);
 
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+  const recordVoiceNote = useCallback(async () => {
+    if (!userData) return;
+    const newCount = (userData.voiceNotesUsed || 0) + 1;
+    await updateUserData({ voiceNotesUsed: newCount });
+  }, [userData, updateUserData]);
+
+  const value = useMemo(() => {
+    const isAuth = !!supabaseUser;
+    const isPremium = userData?.subscription_status === 'active';
+    const isTrial = userData?.subscription_status === 'trialing';
+    const isFreemium = !isPremium && !isTrial && userData?.id;
+    const isAnonymous = !userData?.id;
+
+    let limits: UserLimits;
+
+    if (isPremium || isTrial) {
+      limits = {
+        hasLimits: false,
+        maxMessages: Infinity,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Infinity,
+        maxVoiceNotes: Infinity,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
+        voiceNotesRemaining: Infinity,
+        resetsOn: 'Never'
+      };
+    } else if (isFreemium) {
+      limits = {
+        hasLimits: true,
+        maxMessages: 5,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Math.max(0, 5 - (userData?.dailyMessagesUsed || 0)),
+        maxVoiceNotes: 1,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
+        voiceNotesRemaining: Math.max(0, 1 - (userData?.voiceNotesUsed || 0)),
+        resetsOn: userData?.lastResetDate || today
+      };
+    } else { // Anonymous
+      limits = {
+        hasLimits: true,
+        maxMessages: 5,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Math.max(0, 5 - (userData?.dailyMessagesUsed || 0)),
+        maxVoiceNotes: 0, // No voice notes for anonymous users
+        voiceNotesUsed: 0,
+        voiceNotesRemaining: 0,
+        resetsOn: userData?.lastResetDate || today
+      };
+    }
+
+    return {
+      user: supabaseUser,
+      userData,
+      setUserData,
+      updateUserData,
+      isLoading,
+      clearUserData,
+      limits,
+      recordMessage,
+      recordVoiceNote,
+      incrementMessageCount,
+      incrementVoiceNoteCount,
+      isPremiumUser: () => isPremium,
+      isFreemiumUser: () => isFreemium,
+      isAnonymousUser: () => isAnonymous,
+      isActiveTrialUser: () => isTrial,
+    };
+  }, [supabaseUser, userData, isLoading, recordMessage, recordVoiceNote, incrementMessageCount, incrementVoiceNoteCount]);
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
 
 export const useUser = (): UserContextType => {

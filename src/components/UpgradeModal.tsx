@@ -25,7 +25,9 @@ const content: { [key in UpgradeReason]: { title: string; description: string } 
 };
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onSignUp, reason }) => {
-  const { title, description } = content[reason];
+  // If the reason is invalid, default to 'trial_end' to prevent a crash
+  const safeReason = reason in content ? reason : 'trial_end';
+  const { title, description } = content[safeReason];
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">

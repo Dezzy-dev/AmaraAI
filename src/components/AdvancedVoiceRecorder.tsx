@@ -15,7 +15,7 @@ import {
 import { useAdvancedVoiceRecording, RecordingState } from '../hooks/useAdvancedVoiceRecording';
 
 interface AdvancedVoiceRecorderProps {
-  onSendVoiceMessage: (audioBlob: Blob) => void;
+  onSendVoiceMessage: (audioBlob: Blob, duration: number) => void;
   onCancel: () => void;
   isDisabled?: boolean;
   className?: string;
@@ -91,7 +91,7 @@ const AdvancedVoiceRecorder: React.FC<AdvancedVoiceRecorderProps> = ({
   const handleSend = () => {
     const blob = sendRecording();
     if (blob) {
-      onSendVoiceMessage(blob);
+      onSendVoiceMessage(blob, recordingTime);
     }
     onCancel();
   };

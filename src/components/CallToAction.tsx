@@ -3,9 +3,10 @@ import { MessageCircle, Play, ArrowRight } from 'lucide-react';
 
 interface CallToActionProps {
   onStartTalking: () => void;
+  onSignUp: (path: 'trial_path' | 'freemium_path') => void;
 }
 
-const CallToAction: React.FC<CallToActionProps> = ({ onStartTalking }) => {
+const CallToAction: React.FC<CallToActionProps> = ({ onStartTalking, onSignUp }) => {
   return (
     <section className="py-12 sm:py-16 md:py-20 relative overflow-hidden">
       {/* Background Image */}

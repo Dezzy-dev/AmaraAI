@@ -69,6 +69,15 @@ export interface MoodLog {
   mood: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  session_id?: string;
+  sender: 'user' | 'amara';
+  message_text?: string;
+  message_type: 'text' | 'voice';
+  voice_note_url?: string;
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Generate anonymous device ID
@@ -296,28 +305,24 @@ export const db = {
 
   // Messages operations
   messages: {
-    async create(sessionId: string, sender: 'user' | 'amara', messageText: string, messageType: 'text' | 'voice' = 'text', voiceNoteUrl?: string, userId?: string, deviceId?: string): Promise<Message> {
-      const messageData = {
-        session_id: sessionId,
-        sender,
-        message_text: messageText,
-        voice_note_url: voiceNoteUrl,
-        message_type: messageType,
-        user_id: userId,
-        device_id: deviceId
-      };
-
+    async create(message: ChatMessage): Promise<ChatMessage> {
       const { data, error } = await supabase
         .from('chat_messages')
-        .insert(messageData)
+        .insert({
+          session_id: message.session_id,
+          sender: message.sender,
+          message_text: message.message_text,
+          message_type: message.message_type,
+          voice_note_url: message.voice_note_url
+        })
         .select()
         .single();
-      
+
       if (error) {
         console.error('Error creating message:', error);
         throw error;
       }
-      return data;
+      return data as ChatMessage;
     },
 
     async getBySession(sessionId: string): Promise<Message[]> {

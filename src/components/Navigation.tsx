@@ -5,9 +5,10 @@ interface NavigationProps {
   isDark: boolean;
   toggleDarkMode: () => void;
   onSignIn?: () => void;
+  onSignUp: (path: 'trial_path' | 'freemium_path') => void;
 }
 
-const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignIn }) => {
+const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignIn, onSignUp }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 

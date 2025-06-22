@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { MessageCircle, Play, Sparkles, Heart, Brain, Shield } from 'lucide-react';
 
 interface HeroProps {
-  onStartTalking?: () => void;
+  onStartTalking: () => void;
+  onSignUp: (path: 'trial_path' | 'freemium_path') => void;
 }
 
-export default function Hero({ onStartTalking = () => console.log('Start talking clicked') }: HeroProps) {
+export default function Hero({ onStartTalking, onSignUp }: HeroProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -136,11 +137,11 @@ export default function Hero({ onStartTalking = () => console.log('Start talking
               </button>
 
               <button
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => onSignUp('trial_path')}
                 className="group inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 transition-all duration-300 border-2 border-gray-300 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl focus:outline-none focus:ring-4 focus:ring-gray-500/50 hover:bg-gray-900 focus:bg-gray-900 hover:text-white focus:text-white hover:border-gray-900 focus:border-gray-900 dark:hover:bg-gray-100 dark:focus:bg-gray-100 dark:hover:text-gray-900 dark:focus:text-gray-900 transform hover:scale-105 hover:-translate-y-1 shadow-lg hover:shadow-xl"
               >
                 <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 group-hover:animate-pulse" />
-                <span>See How It Works</span>
+                <span>Sign Up Now</span>
               </button>
             </div>
           </div>

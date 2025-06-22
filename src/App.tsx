@@ -25,6 +25,7 @@ import { ChatProvider, useChat } from './contexts/ChatContext';
 import Settings from './components/Settings';
 import { auth, db } from './lib/supabase';
 import UpgradeModal from './components/UpgradeModal';
+import { Session } from '@supabase/supabase-js';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
@@ -49,17 +50,16 @@ function AppContent() {
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
   const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
 
-  const navigateTo = (view: AppView) => {
-    setPreviousView(this.view);
-    setView(view);
+  const navigateTo = (newView: AppView) => {
+    setPreviousView(view);
+    setView(newView);
   };
 
   const handleBack = () => {
     if (previousView) {
       setView(previousView);
-      setPreviousView(null); // Clear after one use
+      setPreviousView(null);
     } else {
-      // Default back behavior
       setView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
     }
   };
@@ -104,10 +104,12 @@ function AppContent() {
         country: data.country,
         feeling: data.feeling,
         isAuthenticated: false,
-        currentPlan: 'freemium', // Default to freemium for anonymous users
+        currentPlan: 'freemium' as const,
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
-        lastResetDate: new Date().toDateString()
+        lastResetDate: new Date().toISOString().split('T')[0],
+        subscription_status: null,
+        trial_ends_at: null,
       });
     }
     
@@ -413,7 +415,7 @@ function AppContent() {
       case 'credit-card':
         return (
           <CreditCardPage
-            planType={selectedPlan}
+            selectedPlan={selectedPlan}
             onSuccess={handleCreditCardSuccess}
             onBack={handleBackToComparison}
           />
