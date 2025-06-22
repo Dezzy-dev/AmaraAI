@@ -24,37 +24,43 @@ import { UserProvider, useUser, UserData } from './contexts/UserContext';
 import { ChatProvider, useChat } from './contexts/ChatContext';
 import Settings from './components/Settings';
 import { auth, db } from './lib/supabase';
+import UpgradeModal from './components/UpgradeModal';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
+type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
 function AppContent() {
   const [isDark, toggleDarkMode] = useDarkMode();
-  const [currentView, setCurrentView] = useState<AppView>('landing');
+  const [view, setView] = useState<AppView>('landing');
   const [previousView, setPreviousView] = useState<AppView | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [userPath, setUserPath] = useState<UserPath>(null);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [personalizationData, setPersonalizationData] = useState<PersonalizationData | null>(null);
   const [authSuccessTrigger, setAuthSuccessTrigger] = useState(false);
   const [sessionCounter, setSessionCounter] = useState(0);
+  const [initialAuthCheckComplete, setInitialAuthCheckComplete] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<UpgradeReason>('trial_end');
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
   const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
 
   const navigateTo = (view: AppView) => {
-    setPreviousView(currentView);
-    setCurrentView(view);
+    setPreviousView(this.view);
+    setView(view);
   };
 
   const handleBack = () => {
     if (previousView) {
-      setCurrentView(previousView);
+      setView(previousView);
       setPreviousView(null); // Clear after one use
     } else {
       // Default back behavior
-      setCurrentView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
+      setView(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
     }
   };
 
@@ -113,8 +119,7 @@ function AppContent() {
   };
 
   const handleEndSession = () => {
-    navigateTo(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
-    setPersonalizationData(null);
+    setView('dashboard');
   };
 
   const openAuthModal = (mode: 'signup' | 'signin', path: UserPath = null) => {
@@ -123,14 +128,20 @@ function AppContent() {
     setShowAuthModal(true);
   };
 
-  const handleSignUp = (path: UserPath = 'trial_path') => openAuthModal('signup', path);
+  const handleSignUp = (path: 'trial_path' | 'freemium_path') => {
+    // Logic for what happens when user picks a plan in the modal
+    console.log('User selected plan:', path);
+    setShowUpgradeModal(false);
+  };
+
   const handleSignIn = () => {
     setAuthMode('signin');
     setShowAuthModal(true);
   };
 
   const handleChooseFreemium = () => {
-    openAuthModal('signup', 'freemium_path');
+    // This would contain logic to set user to freemium
+    setShowUpgradeModal(false); 
   };
 
   const handleAuthSuccess = () => {
@@ -173,10 +184,11 @@ function AppContent() {
 
   // Handle OAuth authentication routing (when user signs in via OAuth)
   useEffect(() => {
-    if (!isUserDataLoading && userData?.isAuthenticated && currentView !== 'dashboard') {
+    if (!isUserDataLoading && userData?.isAuthenticated && !initialAuthCheckComplete) {
       // User just authenticated via OAuth, route them to dashboard
       console.log('OAuth user authenticated, routing to dashboard');
       navigateTo('dashboard');
+      setInitialAuthCheckComplete(true); // Mark the initial check as complete
       
       // Show success toast for OAuth login
       toast.success('You have successfully signed in!', {
@@ -190,7 +202,7 @@ function AppContent() {
         },
       });
     }
-  }, [userData?.isAuthenticated, isUserDataLoading, currentView]);
+  }, [userData?.isAuthenticated, isUserDataLoading, initialAuthCheckComplete]);
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);
@@ -339,7 +351,7 @@ function AppContent() {
       });
 
       // 5. Navigate to landing and show sign-in
-      setCurrentView('landing');
+      setView('landing');
       openAuthModal('signin');
 
     } catch (error) {
@@ -361,97 +373,14 @@ function AppContent() {
     setUserPath(null); // Reset user path when closing modal
   };
 
-  // Demo buttons for testing different user states (hidden in production)
-  const renderDemoButtons = () => {
-    // Hide demo buttons in production
-    if (import.meta.env.PROD) return null;
-    
-    return (
-      <div className="fixed bottom-4 right-4 space-y-2 z-50">
-        <button
-          onClick={() => {
-            setUserData({
-              name: 'Alex',
-              email: 'alex@example.com',
-              isAuthenticated: true,
-              currentPlan: 'freemium',
-              dailyMessagesUsed: 3,
-              voiceNotesUsed: 0,
-              lastResetDate: new Date().toDateString()
-            });
-            navigateTo('dashboard');
-          }}
-          className="block px-3 py-2 bg-orange-500 text-white text-xs rounded shadow hover:bg-orange-600"
-        >
-          Demo: Freemium User
-        </button>
-        <button
-          onClick={() => {
-            // Set trial end date to 3 days from now for demo
-            const trialEndDate = new Date();
-            trialEndDate.setDate(trialEndDate.getDate() + 3);
-            
-            setUserData({
-              name: 'Jordan',
-              email: 'jordan@example.com',
-              isAuthenticated: true,
-              currentPlan: 'yearly_trial',
-              dailyMessagesUsed: 0,
-              voiceNotesUsed: 0,
-              lastResetDate: new Date().toDateString(),
-              trialEndDate: trialEndDate.toISOString()
-            });
-            navigateTo('dashboard');
-          }}
-          className="block px-3 py-2 bg-purple-500 text-white text-xs rounded shadow hover:bg-purple-600"
-        >
-          Demo: Trial User
-        </button>
-        <button
-          onClick={() => {
-            setUserData({
-              name: 'Sam',
-              email: 'sam@example.com',
-              isAuthenticated: true,
-              currentPlan: 'yearly_premium',
-              dailyMessagesUsed: 0,
-              voiceNotesUsed: 0,
-              lastResetDate: new Date().toDateString()
-            });
-            navigateTo('dashboard');
-          }}
-          className="block px-3 py-2 bg-green-500 text-white text-xs rounded shadow hover:bg-green-600"
-        >
-          Demo: Premium User
-        </button>
-        <button
-          onClick={() => {
-            setUserData(null);
-            navigateTo('landing');
-          }}
-          className="block px-3 py-2 bg-gray-500 text-white text-xs rounded shadow hover:bg-gray-600"
-        >
-          Back to Landing
-        </button>
-        <button
-          onClick={() => {
-            // Clear localStorage to test new user flow
-            localStorage.removeItem('amaraOnboardingComplete');
-            localStorage.removeItem('amaraUserName');
-            setUserData(null);
-            navigateTo('landing');
-          }}
-          className="block px-3 py-2 bg-red-500 text-white text-xs rounded shadow hover:bg-red-600"
-        >
-          Clear Onboarding
-        </button>
-      </div>
-    );
+  const handleShowUpgradeModal = (reason: UpgradeReason) => {
+    setUpgradeReason(reason);
+    setShowUpgradeModal(true);
   };
 
   // Render current view
   const renderCurrentView = () => {
-    switch (currentView) {
+    switch (view) {
       case 'dashboard':
         return userData && userData.isAuthenticated ? (
           <Dashboard 
@@ -501,10 +430,9 @@ function AppContent() {
       case 'session':
         return (
           <TherapySession
-            key={sessionCounter}
             onEndSession={handleEndSession}
-            onSignUp={handleSignUp}
-            onSignIn={handleSignIn}
+            onSignUp={handleShowUpgradeModal}
+            onSignIn={() => openAuthModal('signin')}
             onChooseFreemium={handleChooseFreemium}
           />
         );
@@ -553,7 +481,8 @@ function AppContent() {
   };
 
   return (
-    <div className="font-sans bg-white dark:bg-appDark transition-colors duration-300">
+    <div className={`h-screen overflow-y-auto bg-white dark:bg-gray-900 font-sans`}>
+      <Toaster position="bottom-center" />
       {renderCurrentView()}
       
       {/* Auth Modal */}
@@ -564,15 +493,24 @@ function AppContent() {
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* Demo buttons for testing */}
-      {renderDemoButtons()}
+      {showUpgradeModal && (
+        <UpgradeModal
+          onClose={() => setShowUpgradeModal(false)}
+          onSignUp={handleSignUp}
+          reason={upgradeReason}
+        />
+      )}
     </div>
   );
 }
 
 function App() {
   return (
-    <AppContent />
+    <UserProvider>
+      <ChatProvider>
+        <AppContent />
+      </ChatProvider>
+    </UserProvider>
   );
 }
 

@@ -469,6 +469,123 @@ export const db = {
       }
       return data || [];
     }
+  },
+
+  // Voice notes storage operations
+  voiceNotes: {
+    async uploadUserVoiceNote(audioBlob: Blob, userId?: string, deviceId?: string): Promise<string> {
+      const timestamp = Date.now();
+      const fileName = `voice_${timestamp}.webm`;
+      
+      // Determine the file path based on user type
+      let filePath: string;
+      if (userId) {
+        filePath = `user_voice_notes/${userId}/${fileName}`;
+      } else if (deviceId) {
+        filePath = `anon_voice_notes/${deviceId}/${fileName}`;
+      } else {
+        throw new Error('Either userId or deviceId must be provided');
+      }
+
+      const { data, error } = await supabase.storage
+        .from('amara-voice-notes')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600'
+        });
+
+      if (error) {
+        console.error('Error uploading voice note:', error);
+        throw error;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('amara-voice-notes')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    },
+
+    async uploadAmaraVoiceNote(audioBlob: Blob, messageId: string): Promise<string> {
+      const fileName = `amara_response_${messageId}.webm`;
+      const filePath = `amara_voice_notes/${messageId}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('amara-voice-notes')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600'
+        });
+
+      if (error) {
+        console.error('Error uploading Amara voice note:', error);
+        throw error;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('amara-voice-notes')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    },
+
+    async deleteVoiceNote(filePath: string): Promise<void> {
+      const { error } = await supabase.storage
+        .from('amara-voice-notes')
+        .remove([filePath]);
+
+      if (error) {
+        console.error('Error deleting voice note:', error);
+        throw error;
+      }
+    },
+
+    async getUserVoiceNotes(userId?: string, deviceId?: string): Promise<string[]> {
+      let folderPath: string;
+      if (userId) {
+        folderPath = `user_voice_notes/${userId}`;
+      } else if (deviceId) {
+        folderPath = `anon_voice_notes/${deviceId}`;
+      } else {
+        throw new Error('Either userId or deviceId must be provided');
+      }
+
+      const { data, error } = await supabase.storage
+        .from('amara-voice-notes')
+        .list(folderPath);
+
+      if (error) {
+        console.error('Error listing user voice notes:', error);
+        throw error;
+      }
+
+      return data?.map(file => `${folderPath}/${file.name}`) || [];
+    },
+
+    async getAmaraVoiceNote(messageId: string): Promise<string | null> {
+      const folderPath = `amara_voice_notes/${messageId}`;
+      
+      const { data, error } = await supabase.storage
+        .from('amara-voice-notes')
+        .list(folderPath);
+
+      if (error) {
+        console.error('Error listing Amara voice notes:', error);
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        const { data: urlData } = supabase.storage
+          .from('amara-voice-notes')
+          .getPublicUrl(`${folderPath}/${data[0].name}`);
+        
+        return urlData.publicUrl;
+      }
+
+      return null;
+    }
   }
 };
 

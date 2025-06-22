@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon, MapPin, UserPlus } from 'lucide-react';
 import { useUser, UserData } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
+import { toast } from 'react-hot-toast';
 
 interface SettingsProps {
   user: UserData;
@@ -74,11 +75,12 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
     if (profileImageFile) {
       try {
         const fileExt = profileImageFile.name.split('.').pop();
-        const fileName = `${userData.id}-profile-${Date.now()}.${fileExt}`;
+        const newFileName = `profile.${fileExt}`;
+        const filePath = `${userData.id}/${newFileName}`;
         
         const { error: uploadError } = await supabase.storage
           .from('profile-images')
-          .upload(fileName, profileImageFile, {
+          .upload(filePath, profileImageFile, {
             cacheControl: '3600',
             upsert: true,
           });
@@ -89,7 +91,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
 
         const { data: publicUrlData } = supabase.storage
           .from('profile-images')
-          .getPublicUrl(fileName);
+          .getPublicUrl(filePath);
 
         if (publicUrlData) {
             imageUrl = publicUrlData.publicUrl;
@@ -105,21 +107,33 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
       }
     }
 
+    // Check if there are any actual changes to save
+    const hasProfileInfoChanged = editName !== user.name || editCountry !== (user.country || '');
+    const hasProfileImageChanged = imageUrl !== user.profile_image_url;
+
+    if (!hasProfileInfoChanged && !hasProfileImageChanged) {
+      toast.info("No changes to save.");
+      setSavingProfile(false);
+      return;
+    }
+
     try {
-      const profileUpdates: Partial<UserData> = {
-        name: editName,
-        country: editCountry,
-        profile_image_url: imageUrl,
-      };
+      const profileUpdates: Partial<UserData> = {};
+      if (hasProfileInfoChanged) {
+        profileUpdates.name = editName;
+        profileUpdates.country = editCountry;
+      }
+      if (hasProfileImageChanged) {
+        profileUpdates.profile_image_url = imageUrl;
+      }
       
       await updateUserData(profileUpdates);
       
-      setShowSaveMessage(true);
-      setTimeout(() => setShowSaveMessage(false), 3000);
+      toast.success("Profile saved successfully!");
 
     } catch (error: any) {
       console.error('Error updating user profile:', error);
-      alert(`Failed to save profile: ${error.message}`);
+      toast.error(`Failed to save profile: ${error.message}`);
     } finally {
       setSavingProfile(false);
     }

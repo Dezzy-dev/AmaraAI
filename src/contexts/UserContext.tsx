@@ -29,6 +29,21 @@ export interface UserData {
   
   // Device tracking for anonymous users
   deviceId?: string;
+  
+  // Subscription status
+  subscription_status: 'active' | 'trialing' | 'canceled' | 'incomplete' | 'past_due' | null;
+  trial_ends_at: string | null;
+}
+
+export interface UserLimits {
+  hasLimits: boolean;
+  maxMessages: number;
+  messagesUsed: number;
+  messagesRemaining: number;
+  maxVoiceNotes: number;
+  voiceNotesUsed: number;
+  voiceNotesRemaining: number;
+  resetsOn: string;
 }
 
 interface UserContextType {
@@ -42,6 +57,13 @@ interface UserContextType {
   incrementMessageCount: () => Promise<void>;
   incrementVoiceNoteCount: () => Promise<void>;
   resetDailyLimits: () => Promise<void>;
+  limits: UserLimits;
+  recordMessage: () => void;
+  recordVoiceNote: () => void;
+  isPremiumUser: () => boolean;
+  isFreemiumUser: () => boolean;
+  isAnonymousUser: () => boolean;
+  isActiveTrialUser: () => boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -140,7 +162,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       createdAt: profile.created_at,
       dailyMessagesUsed: 0, // Reset for authenticated users daily
       voiceNotesUsed: 0,
-      lastResetDate: new Date().toISOString().split('T')[0]
+      lastResetDate: new Date().toISOString().split('T')[0],
+      subscription_status: profile.subscription_status,
+      trial_ends_at: profile.trial_ends_at
     });
   };
 
@@ -222,7 +246,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         dailyMessagesUsed: device?.messages_today || 0,
         voiceNotesUsed: device?.voice_notes_used ? 1 : 0,
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
-        createdAt: device?.created_at || new Date().toISOString()
+        createdAt: device?.created_at || new Date().toISOString(),
+        subscription_status: null,
+        trial_ends_at: null
       });
     } catch (error) {
       console.error('Error loading anonymous user:', error);
@@ -235,7 +261,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        subscription_status: null,
+        trial_ends_at: null
       });
     }
   };
@@ -358,7 +386,23 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     refreshUserData,
     incrementMessageCount,
     incrementVoiceNoteCount,
-    resetDailyLimits
+    resetDailyLimits,
+    limits: {
+      hasLimits: true,
+      maxMessages: 1000,
+      messagesUsed: userData?.dailyMessagesUsed || 0,
+      messagesRemaining: Math.max(0, 1000 - (userData?.dailyMessagesUsed || 0)),
+      maxVoiceNotes: 100,
+      voiceNotesUsed: userData?.voiceNotesUsed || 0,
+      voiceNotesRemaining: Math.max(0, 100 - (userData?.voiceNotesUsed || 0)),
+      resetsOn: userData?.lastResetDate || today
+    },
+    recordMessage: () => {},
+    recordVoiceNote: () => {},
+    isPremiumUser: () => userData?.currentPlan === 'monthly_premium' || userData?.currentPlan === 'yearly_premium',
+    isFreemiumUser: () => userData?.currentPlan === 'freemium',
+    isAnonymousUser: () => !userData?.isAuthenticated && !userData?.deviceId,
+    isActiveTrialUser: () => userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial'
   };
 
   return (
