@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { db, Message } from '../lib/supabase';
+import { db, Message, supabase } from '../lib/supabase';
 
 export interface ChatContextType {
   messages: ChatMessage[];
@@ -11,6 +11,7 @@ export interface ChatContextType {
   clearMessages: () => void;
   loadMessages: (userId: string) => Promise<void>;
   loadMessagesFromSession: (sessionId: string) => Promise<void>;
+  sendVoiceMessage: (audioBlob: Blob, duration: number) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -66,18 +67,130 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const sendMessage = async (text: string, type: 'text' | 'voice' = 'text', url?: string) => {
     if (!currentSessionId) return;
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
-      session_id: currentSessionId,
-      sender: 'user',
-      message_text: text,
-      message_type: type,
-      voice_note_url: url,
-      created_at: new Date().toISOString(),
-    };
-    setMessages(prev => [...prev, newMessage]);
-    await db.messages.create(newMessage);
-    // Here you would add the logic to get a response from Amara
+    
+    setIsLoading(true);
+    
+    try {
+      // Add user message to UI immediately
+      const userMessage: ChatMessage = {
+        id: `user_${Date.now()}`,
+        session_id: currentSessionId,
+        sender: 'user',
+        message_text: text,
+        message_type: type,
+        voice_note_url: url,
+        created_at: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, userMessage]);
+
+      // Get user/device ID from localStorage or context
+      const userId = localStorage.getItem('amara_user_id');
+      const deviceId = localStorage.getItem('amara_device_id');
+
+      // Call the chat-llm Edge Function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-llm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: text,
+          userId: userId || undefined,
+          deviceId: deviceId || undefined,
+          sessionId: currentSessionId,
+          messageType: type,
+          isVoiceResponse: type === 'voice' // Generate voice response for voice messages
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send message');
+      }
+
+      const result = await response.json();
+      
+      // Add Amara's response to UI
+      const amaraMessage: ChatMessage = {
+        id: result.messageId,
+        session_id: currentSessionId,
+        sender: 'amara',
+        message_text: result.response,
+        message_type: result.voiceNoteUrl ? 'voice' : 'text',
+        voice_note_url: result.voiceNoteUrl,
+        created_at: new Date().toISOString(),
+      };
+      
+      setMessages(prev => [...prev, amaraMessage]);
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Remove the user message if there was an error
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const sendVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!currentSessionId) return;
+    
+    setIsLoading(true);
+    
+    try {
+      // Generate a unique filename
+      const timestamp = Date.now();
+      const fileName = `voice_${timestamp}.webm`;
+      
+      // Upload the audio file to Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('amara_voice_notes')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        throw new Error('Failed to upload audio file');
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('amara_voice_notes')
+        .getPublicUrl(fileName);
+
+      // Transcribe the audio using the transcribe-audio Edge Function
+      const transcribeResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          audioUrl: urlData.publicUrl,
+          userId: localStorage.getItem('amara_user_id') || undefined,
+          deviceId: localStorage.getItem('amara_device_id') || undefined
+        })
+      });
+
+      if (!transcribeResponse.ok) {
+        const errorData = await transcribeResponse.json();
+        throw new Error(errorData.error || 'Failed to transcribe audio');
+      }
+
+      const transcribeResult = await transcribeResponse.json();
+      
+      // Send the transcribed text as a voice message
+      await sendMessage(transcribeResult.transcription, 'voice', urlData.publicUrl);
+
+    } catch (error) {
+      console.error("Error sending voice message:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const startNewSession = async (userId: string) => {
@@ -110,6 +223,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setMessages,
     isLoading,
     sendMessage,
+    sendVoiceMessage,
     startNewSession,
     currentSessionId,
     clearMessages,

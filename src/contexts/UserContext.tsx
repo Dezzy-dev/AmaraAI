@@ -64,6 +64,7 @@ export interface UserContextType {
   isFreemiumUser: () => boolean;
   isAnonymousUser: () => boolean;
   isActiveTrialUser: () => boolean;
+  refreshUserDataAfterChat: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -334,6 +335,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const incrementMessageCount = useCallback(async () => {
     if (!userData) return;
+    // The Edge Functions will handle database updates for usage tracking
+    // This method now only updates local state for immediate UI feedback
     await updateUserData({
       dailyMessagesUsed: (userData.dailyMessagesUsed || 0) + 1,
     });
@@ -341,6 +344,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const incrementVoiceNoteCount = useCallback(async () => {
     if (!userData) return;
+    // The Edge Functions will handle database updates for usage tracking
+    // This method now only updates local state for immediate UI feedback
     await updateUserData({
       voiceNotesUsed: (userData.voiceNotesUsed || 0) + 1,
     });
@@ -368,6 +373,37 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const newCount = (userData.voiceNotesUsed || 0) + 1;
     await updateUserData({ voiceNotesUsed: newCount });
   }, [userData, updateUserData]);
+
+  // New method to refresh user data after chat interactions
+  const refreshUserDataAfterChat = useCallback(async () => {
+    if (!userData) return;
+    
+    try {
+      if (userData.isAuthenticated && userData.id) {
+        // Refresh authenticated user data
+        const profile = await db.profiles.get(userData.id);
+        if (profile) {
+          setUserData(prev => prev ? {
+            ...prev,
+            dailyMessagesUsed: profile.daily_messages_used || 0,
+            voiceNotesUsed: profile.voice_notes_used ? 1 : 0,
+          } : null);
+        }
+      } else if (userData.deviceId) {
+        // Refresh anonymous device data
+        const device = await db.anonymousDevices.get(userData.deviceId);
+        if (device) {
+          setUserData(prev => prev ? {
+            ...prev,
+            dailyMessagesUsed: device.messages_today || 0,
+            voiceNotesUsed: device.voice_notes_used ? 1 : 0,
+          } : null);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data after chat:', error);
+    }
+  }, [userData]);
 
   const value = useMemo(() => {
     const isAuth = !!supabaseUser;
@@ -429,8 +465,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       isFreemiumUser: () => isFreemium,
       isAnonymousUser: () => isAnonymous,
       isActiveTrialUser: () => isTrial,
+      refreshUserDataAfterChat,
     };
-  }, [supabaseUser, userData, isLoading, recordMessage, recordVoiceNote, incrementMessageCount, incrementVoiceNoteCount]);
+  }, [supabaseUser, userData, isLoading, recordMessage, recordVoiceNote, incrementMessageCount, incrementVoiceNoteCount, refreshUserDataAfterChat]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

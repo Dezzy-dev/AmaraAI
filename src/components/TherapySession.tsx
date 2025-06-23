@@ -17,8 +17,8 @@ interface TherapySessionProps {
 }
 
 const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp }) => {
-  const { userData, limits, isLoading: isUserLoading, incrementMessageCount, incrementVoiceNoteCount } = useUser();
-  const { messages, isLoading: isChatLoading, sendMessage, startNewSession } = useChat();
+  const { userData, limits, isLoading: isUserLoading } = useUser();
+  const { messages, isLoading: isChatLoading, sendMessage, sendVoiceMessage, startNewSession } = useChat();
   const [isDark, toggleDarkMode] = useDarkMode();
 
   const [currentMessage, setCurrentMessage] = useState('');
@@ -49,7 +49,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
     }
     const text = currentMessage.trim();
     setCurrentMessage('');
-    await incrementMessageCount();
     await sendMessage(text, 'text');
   };
 
@@ -58,10 +57,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
       onSignUp('voice_limit');
       return;
     }
-    const mockUrl = URL.createObjectURL(blob);
-    await incrementVoiceNoteCount();
-    await sendMessage(`[Voice Message: ${duration.toFixed(1)}s]`, 'voice', mockUrl);
-    setInputMode('text');
+    
+    try {
+      await sendVoiceMessage(blob, duration);
+      setInputMode('text');
+    } catch (error) {
+      console.error('Error sending voice message:', error);
+      // Handle error appropriately
+    }
   };
   
   if (isUserLoading || (messages.length === 0 && !isUserLoading && !isChatLoading)) {
@@ -113,7 +116,14 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
                 : 'bg-white dark:bg-gray-700/80 text-gray-800 dark:text-gray-100 rounded-bl-lg'
             }`}>
               {msg.message_type === 'voice' && msg.voice_note_url ? (
-                <VoiceMessagePlayer audioUrl={msg.voice_note_url} />
+                <div>
+                  <VoiceMessagePlayer audioUrl={msg.voice_note_url} />
+                  {msg.message_text && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                      "{msg.message_text}"
+                    </p>
+                  )}
+                </div>
               ) : (
                 <p className="whitespace-pre-wrap">{msg.message_text}</p>
               )}

@@ -591,6 +591,82 @@ export const db = {
 
       return null;
     }
+  },
+
+  // Chat messages operations (new methods for Edge Functions integration)
+  chatMessages: {
+    async create(message: ChatMessage): Promise<ChatMessage> {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          session_id: message.session_id,
+          user_id: message.user_id,
+          device_id: message.device_id,
+          sender: message.sender,
+          message_text: message.message_text,
+          message_type: message.message_type,
+          voice_note_url: message.voice_note_url
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating chat message:', error);
+        throw error;
+      }
+      return data as ChatMessage;
+    },
+
+    async getBySession(sessionId: string): Promise<Message[]> {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching session messages:', error);
+        throw error;
+      }
+      return data || [];
+    }
+  }
+};
+
+// Storage operations for voice notes
+export const storage = {
+  voiceNotes: {
+    async upload(audioBlob: Blob, fileName: string): Promise<string> {
+      const filePath = `amara_voice_notes/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('amara_voice_notes')
+        .upload(filePath, audioBlob, {
+          contentType: 'audio/webm',
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading voice note:', error);
+        throw error;
+      }
+
+      // Get the public URL
+      const { data: urlData } = supabase.storage
+        .from('amara_voice_notes')
+        .getPublicUrl(filePath);
+
+      return urlData.publicUrl;
+    },
+
+    async getPublicUrl(filePath: string): Promise<string> {
+      const { data } = supabase.storage
+        .from('amara_voice_notes')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    }
   }
 };
 
