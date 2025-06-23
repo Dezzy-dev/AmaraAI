@@ -215,4 +215,7 @@ The system enforces different limits based on user type:
 Monitor function performance and errors through:
 - Supabase Dashboard > Edge Functions
 - Function logs in the dashboard
-- Error tracking in your application 
+- Error tracking in your application
+
+## Triggering Deployment
+A new push is often needed to trigger the first deployment after connecting a repository. 
