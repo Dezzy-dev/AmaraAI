@@ -218,4 +218,5 @@ Monitor function performance and errors through:
 - Error tracking in your application
 
 ## Triggering Deployment
-A new push is often needed to trigger the first deployment after connecting a repository. 
+A new push is often needed to trigger the first deployment after connecting a repository.
+Re-triggering after reconnecting GitHub. 
