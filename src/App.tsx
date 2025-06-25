@@ -26,9 +26,10 @@ import Settings from './components/Settings';
 import { auth, db } from './lib/supabase';
 import UpgradeModal from './components/UpgradeModal';
 import { Session } from '@supabase/supabase-js';
+import CrisisResources from './pages/CrisisResources';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
-type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings';
+type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings' | 'crisis-resources';
 type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
 function AppContent() {
@@ -380,6 +381,21 @@ function AppContent() {
     setShowUpgradeModal(true);
   };
 
+  const handleCrisisResourcesClick = () => {
+    setView('crisis-resources');
+  };
+
+  // Listen for custom navigation events from CrisisResources
+  useEffect(() => {
+    const handleNavigate = (e: any) => {
+      if (e.detail && e.detail.view) {
+        setView(e.detail.view);
+      }
+    };
+    window.addEventListener('navigate', handleNavigate);
+    return () => window.removeEventListener('navigate', handleNavigate);
+  }, []);
+
   // Render current view
   const renderCurrentView = () => {
     switch (view) {
@@ -458,9 +474,12 @@ function AppContent() {
             <Privacy />
             <CallToAction onSignUp={handleSignUp} />
             <FAQ />
-            <Footer />
+            <Footer onCrisisResourcesClick={handleCrisisResourcesClick} />
           </>
         );
+
+      case 'crisis-resources':
+        return <CrisisResources />;
 
       default:
         return (

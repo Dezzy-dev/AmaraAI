@@ -1,7 +1,7 @@
 import React from 'react';
 import { MessageCircle } from 'lucide-react';
 
-export function Footer() {
+export function Footer({ onCrisisResourcesClick }: { onCrisisResourcesClick?: () => void }) {
   return (
     <footer className="bg-gray-900 dark:bg-black text-white py-8 sm:py-12 lg:py-16">
       <div className="container-responsive-wide">
@@ -46,7 +46,15 @@ export function Footer() {
             <h3 className="font-medium mb-3 sm:mb-4 text-sm sm:text-base lg:text-lg">Support</h3>
             <ul className="space-y-2 text-gray-400 dark:text-gray-300 text-xs sm:text-sm lg:text-base">
               <li><a href="#" className="hover:text-white transition-colors duration-300 touch-target">Help Center</a></li>
-              <li><a href="#" className="hover:text-white transition-colors duration-300 crisis-info touch-target">Crisis Resources</a></li>
+              <li>
+                {onCrisisResourcesClick ? (
+                  <button type="button" onClick={onCrisisResourcesClick} className="hover:text-white transition-colors duration-300 crisis-info touch-target underline">
+                    Crisis Resources
+                  </button>
+                ) : (
+                  <a href="/crisis-resources" className="hover:text-white transition-colors duration-300 crisis-info touch-target">Crisis Resources</a>
+                )}
+              </li>
               <li><a href="#" className="hover:text-white transition-colors duration-300 touch-target">Find a Therapist</a></li>
               <li><a href="#" className="hover:text-white transition-colors duration-300 touch-target">Feedback</a></li>
             </ul>

@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+console.log('VITE_SUPABASE_ANON_KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY);
+
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
@@ -236,15 +238,19 @@ export const db = {
   // Therapy sessions operations
   sessions: {
     async create(userId?: string, deviceId?: string): Promise<TherapySession> {
-      const sessionData = {
-        user_id: userId || null,
-        device_id: deviceId || null,
+      console.log('db.sessions.create received:', userId, deviceId);
+      // Only include user_id or device_id if they are provided
+      const sessionData: any = {
         session_data: {},
         messages_used: 0,
         session_duration: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+      if (userId) sessionData.user_id = userId;
+      if (deviceId) sessionData.device_id = deviceId;
+
+      console.log('therapy_sessions insert payload:', sessionData);
 
       const { data, error } = await supabase
         .from('therapy_sessions')

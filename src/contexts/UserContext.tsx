@@ -172,6 +172,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const loadAnonymousUser = async () => {
     try {
+      // Generate or retrieve a persistent UUID for this anonymous user
+      let anonUuid = localStorage.getItem('amara_anon_uuid');
+      if (!anonUuid) {
+        anonUuid = crypto.randomUUID();
+        localStorage.setItem('amara_anon_uuid', anonUuid);
+      }
       const deviceId = generateDeviceId();
       let device: AnonymousDevice | null = null;
       let validDeviceId: string | undefined = undefined;
@@ -239,12 +245,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         }
       }
 
-      // Set user data - only include deviceId if we have a valid database record
+      // Set user data - always include deviceId (fallback to local if needed)
       setUserData({
+        id: anonUuid, // Use UUID for all session/message operations
         name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: validDeviceId, // Only set if we have a valid database record
+        deviceId: validDeviceId || deviceId, // Always set deviceId, fallback to generated
         dailyMessagesUsed: device?.messages_today || 0,
         voiceNotesUsed: device?.voice_notes_used ? 1 : 0,
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
@@ -256,10 +263,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       console.error('Error loading anonymous user:', error);
       // Fallback to basic anonymous user without database persistence
       setUserData({
+        id: localStorage.getItem('amara_anon_uuid') || crypto.randomUUID(), // fallback
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        // No deviceId - this will prevent database operations
+        deviceId: localStorage.getItem('amara_device_id') || 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(), // Always set deviceId
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],

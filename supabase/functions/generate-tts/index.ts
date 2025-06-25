@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, messageId, voiceId = '21m00Tcm4TlvDq8ikWAM' }: TTSRequest = await req.json()
+    const { text, messageId, voiceId = 'XB0fDUnXU5powFXDhCwa' }: TTSRequest = await req.json()
 
     if (!text || !messageId) {
       return new Response(
@@ -43,6 +43,9 @@ serve(async (req) => {
       )
     }
 
+    // Remove all asterisks from the text
+    const cleanedText = text.replace(/\*/g, '');
+
     // Generate audio using ElevenLabs API
     const ttsResponse = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
@@ -54,7 +57,7 @@ serve(async (req) => {
           'xi-api-key': elevenLabsApiKey,
         },
         body: JSON.stringify({
-          text: text,
+          text: cleanedText,
           model_id: 'eleven_monolingual_v1',
           voice_settings: {
             stability: 0.5,

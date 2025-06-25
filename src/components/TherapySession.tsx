@@ -18,7 +18,7 @@ interface TherapySessionProps {
 
 const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp }) => {
   const { userData, limits, isLoading: isUserLoading } = useUser();
-  const { messages, isLoading: isChatLoading, sendMessage, sendVoiceMessage, startNewSession } = useChat();
+  const { messages, isLoading: isChatLoading, isTyping, sendMessage, sendVoiceMessage, startNewSession } = useChat();
   const [isDark, toggleDarkMode] = useDarkMode();
 
   const [currentMessage, setCurrentMessage] = useState('');
@@ -27,8 +27,15 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
 
   useEffect(() => {
     const initializeSession = async () => {
-      if (messages.length === 0 && (userData?.id || userData?.deviceId)) {
-        await startNewSession(userData.id || userData.deviceId!);
+      if (messages.length === 0 && userData) {
+        console.log('userData before session:', userData);
+        if (userData.isAuthenticated) {
+          console.log('Calling startNewSession with:', userData.id, undefined);
+          await startNewSession(userData.id, undefined);
+        } else {
+          console.log('Calling startNewSession with:', undefined, userData.deviceId);
+          await startNewSession(undefined, userData.deviceId);
+        }
       }
     };
     if (!isUserLoading) {
@@ -38,7 +45,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isTyping]);
 
   const handleSendMessage = async () => {
     if (currentMessage.trim() === '' || (limits.hasLimits && limits.messagesRemaining <= 0)) {
@@ -108,7 +115,18 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
 
       <main className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.map((msg, i) => (
-          <div key={msg.id || i} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div 
+            key={msg.id || i} 
+            className={`flex items-end gap-2 ${
+              msg.sender === 'user' ? 'justify-end' : 'justify-start'
+            } ${
+              msg.isAnimating 
+                ? msg.sender === 'user' 
+                  ? 'animate-slide-in-right' 
+                  : 'animate-slide-in-left'
+                : ''
+            }`}
+          >
             {msg.sender === 'amara' && <AmaraAvatar />}
             <div className={`max-w-md lg:max-w-lg px-4 py-2.5 rounded-2xl shadow-sm ${
               msg.sender === 'user' 
@@ -118,7 +136,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
               {msg.message_type === 'voice' && msg.voice_note_url ? (
                 <div>
                   <VoiceMessagePlayer audioUrl={msg.voice_note_url} />
-                  {msg.message_text && (
+                  {msg.sender === 'amara' && msg.message_text && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
                       "{msg.message_text}"
                     </p>
@@ -131,7 +149,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
             {msg.sender === 'user' && <UserAvatar />}
           </div>
         ))}
-        <TypingIndicator isVisible={isChatLoading} />
+        <TypingIndicator isVisible={isTyping} />
         <div ref={messagesEndRef} />
       </main>
 
