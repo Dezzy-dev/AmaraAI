@@ -229,11 +229,11 @@ Compose a single, emotionally attuned message in response to the current user in
       { role: 'user', content: message },
     ]
 
-    const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY')
+    const groqApiKey = Deno.env.get('GROQ_API_KEY')
     
-    if (!openRouterApiKey) {
+    if (!groqApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenRouter API key not configured' }),
+        JSON.stringify({ error: 'Groq API key not configured' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -241,13 +241,13 @@ Compose a single, emotionally attuned message in response to the current user in
       )
     }
 
-    const openRouterResponse = await fetch(
-      'https://openrouter.ai/api/v1/chat/completions',
+    const groqResponse = await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
       {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openRouterApiKey}`,
+          'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
           model: 'deepseek/deepseek-r1-0528:free',
@@ -260,11 +260,11 @@ Compose a single, emotionally attuned message in response to the current user in
       }
     )
 
-    if (!openRouterResponse.ok) {
-      const errorData = await openRouterResponse.text()
-      console.error('OpenRouter API error:', errorData)
+    if (!groqResponse.ok) {
+      const errorData = await groqResponse.text()
+      console.error('Groq API error:', errorData)
       return new Response(
-        JSON.stringify({ error: 'Failed to generate response from OpenRouter' }),
+        JSON.stringify({ error: 'Failed to generate response from Groq' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -272,14 +272,14 @@ Compose a single, emotionally attuned message in response to the current user in
       )
     }
 
-    let openRouterResult;
+    let groqResult;
     try {
-      openRouterResult = await openRouterResponse.json();
-      console.log('OpenRouter API raw response:', openRouterResult);
+      groqResult = await groqResponse.json();
+      console.log('Groq API raw response:', groqResult);
     } catch (err) {
-      console.error('Failed to parse OpenRouter API response:', err);
+      console.error('Failed to parse Groq API response:', err);
       return new Response(
-        JSON.stringify({ error: 'Failed to parse OpenRouter API response' }),
+        JSON.stringify({ error: 'Failed to parse Groq API response' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -288,26 +288,26 @@ Compose a single, emotionally attuned message in response to the current user in
     }
 
     if (
-      !openRouterResult ||
-      !openRouterResult.choices ||
-      !Array.isArray(openRouterResult.choices) ||
-      !openRouterResult.choices[0]
+      !groqResult ||
+      !groqResult.choices ||
+      !Array.isArray(groqResult.choices) ||
+      !groqResult.choices[0]
     ) {
-      console.error('OpenRouter API response did not contain choices:', openRouterResult);
+      console.error('Groq API response did not contain choices:', groqResult);
       return new Response(
-        JSON.stringify({ error: 'Failed to parse response from OpenRouter', raw: openRouterResult }),
+        JSON.stringify({ error: 'Failed to parse response from Groq', raw: groqResult }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
-    const aiResponse = openRouterResult.choices[0].message?.content?.trim();
+    const aiResponse = groqResult.choices[0].message?.content?.trim();
 
     if (!aiResponse) {
-      console.error('OpenRouter API response did not contain a message:', openRouterResult)
+      console.error('Groq API response did not contain a message:', groqResult)
       return new Response(
-        JSON.stringify({ error: 'Failed to parse response from OpenRouter' }),
+        JSON.stringify({ error: 'Failed to parse response from Groq' }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
