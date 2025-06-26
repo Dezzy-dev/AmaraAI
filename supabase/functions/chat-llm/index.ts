@@ -250,7 +250,7 @@ Compose a single, emotionally attuned message in response to the current user in
           'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'deepseek/deepseek-r1-0528:free',
+          model: 'mistral-saba-24b',
           messages: messagesForApi,
           temperature: 0.7,
           max_tokens: 500,
