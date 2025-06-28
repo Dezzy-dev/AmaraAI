@@ -1,418 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import {
-  MessageCircle,
+import { 
+  MessageCircle, 
+  Plus, 
+  Calendar, 
+  TrendingUp, 
+  Settings, 
+  Crown, 
+  Clock,
   Heart,
-  PenTool,
-  Settings,
-  HelpCircle,
-  Sparkles,
-  Crown,
-  Zap,
-  TrendingUp,
   BookOpen,
-  Smile,
-  ArrowRight,
-  Play,
-  Plus,
-  Activity,
-  Brain,
+  Zap,
+  AlertCircle,
+  CheckCircle,
+  User,
   BarChart3,
-  Calendar,
-  Shield,
-  Star,
-  Award,
-  Infinity,
-  Sun,
-  Moon,
-  LogOut,
-  History,
-  Download,
-  Trash2,
-  Eye,
-  Lock,
-  RefreshCcw
+  PenTool,
+  Smile,
+  X
 } from 'lucide-react';
 import useUser from '../contexts/useUser';
-import { useDarkMode } from '../hooks/useDarkMode';
-import { UserData } from '../contexts/UserContext';
-import Joyride, { CallBackProps, Step } from 'react-joyride';
-import WelcomeModal from '../components/WelcomeModal';
+import { useChat } from '../contexts/ChatContext';
 import SessionHistory from '../components/SessionHistory';
-import { TherapySession as SessionData, JournalEntry, MoodLog } from '../lib/supabase';
-import { supabase } from '../lib/supabase';
+import { db, TherapySession } from '../lib/supabase';
+import { toast } from 'react-hot-toast';
 
 const Dashboard: React.FC = () => {
-  const moods = [
-    { emoji: '😊', label: 'Happy', value: 'happy' },
-    { emoji: '😐', label: 'Neutral', value: 'neutral' },
-    { emoji: '😔', label: 'Sad', value: 'sad' },
-    { emoji: '😰', label: 'Anxious', value: 'anxious' },
-    { emoji: '😴', label: 'Tired', value: 'tired' },
-    { emoji: '😄', label: 'Excited', value: 'excited' }
-  ];
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [journalEntry, setJournalEntry] = useState('');
-  const [selectedMood, setSelectedMood] = useState('');
-  const [isVisible, setIsVisible] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [showTour, setShowTour] = useState(false);
-  const [tourRun, setTourRun] = useState(false);
-  const [sessions, setSessions] = useState<SessionData[]>([]);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
-  const [showSessionHistory, setShowSessionHistory] = useState(false);
+  const { userData, limits, isPremiumUser, isActiveTrialUser, isFreemiumUser, handleNavigateToSettings, handleLogout } = useUser();
+  const { clearMessages } = useChat();
   
-  const { userData, refreshUserData, clearUserData } = useUser();
-  const [isDark, toggleDarkMode] = useDarkMode();
-  if (!userData) return null;
+  const [sessions, setSessions] = useState<TherapySession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [showTrialBanner, setShowTrialBanner] = useState(true);
 
+  // Load user sessions on component mount
   useEffect(() => {
-    setIsVisible(true);
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    const loadSessions = async () => {
+      if (!userData) return;
+      
+      setIsLoadingSessions(true);
+      try {
+        let userSessions: TherapySession[] = [];
+        if (userData.isAuthenticated && userData.id) {
+          userSessions = await db.sessions.getByUser(userData.id);
+        } else if (userData.deviceId) {
+          userSessions = await db.sessions.getByDevice(userData.deviceId);
+        }
+        setSessions(userSessions);
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+      } finally {
+        setIsLoadingSessions(false);
+      }
+    };
 
-  useEffect(() => {
-    // Only show for new users who haven't seen the tour
-    if (userData && localStorage.getItem('amaraUserTourShown') !== 'true') {
-      setShowWelcome(true);
-    }
+    loadSessions();
   }, [userData]);
 
-  // Load session history when component mounts or user changes
-  useEffect(() => {
-    if (userData && userData.isAuthenticated && userData.id && !isFreemiumUser()) {
-      loadSessionHistory();
-    }
-  }, [userData]);
-
-  // Load session history from database
-  const loadSessionHistory = async () => {
-    // Only load session history for trial and premium users
-    if (!userData.id || isFreemiumUser()) return;
-    
-    setIsLoadingSessions(true);
-    try {
-      // Import the database functions
-      const { db } = await import('../lib/supabase');
-      const userSessions = await db.sessions.getByUser(userData.id);
-      setSessions(userSessions || []);
-    } catch (error) {
-      console.error('Error loading session history:', error);
-      setSessions([]);
-      // Don't show error to user for session history loading as it's not critical
-    } finally {
-      setIsLoadingSessions(false);
-    }
-  };
-
-  // Clear all session history
-  const handleClearSessionHistory = async () => {
-    if (!userData.id) return;
-    
-    if (!confirm('Are you sure you want to clear all your session history? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const { db, supabase } = await import('../lib/supabase');
-      // Delete all sessions for the user
-      const { error } = await supabase
-        .from('therapy_sessions')
-        .delete()
-        .eq('user_id', userData.id);
-      
-      if (error) throw error;
-      
-      setSessions([]);
-      alert('Session history cleared successfully.');
-    } catch (error) {
-      console.error('Error clearing session history:', error);
-      alert('Failed to clear session history. Please try again.');
-    }
-  };
-
-  // Download session history as JSON
-  const handleDownloadSessionHistory = () => {
-    const dataStr = JSON.stringify(sessions, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `amara-session-history-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
-  // Handle session selection
-  const handleSelectSession = (sessionId: string) => {
-    // Implement the logic to handle session selection
-  };
-
-  // Helper functions
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
-
+  // Calculate trial days remaining
   const getTrialDaysRemaining = () => {
-    if (!userData.trialEndDate) return 0;
-    const endDate = new Date(userData.trialEndDate);
-    const today = new Date();
-    const diffTime = endDate.getTime() - today.getTime();
+    if (!userData?.trialEndDate) return 0;
+    const trialEndDate = new Date(userData.trialEndDate);
+    const now = new Date();
+    const diffTime = trialEndDate.getTime() - now.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  const isTrialUser = () => {
-    return userData.currentPlan === 'monthly_trial' || userData.currentPlan === 'yearly_trial';
-  };
+  const trialDaysRemaining = getTrialDaysRemaining();
 
-  const isFreemiumUser = () => {
-    return userData.currentPlan === 'freemium';
-  };
-
-  const isPremiumUser = () => {
-    return userData.currentPlan === 'monthly_premium' || userData.currentPlan === 'yearly_premium';
-  };
-
-  const getFreemiumLimits = () => {
-    const dailyLimit = 5;
-    const used = userData?.dailyMessagesUsed || 0;
-    return { used, limit: dailyLimit, remaining: Math.max(0, dailyLimit - used) };
-  };
-
-  // Local storage helpers for journal and mood logs
-  const JOURNAL_KEY = `amara_journal_${userData.id || 'anon'}`;
-  const MOOD_KEY = `amara_mood_${userData.id || 'anon'}`;
-
-  // Load journal entries and mood logs from Supabase
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
-  const [moodLogs, setMoodLogs] = useState<MoodLog[]>([]);
-
-  useEffect(() => {
-    if (!isFreemiumUser()) {
-      loadJournalAndMoodData();
-    }
-  }, [userData.id]);
-
-  const loadJournalAndMoodData = async () => {
-    try {
-      const { db } = await import('../lib/supabase');
-      
-      if (userData.id) {
-        // Authenticated user
-        const [journalData, moodData] = await Promise.all([
-          db.journalEntries.getByUser(userData.id, 5),
-          db.moodLogs.getByUser(userData.id, 5)
-        ]);
-        setJournalEntries(journalData);
-        setMoodLogs(moodData);
-      } else if (userData.deviceId) {
-        // Anonymous user
-        const [journalData, moodData] = await Promise.all([
-          db.journalEntries.getByDevice(userData.deviceId, 5),
-          db.moodLogs.getByDevice(userData.deviceId, 5)
-        ]);
-        setJournalEntries(journalData);
-        setMoodLogs(moodData);
-      }
-    } catch (error) {
-      console.error('Error loading journal and mood data:', error);
-    }
-  };
-
-  // Save journal entry to Supabase
-  const handleJournalSubmit = async () => {
-    if (journalEntry.trim() && !isFreemiumUser()) {
-      try {
-        const { db } = await import('../lib/supabase');
-        
-        if (userData.id) {
-          await db.journalEntries.create(journalEntry.trim(), userData.id);
-        } else if (userData.deviceId) {
-          await db.journalEntries.create(journalEntry.trim(), undefined, userData.deviceId);
-        }
-        
-        setJournalEntry('');
-        
-        // Reload data
-        await loadJournalAndMoodData();
-      } catch (error) {
-        console.error('Error saving journal entry:', error);
-      }
-    }
-  };
-
-  // Save mood log to Supabase
-  const handleMoodSelect = async (mood: string) => {
-    setSelectedMood(mood);
-    if (!isFreemiumUser()) {
-      try {
-        const { db } = await import('../lib/supabase');
-        
-        if (userData.id) {
-          await db.moodLogs.create(mood, userData.id);
-        } else if (userData.deviceId) {
-          await db.moodLogs.create(mood, undefined, userData.deviceId);
-        }
-        
-        // Reload data
-        await loadJournalAndMoodData();
-      } catch (error) {
-        console.error('Error saving mood log:', error);
-      }
-    }
-  };
-
-  const handleStartTour = () => {
-    setShowWelcome(false);
-    setShowTour(true);
-    setTourRun(true);
-  };
-
-  const handleTourCallback = (data: CallBackProps) => {
-    const { status, action } = data;
-    if (
-      status === 'finished' ||
-      status === 'skipped' ||
-      action === 'close'
-    ) {
-      setShowTour(false);
-      setTourRun(false);
-      localStorage.setItem('amaraUserTourShown', 'true');
-    }
-  };
-
-  // Define tour steps
-  const steps: Step[] = [
-    {
-      target: '[data-tour="dashboard-nav"]',
-      content: 'This is your personal Amara dashboard. From here, you can easily access all your tools.',
-      placement: 'bottom',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="start-session"]',
-      content: 'Ready to talk? Click here to start a new conversation with Amara or pick up where you left off.',
-      placement: 'bottom',
-    },
-    {
-      target: '[data-tour="mood-check"]',
-      content: 'Quickly log your mood throughout the day. It\'s a great way to track your emotional journey.',
-      placement: 'top',
-    },
-    {
-      target: '[data-tour="journal-entry"]',
-      content: 'Your private space to jot down thoughts, reflections, or insights from your conversations.',
-      placement: 'top',
-    },
-    // AI Insights (trial/premium only)
-    ...(isPremiumUser() || isTrialUser()
-      ? [{
-          target: '[data-tour="ai-insights"]',
-          content: 'Unlock deeper understanding with Amara\'s AI-powered insights, personalized just for you.',
-          placement: 'top' as const,
-        }]
-      : []),
-    {
-      target: '[data-tour="profile-settings"]',
-      content: 'Manage your profile, update personal information, and access account settings here.',
-      placement: 'left' as const,
-    },
-    // Plan awareness (freemium only)
-    ...(isFreemiumUser()
-      ? [{
-          target: '[data-tour="upgrade-banner"]',
-          content: 'Enjoy essential features on your Freemium plan. Ready for unlimited access? Upgrade anytime!',
-          placement: 'top' as const,
-        }]
-      : []),
-  ];
-
-  useEffect(() => {
-    // Fetch latest user data on dashboard mount
-    refreshUserData();
-  }, []);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    clearUserData();
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
-    // Optionally, you can redirect or show a toast here
-  };
-
-  // Add navigation handlers
-  const handleUpgrade = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
-  };
-  const handleManageSubscription = () => {
-    // You can expand this to open a modal or navigate to a subscription page
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
-  };
-  const handleNavigateToSettings = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
-  };
+  // Navigation handlers
   const handleStartNewSession = () => {
+    clearMessages();
     window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
   };
+
   const handleResumeSession = () => {
     window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
   };
 
-  // Add a new handler for the refresh button
-  const handleRefreshDashboard = async () => {
-    await refreshUserData();
-    await loadSessionHistory();
-    await loadJournalAndMoodData();
+  const handleViewSessionHistory = async (sessionId: string) => {
+    // Freemium users should be redirected to upgrade
+    if (isFreemiumUser()) {
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+      return;
+    }
+
+    try {
+      // Load messages from the selected session using ChatContext
+      const { loadMessagesFromSession } = useChat();
+      await loadMessagesFromSession(sessionId);
+      
+      // Navigate to the session view
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+
+    } catch (error) {
+      console.error('Error loading session history:', error);
+      toast.error('Unable to load session history. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+    }
   };
+
+  const handleUpgrade = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+  };
+
+  const handleLogMood = (mood: string) => {
+    if (userData) {
+      // Show success message
+      toast.success(`Mood logged: ${mood}`, {
+        duration: 3000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '12px 16px',
+        },
+      });
+    }
+  };
+
+  const handleQuickJournal = (entry: string) => {
+    toast.success('Journal entry saved!', {
+      duration: 3000,
+      position: 'top-right',
+      style: {
+        background: '#10b981',
+        color: '#fff',
+        borderRadius: '8px',
+        padding: '12px 16px',
+      },
+    });
+  };
+
+  const handleSettings = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
+  };
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  // Check if user has premium access (either premium or trial)
+  const hasPremiumAccess = isPremiumUser() || isActiveTrialUser();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20">
-      {/* Joyride Tour */}
-      <Joyride
-        steps={steps}
-        run={tourRun}
-        continuous
-        showSkipButton
-        showProgress
-        disableOverlayClose
-        styles={{
-          options: {
-            zIndex: 10000,
-            primaryColor: '#a78bfa',
-            backgroundColor: isDark ? '#18181b' : '#fff',
-            textColor: isDark ? '#fff' : '#222',
-            arrowColor: isDark ? '#18181b' : '#fff',
-          },
-          overlay: {
-            backgroundColor: 'rgba(30, 27, 75, 0.4)',
-          },
-        }}
-        callback={handleTourCallback}
-        locale={{
-          back: 'Back',
-          close: 'End Tour',
-          last: 'Finish',
-          next: 'Next',
-          skip: 'Skip Tour',
-        }}
-      />
-      {/* Welcome Modal */}
-      {showWelcome && (
-        <WelcomeModal userName={userData.name} onStartTour={handleStartTour} />
-      )}
-      {/* Top Navigation */}
-      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40" data-tour="dashboard-nav">
+      {/* Header */}
+      <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <div className="flex items-center">
-              <span
-                className="text-2xl font-light text-gray-800 dark:text-gray-100"
+              <span 
+                className="text-2xl sm:text-3xl font-light text-gray-800 dark:text-gray-100"
                 style={{
                   fontFamily: 'serif',
                   letterSpacing: '0.02em',
@@ -421,678 +167,360 @@ const Dashboard: React.FC = () => {
               >
                 𝒜𝓂𝒶𝓇𝒶
               </span>
-              {isPremiumUser() && (
-                <Crown className="w-5 h-5 text-yellow-500 ml-2" fill="currentColor" />
-              )}
-              {/* Refresh Button */}
-              <button
-                onClick={handleRefreshDashboard}
-                className="ml-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                title="Refresh"
-              >
-                <RefreshCcw className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-              </button>
             </div>
 
-            {/* Right side navigation */}
+            {/* User Info & Actions */}
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
-                <HelpCircle className="w-5 h-5" />
-              </button>
-              
-              {/* Theme Toggle */}
-              <button
-                onClick={() => toggleDarkMode(!isDark)}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
-                aria-label="Toggle dark mode"
-              >
-                {isDark ? (
-                  <Sun className="w-5 h-5" />
+              {/* Plan Badge */}
+              <div className="flex items-center space-x-2">
+                {userData.isJudge ? (
+                  <div className="flex items-center px-3 py-1 bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30 rounded-full border border-yellow-200 dark:border-yellow-700">
+                    <Crown className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mr-1" fill="currentColor" />
+                    <span className="text-xs font-medium text-yellow-700 dark:text-yellow-300">Judge</span>
+                  </div>
+                ) : hasPremiumAccess ? (
+                  <div className="flex items-center px-3 py-1 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full border border-purple-200 dark:border-purple-700">
+                    <Crown className="w-4 h-4 text-purple-600 dark:text-purple-400 mr-1" fill="currentColor" />
+                    <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                      {isActiveTrialUser() ? 'Trial' : 'Premium'}
+                    </span>
+                  </div>
                 ) : (
-                  <Moon className="w-5 h-5" />
+                  <div className="flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 rounded-full border border-gray-200 dark:border-gray-600">
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Freemium</span>
+                  </div>
                 )}
-              </button>
-              
-              <button className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200">
-                <Settings className="w-5 h-5" />
-              </button>
+              </div>
 
-              {/* Logout Button */}
+              {/* Settings Button */}
               <button
-                onClick={handleLogout}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
-                title="Logout"
+                onClick={handleSettings}
+                className="p-2 text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors duration-200"
+                title="Settings"
               >
-                <LogOut className="w-5 h-5" />
-              </button>
-              
-              <button
-                onClick={handleNavigateToSettings}
-                className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
-                data-tour="profile-settings"
-              >
-                {userData.name.charAt(0).toUpperCase()}
-                {isPremiumUser() && (
-                  <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
-                )}
+                <Settings className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Message */}
-        <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-          <div className="flex items-center space-x-3 mb-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              {getGreeting()}, {userData.name}!
-            </h1>
-            {isPremiumUser() && (
-              <div className="flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full border border-yellow-200 dark:border-yellow-700">
-                <Crown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="currentColor" />
-                <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">Premium Member</span>
+      {/* Trial Banner - Only show for active trial users */}
+      {isActiveTrialUser() && showTrialBanner && (
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Clock className="w-5 h-5" />
+                <div>
+                  <span className="font-medium">
+                    {trialDaysRemaining > 0 
+                      ? `${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left in your trial`
+                      : 'Your trial has ended'
+                    }
+                  </span>
+                  <span className="ml-2 text-purple-100">
+                    Upgrade now to keep unlimited access
+                  </span>
+                </div>
               </div>
-            )}
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={handleUpgrade}
+                  className="bg-white text-purple-600 px-4 py-1 rounded-full text-sm font-medium hover:bg-purple-50 transition-colors duration-200"
+                >
+                  Upgrade Now
+                </button>
+                <button
+                  onClick={() => setShowTrialBanner(false)}
+                  className="text-purple-200 hover:text-white transition-colors duration-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            {isPremiumUser()
-              ? "Welcome to your unlimited healing journey. All features are at your fingertips."
-              : isTrialUser() 
-              ? "Your healing journey continues with full access to all features."
-              : isFreemiumUser()
-              ? "Welcome to your safe space. Ready to explore what's on your mind?"
-              : "Let's continue your journey of growth and self-discovery."
-            }
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {userData.name}!
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Welcome to your safe space. Ready to explore what's on your mind?
           </p>
         </div>
 
-        {/* Premium Welcome Banner */}
-        {isPremiumUser() && (
-          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
-            <div className="bg-gradient-to-r from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-red-900/20 border border-yellow-200 dark:border-yellow-700 rounded-2xl p-6">
-              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
-                    <Award className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center md:text-left flex items-center">
-                      <Infinity className="w-5 h-5 mr-2 text-green-600" />
-                      Unlimited Access Activated
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-center md:text-left">
-                      Enjoy unlimited conversations, voice notes, and all premium features
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleManageSubscription}
-                  className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold rounded-full hover:from-yellow-700 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
-                >
-                  Manage Subscription
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Trial Status Banner (for trial users only) */}
-        {isTrialUser() && (
-          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }}>
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-2xl p-6">
-              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <Crown className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center md:text-left">
-                      Your Free Trial Ends in {getTrialDaysRemaining()} Days!
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-center md:text-left">
-                      Continue enjoying unlimited access to all premium features
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={handleUpgrade}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
-                >
-                  Secure Your Premium Access
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Upgrade Banner (for freemium users only) */}
+        {/* Freemium Upgrade Banner - Only show for freemium users */}
         {isFreemiumUser() && (
-          <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.1s' }} data-tour="upgrade-banner">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
-              <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-center md:text-left">Unlock Your Full Potential</h3>
-                    <p className="text-purple-100 text-center md:text-left">
-                      Upgrade to Premium for unlimited conversations and advanced features
-                    </p>
-                  </div>
+          <div className="mb-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-6 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="bg-white/20 p-3 rounded-full">
+                  <Zap className="w-6 h-6" />
                 </div>
-                <button
-                  onClick={handleUpgrade}
-                  className="px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
-                >
-                  Upgrade to Premium
-                </button>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Unlock Your Full Potential</h3>
+                  <p className="text-purple-100">
+                    Upgrade to Premium for unlimited conversations and advanced features
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={handleUpgrade}
+                className="bg-white text-purple-600 px-6 py-2 rounded-full font-medium hover:bg-purple-50 transition-colors duration-200"
+              >
+                Upgrade to Premium
+              </button>
             </div>
           </div>
         )}
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Chat Session Management */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.2s' }}>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                <MessageCircle className="w-6 h-6 mr-3 text-purple-600" />
-                Your Conversations
-                {isPremiumUser() && (
-                  <div className="ml-3 flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-                    <Infinity className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-xs font-medium text-green-700 dark:text-green-300">Unlimited</span>
-                  </div>
-                )}
-              </h2>
+          {/* Left Column - Main Actions */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Your Conversations */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <MessageCircle className="w-5 h-5 mr-2 text-purple-600" />
+                  Your Conversations
+                </h2>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Start New Session */}
                 <button
                   onClick={handleStartNewSession}
-                  disabled={isFreemiumUser() && getFreemiumLimits().remaining === 0}
-                  className={`group p-6 rounded-xl border-2 border-dashed transition-all duration-200 ${
-                    isFreemiumUser() && getFreemiumLimits().remaining === 0
-                      ? 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed'
-                      : isPremiumUser()
-                      ? 'border-green-300 dark:border-green-600 hover:border-green-500 dark:hover:border-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
-                      : 'border-purple-300 dark:border-purple-600 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                  }`}
-                  data-tour="start-session"
+                  className="group p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
                 >
                   <div className="text-center">
-                    <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      isFreemiumUser() && getFreemiumLimits().remaining === 0
-                        ? 'bg-gray-200 dark:bg-gray-600'
-                        : isPremiumUser()
-                        ? 'bg-green-100 dark:bg-green-900/30 group-hover:bg-green-200 dark:group-hover:bg-green-900/50'
-                        : 'bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50'
-                    }`}>
-                      <Plus className={`w-6 h-6 ${
-                        isFreemiumUser() && getFreemiumLimits().remaining === 0
-                          ? 'text-gray-400'
-                          : isPremiumUser()
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-purple-600 dark:text-purple-400'
-                      }`} />
+                    <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-200 dark:group-hover:bg-purple-800/50 transition-colors duration-200">
+                      <Plus className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className={`font-medium mb-2 ${
-                      isFreemiumUser() && getFreemiumLimits().remaining === 0
-                        ? 'text-gray-400'
-                        : 'text-gray-900 dark:text-white'
-                    }`}>
-                      Start New Session
-                    </h3>
-                    <p className={`text-sm ${
-                      isFreemiumUser() && getFreemiumLimits().remaining === 0
-                        ? 'text-gray-400'
-                        : 'text-gray-600 dark:text-gray-300'
-                    }`}>
-                      {isFreemiumUser() && getFreemiumLimits().remaining === 0
-                        ? 'Daily limit reached'
-                        : isPremiumUser()
-                        ? 'Unlimited conversations await'
-                        : 'Begin a fresh conversation with Amara'
-                      }
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">Start New Session</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Begin a fresh conversation with Amara
                     </p>
                   </div>
                 </button>
 
+                {/* Resume Session */}
                 <button
                   onClick={handleResumeSession}
-                  className={`group p-6 rounded-xl border transition-all duration-200 ${
-                    isPremiumUser()
-                      ? 'border-green-200 dark:border-green-600 hover:border-green-300 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
-                      : 'border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                  }`}
+                  className="group p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-xl hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 transition-all duration-200"
                 >
                   <div className="text-center">
-                    <div className={`w-12 h-12 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      isPremiumUser()
-                        ? 'bg-green-100 dark:bg-green-900/30 group-hover:bg-green-200 dark:group-hover:bg-green-900/50'
-                        : 'bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50'
-                    }`}>
-                      <Play className={`w-6 h-6 ${
-                        isPremiumUser()
-                          ? 'text-green-600 dark:text-green-400'
-                          : 'text-blue-600 dark:text-blue-400'
-                      }`} />
+                    <div className="w-12 h-12 bg-purple-200 dark:bg-purple-800/50 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:bg-purple-300 dark:group-hover:bg-purple-700/70 transition-colors duration-200">
+                      <MessageCircle className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
-                    <h3 className="font-medium text-gray-900 dark:text-white mb-2">Resume Session</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                    <h3 className="font-medium text-gray-900 dark:text-white mb-1">Continue Session</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       Continue from your last conversation
                     </p>
                   </div>
                 </button>
               </div>
 
-              {/* Freemium Usage Indicator - Only show for freemium users */}
-              {isFreemiumUser() && (
-                <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                      Daily Messages
-                    </span>
-                    <span className="text-sm text-amber-600 dark:text-amber-300">
-                      {getFreemiumLimits().used} / {getFreemiumLimits().limit}
-                    </span>
-                  </div>
-                  <div className="w-full bg-amber-200 dark:bg-amber-800 rounded-full h-2">
-                    <div
-                      className="bg-amber-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(getFreemiumLimits().used / getFreemiumLimits().limit) * 100}%` }}
+              {/* Usage Stats - Show for all users */}
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Messages</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {limits.messagesUsed}/{limits.hasLimits ? limits.maxMessages : '∞'}
+                  </span>
+                </div>
+                {limits.hasLimits && (
+                  <div className="mt-2 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div 
+                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min((limits.messagesUsed / limits.maxMessages) * 100, 100)}%` }}
                     ></div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
-            {/* Mood Check */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.3s' }} data-tour="mood-check">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                <Smile className="w-6 h-6 mr-3 text-pink-600" />
+            {/* How are you feeling today? */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <Smile className="w-5 h-5 mr-2 text-pink-500" />
                 How are you feeling today?
-                {isPremiumUser() && (
-                  <Star className="w-5 h-5 ml-2 text-yellow-500" fill="currentColor" />
-                )}
               </h2>
-
+              
               <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                {moods.map((mood: { emoji: string; label: string; value: string }) => (
+                {[
+                  { emoji: '😊', label: 'Happy', mood: 'happy' },
+                  { emoji: '😐', label: 'Neutral', mood: 'neutral' },
+                  { emoji: '😔', label: 'Sad', mood: 'sad' },
+                  { emoji: '😰', label: 'Anxious', mood: 'anxious' },
+                  { emoji: '😴', label: 'Tired', mood: 'tired' },
+                  { emoji: '😄', label: 'Excited', mood: 'excited' }
+                ].map((feeling) => (
                   <button
-                    key={mood.value}
-                    onClick={() => handleMoodSelect(mood.value)}
-                    disabled={isFreemiumUser()}
-                    className={`p-4 rounded-xl border-2 transition-all duration-200 ${
-                      selectedMood === mood.value
-                        ? isPremiumUser()
-                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                          : 'border-pink-500 bg-pink-50 dark:bg-pink-900/20'
-                        : isFreemiumUser()
-                        ? 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 cursor-not-allowed opacity-60'
-                        : isPremiumUser()
-                        ? 'border-gray-200 dark:border-gray-600 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-600 hover:bg-pink-50 dark:hover:bg-pink-900/20'
-                    }`}
+                    key={feeling.mood}
+                    onClick={() => handleLogMood(feeling.mood)}
+                    className="p-3 text-center hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   >
-                    <div className="text-2xl mb-2">{mood.emoji}</div>
-                    <div className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                      {mood.label}
-                    </div>
+                    <div className="text-2xl mb-1">{feeling.emoji}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">{feeling.label}</div>
                   </button>
                 ))}
               </div>
 
-              {/* Freemium upgrade prompt - Only show for freemium users */}
+              {/* Mood tracking note for freemium users */}
               {isFreemiumUser() && (
-                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      🔒 Mood tracking available with Premium
-                    </span>
-                    <button
-                      onClick={handleUpgrade}
-                      className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
-                    >
-                      Upgrade
-                    </button>
-                  </div>
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg flex items-center">
+                  <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2 flex-shrink-0" />
+                  <span className="text-sm text-blue-700 dark:text-blue-300">
+                    Mood tracking available with Premium
+                  </span>
+                  <button
+                    onClick={handleUpgrade}
+                    className="ml-auto text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    Upgrade
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Journal Quick Entry */}
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.4s' }} data-tour="journal-entry">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-                <PenTool className="w-6 h-6 mr-3 text-blue-600" />
+            {/* Quick Journal Entry */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <PenTool className="w-5 h-5 mr-2 text-green-500" />
                 Quick Journal Entry
-                {isPremiumUser() && (
-                  <div className="ml-3 flex items-center space-x-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                    <Brain className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">AI Enhanced</span>
-                  </div>
-                )}
               </h2>
-
-              <div className="space-y-4">
-                <textarea
-                  value={journalEntry}
-                  onChange={(e) => setJournalEntry(e.target.value)}
-                  placeholder={
-                    isFreemiumUser() 
-                      ? "Upgrade to Premium to unlock journaling..." 
-                      : isPremiumUser()
-                      ? "Share your thoughts... AI insights will help you reflect deeper"
-                      : "What's on your mind today?"
-                  }
-                  disabled={isFreemiumUser()}
-                  className={`w-full p-4 border rounded-xl resize-none transition-colors duration-200 ${
-                    isFreemiumUser()
-                      ? 'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-400 cursor-not-allowed'
-                      : isPremiumUser()
-                      ? 'bg-white dark:bg-gray-700 border-green-200 dark:border-green-600 text-gray-900 dark:text-white focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20'
-                      : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20'
-                  }`}
-                  rows={3}
-                />
-
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center space-x-3">
-                    {/* AI Prompt button - Available for trial and premium users */}
-                    {!isFreemiumUser() && (isTrialUser() || isPremiumUser()) && (
-                      <button
-                        onClick={handleUpgrade}
-                        className={`inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 ${
-                          isPremiumUser()
-                            ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
-                            : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
-                        }`}
-                      >
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Get AI Prompt
-                      </button>
-                    )}
+              
+              {hasPremiumAccess ? (
+                <div>
+                  <textarea
+                    placeholder="What's on your mind today? Write a quick reflection..."
+                    className="w-full p-4 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    rows={3}
+                  />
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      onClick={() => handleQuickJournal('Sample journal entry')}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                    >
+                      Save Entry
+                    </button>
                   </div>
-
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400 mb-4">
+                    Upgrade to Premium to unlock journaling
+                  </p>
                   <button
-                    onClick={handleJournalSubmit}
-                    disabled={!journalEntry.trim() || isFreemiumUser()}
-                    className={`px-6 py-2 rounded-full font-medium transition-all duration-200 ${
-                      !journalEntry.trim() || isFreemiumUser()
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed'
-                        : isPremiumUser()
-                        ? 'bg-green-600 text-white hover:bg-green-700 transform hover:scale-105'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 transform hover:scale-105'
-                    }`}
+                    onClick={handleUpgrade}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
                   >
-                    Save Entry
+                    Upgrade to Premium
                   </button>
                 </div>
-
-                {/* Freemium upgrade prompt - Only show for freemium users */}
-                {isFreemiumUser() && (
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        🔒 Journaling available with Premium
-                      </span>
-                      <button
-                        onClick={handleUpgrade}
-                        className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
-                      >
-                        Upgrade
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
-          {/* Session History */}
-          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.5s' }}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                <History className="w-6 h-6 mr-3 text-indigo-600" />
-                Session History
-                {sessions.length > 0 && !isFreemiumUser() && (
-                  <span className="ml-2 px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full">
-                    {sessions.length}
-                  </span>
-                )}
-                {isFreemiumUser() && (
-                  <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs font-medium rounded-full flex items-center">
-                    <Lock className="w-3 h-3 mr-1" />
+          {/* Right Column - Session History & Stats */}
+          <div className="space-y-6">
+            {/* Session History */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <Calendar className="w-5 h-5 mr-2 text-blue-500" />
+                  Session History
+                  {hasPremiumAccess && (
+                    <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
+                      Premium
+                    </span>
+                  )}
+                </h2>
+              </div>
+
+              {hasPremiumAccess ? (
+                <SessionHistory 
+                  sessions={sessions}
+                  onSelectSession={handleViewSessionHistory}
+                  isLoading={isLoadingSessions}
+                />
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Calendar className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">Session History Locked</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Upgrade to Premium to access your complete conversation history, download sessions, and get advanced insights.
+                  </p>
+                  <button
+                    onClick={handleUpgrade}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                  >
+                    Upgrade to Premium
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Insights & Analytics - Premium Feature */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2 text-indigo-500" />
+                Your Insights
+                {hasPremiumAccess && (
+                  <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
                     Premium
                   </span>
                 )}
               </h2>
-              
-              {sessions.length > 0 && !isFreemiumUser() && (
-                <div className="flex items-center space-x-2">
+
+              {hasPremiumAccess ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Weekly Progress</span>
+                      <TrendingUp className="w-4 h-4 text-green-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">+15%</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Mood improvement this week</div>
+                  </div>
+
+                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sessions This Month</span>
+                      <MessageCircle className="w-4 h-4 text-blue-500" />
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{sessions.length}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Keep up the great work!</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BarChart3 className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="font-medium text-gray-900 dark:text-white mb-2">Insights Locked</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    Get personalized insights about your mental health journey with Premium.
+                  </p>
                   <button
-                    onClick={handleDownloadSessionHistory}
-                    className="p-2 text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-colors duration-200"
-                    title="Download Session History"
+                    onClick={handleUpgrade}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200"
                   >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={handleClearSessionHistory}
-                    className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
-                    title="Clear All Sessions"
-                  >
-                    <Trash2 className="w-4 h-4" />
+                    Upgrade to Premium
                   </button>
                 </div>
               )}
             </div>
-
-            {isFreemiumUser() ? (
-              // Freemium users see locked session history
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                  <Lock className="w-8 h-8 text-gray-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Session History Locked
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-4 max-w-sm mx-auto">
-                  Upgrade to Premium to access your complete conversation history, download sessions, and get advanced insights.
-                </p>
-                <button
-                  onClick={handleUpgrade}
-                  className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Crown className="w-4 h-4 mr-2" />
-                  Upgrade to Premium
-                </button>
-              </div>
-            ) : sessions.length === 0 && !isLoadingSessions ? (
-              // Trial/Premium users with no sessions
-              <div className="text-center py-8">
-                <History className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500 dark:text-gray-400 mb-2">No session history yet</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">
-                  Your conversation history will appear here after you start chatting with Amara
-                </p>
-              </div>
-            ) : (
-              // Trial/Premium users with sessions
-              <SessionHistory
-                sessions={sessions}
-                onSelectSession={handleSelectSession}
-                isLoading={isLoadingSessions}
-              />
-            )}
           </div>
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Recent Activity */}
-          <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.5s' }}>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-green-600" />
-              Recent Activity
-            </h3>
-
-            {/* Mood Logs */}
-            {(!isFreemiumUser() && moodLogs.length > 0) && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Mood Log</h4>
-                <ul className="space-y-1">
-                  {moodLogs.map((log) => (
-                    <li key={log.id} className="flex items-center text-xs text-gray-600 dark:text-gray-400">
-                      <span className="capitalize mr-2">{log.mood}</span>
-                      <span className="text-gray-400">{new Date(log.created_at).toLocaleDateString()} {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Journal Entries */}
-            {(!isFreemiumUser() && journalEntries.length > 0) && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recent Journal Entries</h4>
-                <ul className="space-y-1">
-                  {journalEntries.map((entry) => (
-                    <li key={entry.id} className="text-xs text-gray-600 dark:text-gray-400 truncate">{entry.entry_text}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Fallback for freemium users */}
-            {isFreemiumUser() && (
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400">
-                Upgrade to Premium to unlock mood tracking and journaling features.
-              </div>
-            )}
-
-            {/* Existing activity: mood and messages today */}
-            {userData.feeling && (
-              <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
-                  <Heart className="w-4 h-4 text-pink-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Current Mood</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{userData.feeling}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
-                <MessageCircle className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Messages Today</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {userData.dailyMessagesUsed || 0} sent
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Insights - Available for trial and premium users */}
-          {(isTrialUser() || isPremiumUser()) && (
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.6s' }} data-tour="ai-insights">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <Brain className="w-5 h-5 mr-2 text-indigo-600" />
-                Amara's Insights
-                {isPremiumUser() && (
-                  <div className="ml-2 flex items-center space-x-1 px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 rounded-full">
-                    <BarChart3 className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300">Advanced</span>
-                  </div>
-                )}
-              </h3>
-
-              <div className="space-y-4">
-                <div className={`p-4 rounded-lg border ${
-                  isPremiumUser()
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-700'
-                    : 'bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700'
-                }`}>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    {isPremiumUser()
-                      ? "Your emotional patterns show consistent growth and self-awareness. Your premium insights reveal deeper connections between your mood and activities."
-                      : "You've been focusing on self-reflection this week. This shows great emotional awareness."
-                    }
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-medium ${
-                      isPremiumUser()
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-indigo-600 dark:text-indigo-400'
-                    }`}>
-                      {isPremiumUser() ? 'Premium Analysis' : 'Weekly Pattern'}
-                    </span>
-                    <TrendingUp className={`w-4 h-4 ${
-                      isPremiumUser()
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-indigo-600 dark:text-indigo-400'
-                    }`} />
-                  </div>
-                </div>
-
-                <button className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      {isPremiumUser() ? 'View Advanced Analytics' : 'View Detailed Insights'}
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Subscription Management - Only for premium users */}
-          {isPremiumUser() && (
-            <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.7s' }}>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
-                <Crown className="w-5 h-5 mr-2 text-yellow-600" />
-                Premium Member
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white capitalize flex items-center">
-                    {userData.currentPlan?.replace('_', ' ')}
-                    <Shield className="w-4 h-4 ml-2 text-green-500" />
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Status</span>
-                  <span className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center">
-                    <Infinity className="w-4 h-4 mr-1" />
-                    Unlimited Access
-                  </span>
-                </div>
-
-                <button
-                  onClick={handleManageSubscription}
-                  className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">
-                      Manage Subscription
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-gray-400" />
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
