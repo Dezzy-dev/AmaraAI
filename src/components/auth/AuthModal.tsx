@@ -25,6 +25,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   const handleSignUp = async (email: string, password: string, name: string) => {
+    console.log('🔍 [DEBUG] AuthModal - handleSignUp called');
     setIsLoading(true);
     setError(null);
 
@@ -45,6 +46,8 @@ const AuthModal: React.FC<AuthModalProps> = ({
         },
       });
       
+      console.log('✅ [SUCCESS] AuthModal - Sign up and sign in completed, calling onAuthSuccess');
+      
       // Call onAuthSuccess immediately after successful authentication
       if (onAuthSuccess) {
         onAuthSuccess();
@@ -52,7 +55,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         onClose();
       }
     } catch (error: any) {
-      console.error('Sign up error:', error);
+      console.error('🚨 [ERROR] AuthModal - Sign up error:', error);
       setError(error.message || 'Failed to create account. Please try again.');
     } finally {
       setIsLoading(false);
@@ -60,11 +63,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleSignIn = async (email: string, password: string) => {
+    console.log('🔍 [DEBUG] AuthModal - handleSignIn called');
     setIsLoading(true);
     setError(null);
 
     try {
       const result = await auth.signIn(email, password);
+      console.log('✅ [SUCCESS] AuthModal - Sign in completed:', !!result);
       
       // Show success toast
       toast.success('Signed in successfully!', {
@@ -78,13 +83,15 @@ const AuthModal: React.FC<AuthModalProps> = ({
         },
       });
       
+      console.log('🔍 [DEBUG] AuthModal - Calling onAuthSuccess after sign in');
+      
       if (onAuthSuccess) {
         onAuthSuccess();
       } else {
         onClose();
       }
     } catch (error: any) {
-      console.error('Sign in error:', error);
+      console.error('🚨 [ERROR] AuthModal - Sign in error:', error);
       setError(error.message || 'Failed to sign in. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -92,6 +99,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleSocialAuth = async (provider: 'google' | 'apple', action: 'signup' | 'signin') => {
+    console.log('🔍 [DEBUG] AuthModal - handleSocialAuth called:', { provider, action });
     setIsLoading(true);
     setError(null);
 
@@ -104,15 +112,17 @@ const AuthModal: React.FC<AuthModalProps> = ({
       
       await auth.signInWithOAuth(provider);
       // OAuth will redirect, so we close the modal
+      console.log('🔍 [DEBUG] AuthModal - OAuth initiated, closing modal');
       onClose();
     } catch (error: any) {
-      console.error(`${action} with ${provider} error:`, error);
+      console.error(`🚨 [ERROR] AuthModal - ${action} with ${provider} error:`, error);
       setError(error.message || `Failed to ${action} with ${provider}. Please try again.`);
       setIsLoading(false);
     }
   };
 
   const handleForgotPassword = async (email: string) => {
+    console.log('🔍 [DEBUG] AuthModal - handleForgotPassword called');
     setIsLoading(true);
     setError(null);
 
@@ -131,7 +141,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
         },
       });
     } catch (error: any) {
-      console.error('Password reset error:', error);
+      console.error('🚨 [ERROR] AuthModal - Password reset error:', error);
       setError(error.message || 'Failed to send password reset email.');
     } finally {
       setIsLoading(false);
@@ -139,6 +149,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   const handleClose = () => {
+    console.log('🔍 [DEBUG] AuthModal - handleClose called');
     setError(null);
     onClose();
   };
