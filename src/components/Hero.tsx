@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Play, Sparkles, Heart, Brain, Shield } from 'lucide-react';
+import { MessageCircle, LogIn, Sparkles, Heart, Brain, Shield } from 'lucide-react';
 
 interface HeroProps {
   onStartTalking: () => void;
@@ -141,8 +141,8 @@ export default function Hero({ onStartTalking, onSignUp, onSignIn }: HeroProps) 
                 onClick={onSignIn}
                 className="group inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 sm:px-8 sm:py-4 text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 transition-all duration-300 border-2 border-gray-300 dark:border-gray-600 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl focus:outline-none focus:ring-4 focus:ring-gray-500/50 hover:bg-gray-900 focus:bg-gray-900 hover:text-white focus:text-white hover:border-gray-900 focus:border-gray-900 dark:hover:bg-gray-100 dark:focus:bg-gray-100 dark:hover:text-gray-900 dark:focus:text-gray-900 transform hover:scale-105 hover:-translate-y-1 shadow-lg hover:shadow-xl"
               >
-                <Play className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 group-hover:animate-pulse" />
-                <span>Sign In Now</span>
+                <LogIn className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 group-hover:animate-pulse" />
+                <span>Sign In</span>
               </button>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default function Hero({ onStartTalking, onSignUp, onSignIn }: HeroProps) 
                 <div className="text-center mb-8 sm:mb-12">
                   <div className="inline-flex items-center gap-2 sm:gap-3 mb-4">
                     <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center animate-pulse">
-                      <Play className="w-4 h-4 sm:w-6 sm:h-6 text-white ml-0.5 sm:ml-1" />
+                      <LogIn className="w-4 h-4 sm:w-6 sm:h-6 text-white ml-0.5 sm:ml-1" />
                     </div>
                     <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                       Watch Amara Introduce Herself
