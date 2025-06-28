@@ -70,18 +70,22 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, []);
 
-  const sendMessage = useCallback(async (text: string, type: 'text' | 'voice' = 'text', url?: string) => {
-    if (!currentSessionId) return;
-    
+  // New: sendMessageWithSessionId helper
+  const sendMessageWithSessionId = useCallback(async (text: string, type: 'text' | 'voice' = 'text', url?: string, sessionIdOverride?: string) => {
+    // Debug log
+    console.log('currentSessionId in sendMessageWithSessionId:', currentSessionId);
+    const sessionIdToUse = sessionIdOverride || currentSessionId;
+    if (!sessionIdToUse) {
+      console.error('No session ID available');
+      return;
+    }
     setIsLoading(true);
-    
     try {
-      // Only add user message to UI if it's not an empty trigger message
+      console.log('Sending message:', { text, type, sessionId: sessionIdToUse });
       if (text.trim() !== '') {
-        // Add user message to UI immediately with slide-in animation
         const userMessage: ChatMessage = {
           id: `user_${Date.now()}`,
-          session_id: currentSessionId,
+          session_id: sessionIdToUse,
           sender: 'user',
           message_text: text,
           message_type: type,
@@ -89,54 +93,52 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           created_at: new Date().toISOString(),
           isAnimating: true,
         };
-        
         setMessages(prev => [...prev, userMessage]);
       }
-
-      // Get user/device ID from userData
       const userId = userData?.id;
       const deviceId = userData?.deviceId;
-
-      // Step 1: Wait 1 second before showing typing indicator (only for non-empty messages)
+      console.log('User data for API call:', { userId, deviceId });
       if (text.trim() !== '') {
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Step 2: Show typing indicator for 2-3 seconds
         setIsTyping(true);
         await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
       }
-
-      // Call the chat-llm Edge Function
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-llm`, {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        console.error('Missing environment variables:', { 
+          hasSupabaseUrl: !!supabaseUrl, 
+          hasSupabaseAnonKey: !!supabaseAnonKey 
+        });
+        throw new Error('Missing Supabase configuration');
+      }
+      const response = await fetch(`${supabaseUrl}/functions/v1/chat-llm`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: text || 'Hello', // Use a default greeting if empty
+          message: text || 'Hello',
           userId: userId || undefined,
           deviceId: deviceId || undefined,
-          sessionId: currentSessionId,
+          sessionId: sessionIdToUse,
           messageType: type,
-          isVoiceResponse: type === 'voice' // Generate voice response for voice messages
+          isVoiceResponse: type === 'voice'
         })
       });
-
+      console.log('API response status:', response.status);
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('API error response:', errorData);
         throw new Error(errorData.error || 'Failed to send message');
       }
-
       const result = await response.json();
-      
-      // Hide typing indicator
+      console.log('API success response:', result);
       setIsTyping(false);
-      
-      // Add Amara's response to UI with animation
       const amaraMessage: ChatMessage = {
         id: result.messageId,
-        session_id: currentSessionId,
+        session_id: sessionIdToUse,
         sender: 'amara',
         message_text: result.response,
         message_type: result.voiceNoteUrl ? 'voice' : 'text',
@@ -144,28 +146,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         created_at: new Date().toISOString(),
         isAnimating: true,
       };
-      
       setMessages(prev => [...prev, amaraMessage]);
-
-      // Remove animation flag after animation completes
       setTimeout(() => {
         setMessages(prev => prev.map(msg => 
           msg.id === amaraMessage.id ? { ...msg, isAnimating: false } : msg
         ));
       }, 600);
-
     } catch (error) {
       console.error("Error sending message:", error);
       setIsTyping(false);
-      // Remove the user message if there was an error (only if it was added)
       if (text.trim() !== '') {
         setMessages(prev => prev.slice(0, -1));
       }
-      throw error; // Re-throw to let the calling component handle it
+      throw error;
     } finally {
       setIsLoading(false);
     }
   }, [currentSessionId, userData]);
+
+  // Patch: sendMessage now just calls sendMessageWithSessionId
+  const sendMessage = useCallback((text: string, type: 'text' | 'voice' = 'text', url?: string) => {
+    return sendMessageWithSessionId(text, type, url);
+  }, [sendMessageWithSessionId]);
 
   const sendVoiceMessage = useCallback(async (audioBlob: Blob, duration: number) => {
     if (!currentSessionId) return;
@@ -230,21 +232,39 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const startNewSession = useCallback(async (userId?: string, deviceId?: string) => {
     setIsLoading(true);
     setMessages([]);
-    
     try {
+      console.log('Starting new session with:', { userId, deviceId });
       const session = await db.sessions.create(userId, deviceId);
+      console.log('Session created:', session);
       setCurrentSessionId(session.id);
-      
-      // Instead of inserting the greeting directly, trigger the chat-llm function
-      // to generate and store the initial greeting message
-      await sendMessage('', 'text'); // Empty message will trigger initial greeting
-      
+      console.log('Sending initial greeting message...');
+      try {
+        await sendMessageWithSessionId('', 'text', undefined, session.id); // Use session.id directly
+        console.log('Initial greeting sent successfully');
+      } catch (greetingError) {
+        console.error('Failed to send initial greeting via API:', greetingError);
+        const fallbackMessage: ChatMessage = {
+          id: `fallback_${Date.now()}`,
+          session_id: session.id,
+          sender: 'amara',
+          message_text: `Hello! I'm Amara, your AI companion for mental wellness. I'm here to listen, support, and help you explore your thoughts and feelings in a safe, non-judgmental space. How are you feeling today?`,
+          message_type: 'text',
+          created_at: new Date().toISOString(),
+          isAnimating: true,
+        };
+        setMessages(prev => [...prev, fallbackMessage]);
+        setTimeout(() => {
+          setMessages(prev => prev.map(msg => 
+            msg.id === fallbackMessage.id ? { ...msg, isAnimating: false } : msg
+          ));
+        }, 600);
+      }
     } catch (error) {
       console.error("Error starting new session:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [userData, sendMessage]);
+  }, [userData, sendMessageWithSessionId]);
 
   const value = useMemo(() => ({
     messages,

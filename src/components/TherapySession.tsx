@@ -9,6 +9,7 @@ import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { useDarkMode } from '../hooks/useDarkMode';
 import SignUpNudge from './SignUpNudge';
 import UpgradeModal from './UpgradeModal';
+import DiagnosticInfo from './DiagnosticInfo';
 import amaraAvatar from '../assets/amara_avatar.png';
 import { toast } from 'react-hot-toast';
 
@@ -23,35 +24,40 @@ type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
 const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp, onSignIn, onChooseFreemium }) => {
   const { userData, limits, isLoading: isUserLoading, isAnonymousUser, refreshUserDataAfterChat } = useUser();
-  const { messages, isLoading: isChatLoading, isTyping, sendMessage, sendVoiceMessage, startNewSession } = useChat();
+  const { messages, isLoading: isChatLoading, isTyping, sendMessage, sendVoiceMessage, startNewSession, currentSessionId } = useChat();
   const [isDark, toggleDarkMode] = useDarkMode();
 
   const [currentMessage, setCurrentMessage] = useState('');
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text');
   const [showUpgradeModal, setShowUpgradeModal] = useState<UpgradeReason | null>(null);
-  const [sessionInitialized, setSessionInitialized] = useState(false);
+  const sessionInitializedRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializeSession = async () => {
-      if (!sessionInitialized && userData) {
+      if (!sessionInitializedRef.current && userData) {
+        sessionInitializedRef.current = true;
         try {
+          console.log('Initializing therapy session for user:', userData);
           if (userData.isAuthenticated) {
             await startNewSession(userData.id, undefined);
           } else {
             await startNewSession(undefined, userData.deviceId);
           }
-          setSessionInitialized(true);
+          console.log('Session initialized successfully');
         } catch (error) {
           console.error('Failed to initialize session:', error);
+          toast.error('Unable to start session. Please try refreshing the page.', {
+            duration: 5000,
+            position: 'top-right',
+          });
         }
       }
     };
-
-    if (!isUserLoading && userData && !sessionInitialized) {
+    if (!isUserLoading && userData && !sessionInitializedRef.current) {
       initializeSession();
     }
-  }, [isUserLoading, userData, sessionInitialized, startNewSession]);
+  }, [isUserLoading, userData, startNewSession]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -117,7 +123,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
     }
   };
 
-  if (isUserLoading || (!sessionInitialized && !isUserLoading && !isChatLoading)) {
+  if (isUserLoading || (!sessionInitializedRef.current && !isUserLoading && !isChatLoading)) {
     return <LoadingScreen onComplete={() => {}} userName={userData?.name} />;
   }
 

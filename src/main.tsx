@@ -30,7 +30,15 @@ if (container) {
   root.render(
     <StrictMode>
       <UserProvider>
-        <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
+        <Sentry.ErrorBoundary fallback={({ error, componentStack }) => (
+          <div style={{ padding: 32 }}>
+            <h2>Something went wrong</h2>
+            <pre style={{ color: 'red' }}>{error?.toString()}</pre>
+            <details style={{ whiteSpace: 'pre-wrap' }}>
+              {componentStack}
+            </details>
+          </div>
+        )}>
           <App />
         </Sentry.ErrorBoundary>
       </UserProvider>
