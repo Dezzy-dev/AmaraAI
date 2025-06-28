@@ -28,7 +28,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
   const [showSaveMessage, setShowSaveMessage] = useState(false);
 
   const isPremiumUser = () => {
-    return user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
+    return user.isJudge || user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
   };
 
   const isTrialUser = () => {
@@ -141,12 +141,14 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
   };
 
   const getPlanDisplayName = () => {
+    if (user.isJudge) return 'Judge Premium';
     if (isPremiumUser()) return 'Premium';
     if (isActiveTrialUser()) return 'Trial';
     return 'Freemium';
   };
 
   const getPlanIcon = () => {
+    if (user.isJudge) return <Crown className="w-5 h-5 text-yellow-500" fill="currentColor" />;
     if (isPremiumUser()) return <Crown className="w-5 h-5 text-yellow-500" fill="currentColor" />;
     if (isActiveTrialUser()) return <Zap className="w-5 h-5 text-purple-500" />;
     return <Shield className="w-5 h-5 text-gray-500" />;
@@ -218,6 +220,19 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                 <UserPlus className="w-6 h-6 mr-3 text-purple-600" />
                 Edit Your Profile
               </h2>
+              
+              {/* Judge Badge */}
+              {user.isJudge && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                  <div className="flex items-center">
+                    <Crown className="w-6 h-6 text-yellow-600 dark:text-yellow-400 mr-3" fill="currentColor" />
+                    <div>
+                      <h3 className="font-semibold text-yellow-800 dark:text-yellow-200">Judge Account</h3>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">You have unlimited access to all premium features.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               
               {/* Profile Image & Form */}
               <div className="flex flex-col md:flex-row items-center md:items-start md:space-x-8">
@@ -346,17 +361,19 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                   </div>
                 </button>
                 
-                <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                      <Crown className="w-4 h-4 text-green-600 dark:text-green-400" />
+                {!user.isJudge && (
+                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <Crown className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">Upgrade Plan</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Get premium features</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Upgrade Plan</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Get premium features</p>
-                    </div>
-                  </div>
-                </button>
+                  </button>
+                )}
               </div>
             </div>
 

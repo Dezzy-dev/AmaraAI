@@ -54,6 +54,7 @@ serve(async (req) => {
     let currentUsage = { messagesUsed: 0, voiceNotesUsed: 0, maxMessages: 50, maxVoiceNotes: 5 }
     let planToUse = 'freemium';
     let isAuthenticated = false;
+    let isJudge = false;
 
     // First, try to get user profile if userId is provided
     if (userId) {
@@ -69,6 +70,7 @@ serve(async (req) => {
       } else if (profile) {
         userProfile = profile
         isAuthenticated = true
+        isJudge = profile.is_judge || false
 
         // --- TRIAL EXPIRY LOGIC ---
         planToUse = profile.current_plan;
@@ -89,8 +91,8 @@ serve(async (req) => {
         currentUsage = {
           messagesUsed: profile.daily_messages_used || 0,
           voiceNotesUsed: profile.voice_notes_used || 0,
-          maxMessages: getMaxMessagesForPlan(planToUse),
-          maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse)
+          maxMessages: getMaxMessagesForPlan(planToUse, isJudge),
+          maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse, isJudge)
         }
       }
     }
@@ -183,7 +185,8 @@ serve(async (req) => {
     const isInitialGreeting = !message || message.trim() === '' || message === 'Hello';
 
     // Only check limits for actual user messages, not initial greetings
-    if (!isInitialGreeting && currentUsage.messagesUsed >= currentUsage.maxMessages) {
+    // Judge accounts bypass all limits
+    if (!isInitialGreeting && !isJudge && currentUsage.messagesUsed >= currentUsage.maxMessages) {
       return new Response(
         JSON.stringify({ error: 'Daily message limit exceeded' }),
         { 
@@ -193,7 +196,7 @@ serve(async (req) => {
       )
     }
 
-    if (!isInitialGreeting && messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
+    if (!isInitialGreeting && !isJudge && messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
       return new Response(
         JSON.stringify({ error: 'Voice note limit exceeded' }),
         { 
@@ -299,6 +302,11 @@ Compose a single, emotionally attuned message in response to the current user in
 
 - Name: ${userProfile.name || 'User'}
 - Country: ${userProfile.country || 'Not specified'}`
+      
+      if (isJudge) {
+        systemPrompt += `
+- Account Type: Judge (Premium Access)`
+      }
     }
 
     // Use appropriate message for AI processing
@@ -442,7 +450,8 @@ Compose a single, emotionally attuned message in response to the current user in
     }
     
     // Update usage counts only for actual user messages, not initial greetings
-    if (!isInitialGreeting) {
+    // Judge accounts don't have their usage tracked
+    if (!isInitialGreeting && !isJudge) {
       if (isAuthenticated && userProfile) {
         const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
         if (messageType === 'voice') {
@@ -503,7 +512,7 @@ Compose a single, emotionally attuned message in response to the current user in
       response: aiResponse,
       voiceNoteUrl,
       usage: {
-        messagesUsed: isInitialGreeting ? currentUsage.messagesUsed : currentUsage.messagesUsed + 1,
+        messagesUsed: isInitialGreeting || isJudge ? currentUsage.messagesUsed : currentUsage.messagesUsed + 1,
         voiceNotesUsed: currentUsage.voiceNotesUsed,
         maxMessages: currentUsage.maxMessages,
         maxVoiceNotes: currentUsage.maxVoiceNotes,
@@ -525,7 +534,9 @@ Compose a single, emotionally attuned message in response to the current user in
   }
 })
 
-function getMaxMessagesForPlan(plan: string): number {
+function getMaxMessagesForPlan(plan: string, isJudge: boolean = false): number {
+  if (isJudge) return Infinity; // Judge accounts have unlimited messages
+  
   switch (plan) {
     case 'freemium':
       return 5;
@@ -540,7 +551,9 @@ function getMaxMessagesForPlan(plan: string): number {
   }
 }
 
-function getMaxVoiceNotesForPlan(plan: string): number {
+function getMaxVoiceNotesForPlan(plan: string, isJudge: boolean = false): number {
+  if (isJudge) return Infinity; // Judge accounts have unlimited voice notes
+  
   switch (plan) {
     case 'freemium':
       return 1;

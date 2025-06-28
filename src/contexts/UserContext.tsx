@@ -23,6 +23,9 @@ export interface UserData {
   createdAt?: string;
   hasEverTrialed?: boolean;
   
+  // Judge account status
+  isJudge?: boolean;
+  
   // Usage tracking
   dailyMessagesUsed?: number;
   voiceNotesUsed?: number;
@@ -192,6 +195,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       trialEndDate: trialEndDate || undefined,
       createdAt: profile.created_at || undefined,
       hasEverTrialed: profile.has_ever_trialed ?? false,
+      isJudge: profile.is_judge ?? false,
       dailyMessagesUsed: 0, // Reset for authenticated users daily
       voiceNotesUsed: 0,
       lastResetDate: new Date().toISOString().split('T')[0],
@@ -289,6 +293,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
         createdAt: device?.created_at || undefined,
         hasEverTrialed: false,
+        isJudge: false,
         subscription_status: null,
         trial_ends_at: null
       };
@@ -310,6 +315,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         lastResetDate: new Date().toISOString().split('T')[0],
         createdAt: new Date().toISOString(),
         hasEverTrialed: false,
+        isJudge: false,
         subscription_status: null,
         trial_ends_at: null
       };
@@ -335,6 +341,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (updates.trialStartDate) profileUpdates.trial_start_date = updates.trialStartDate;
         if (updates.trialEndDate) profileUpdates.trial_end_date = updates.trialEndDate;
         if (updates.hasEverTrialed !== undefined) profileUpdates.has_ever_trialed = updates.hasEverTrialed;
+        if (updates.isJudge !== undefined) profileUpdates.is_judge = updates.isJudge;
 
         if (Object.keys(profileUpdates).length > 0) {
           await db.profiles.update(userData.id, profileUpdates);
@@ -450,12 +457,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, [userData, updateUserData]);
 
   const value = useMemo(() => {
-    const isPremium = userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
+    // Judge accounts get unlimited access and are treated as premium
+    const isJudge = userData?.isJudge === true;
+    const isPremium = isJudge || userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
     const isTrial = userData?.subscription_status === 'trialing';
     const isAnonymous = userData?.isAuthenticated === false;
-    const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium';
+    const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium' && !isJudge;
+    
     let limits: UserLimits;
-    if (isPremium || isTrial) {
+    if (isJudge) {
+      // Judge accounts: unlimited everything
+      limits = {
+        hasLimits: false,
+        maxMessages: Infinity,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Infinity,
+        maxVoiceNotes: Infinity,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
+        voiceNotesRemaining: Infinity,
+        resetsOn: 'Never'
+      };
+    } else if (isPremium || isTrial) {
       // Premium and trial users: unlimited messages, but 50 voice notes per day (match backend)
       limits = {
         hasLimits: true, // Only voice notes are limited

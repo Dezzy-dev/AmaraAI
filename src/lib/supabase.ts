@@ -24,6 +24,7 @@ export interface UserProfile {
   voice_notes_used?: boolean;
   country?: string;
   has_ever_trialed?: boolean;
+  is_judge?: boolean;
 }
 
 export interface AnonymousDevice {
@@ -131,6 +132,7 @@ export const db = {
         email,
         current_plan: plan,
         has_ever_trialed: false,
+        is_judge: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
