@@ -85,60 +85,43 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     let mounted = true;
     setIsLoading(true);
 
-    console.log('🔍 [DEBUG] UserContext - Initializing user data and auth state...');
-
     // Restore session from Supabase on mount
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔍 [DEBUG] UserContext - Initial session check:', { hasSession: !!session, hasUser: !!session?.user });
-      
       if (session?.user) {
         setSupabaseUser(session.user);
         loadAuthenticatedUser(session.user).finally(() => {
-          if (mounted) {
-            console.log('✅ [SUCCESS] UserContext - Authenticated user loaded');
-            setIsLoading(false);
-          }
+          if (mounted) setIsLoading(false);
         });
       } else {
-        console.log('🔍 [DEBUG] UserContext - No session found, loading anonymous user');
         loadAnonymousUser().finally(() => {
-          if (mounted) {
-            console.log('✅ [SUCCESS] UserContext - Anonymous user loaded');
-            setIsLoading(false);
-          }
+          if (mounted) setIsLoading(false);
         });
       }
     }).catch((error) => {
-      console.error('🚨 [ERROR] UserContext - Error getting initial session:', error);
+      console.error('Error getting initial session:', error);
       if (mounted) setIsLoading(false);
     });
 
     // The onAuthStateChange listener will handle all auth events.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔍 [DEBUG] UserContext - Auth state change:', { event, hasSession: !!session, hasUser: !!session?.user });
-      
       if (!mounted) return;
       
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         try {
           if (session?.user) {
-            console.log('🔍 [DEBUG] UserContext - Processing sign-in for user:', session.user.id);
             setSupabaseUser(session.user);
             await loadAuthenticatedUser(session.user);
-            console.log('✅ [SUCCESS] UserContext - Authenticated user loaded after sign-in');
           } else {
-            console.log('🔍 [DEBUG] UserContext - No user in session, loading anonymous user');
             await loadAnonymousUser();
           }
         } catch (error) {
-          console.error('🚨 [ERROR] UserContext - Error in onAuthStateChange handler:', error);
+          console.error('Error in onAuthStateChange handler:', error);
         } finally {
           if (mounted) {
             setIsLoading(false);
           }
         }
       } else if (event === 'SIGNED_OUT') {
-        console.log('🔍 [DEBUG] UserContext - User signed out');
         setSupabaseUser(null);
         setUserData(null);
         setIsLoading(false);
@@ -146,42 +129,33 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     });
 
     return () => {
-      console.log('🔍 [DEBUG] UserContext - Cleaning up auth listener');
       mounted = false;
       subscription.unsubscribe();
     };
   }, []);
 
   const loadAuthenticatedUser = async (user: User) => {
-    console.log('🔍 [DEBUG] UserContext - loadAuthenticatedUser called for user:', user.id);
-    
     let profile: UserProfile | null = null;
     try {
-      console.log('🔍 [DEBUG] UserContext - Fetching user profile from database...');
       profile = await db.profiles.get(user.id);
       
       if (!profile) {
-        console.log('🔍 [DEBUG] UserContext - No profile found, creating new profile...');
         const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
         try {
           profile = await db.profiles.create(user.id, user.email!, name);
-          console.log('✅ [SUCCESS] UserContext - New profile created:', profile);
         } catch (createError: unknown) {
-          console.error('🚨 [ERROR] UserContext - Failed to create profile:', createError);
+          console.error('Failed to create profile:', createError);
           await supabase.auth.signOut();
           return; 
         }
-      } else {
-        console.log('✅ [SUCCESS] UserContext - Existing profile found:', { id: profile.id, name: profile.name, plan: profile.current_plan });
       }
     } catch (error: unknown) {
-      console.error('🚨 [ERROR] UserContext - Error fetching/creating profile:', error);
+      console.error('Error fetching/creating profile:', error);
       await supabase.auth.signOut();
       return;
     }
 
     if (!profile) {
-      console.error('🚨 [ERROR] UserContext - Profile is null after creation attempt');
       return;
     }
 
@@ -193,7 +167,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     if ((currentPlan === 'monthly_trial' || currentPlan === 'yearly_trial') && trialEndDate) {
       const trialEnd = new Date(trialEndDate);
       if (now > trialEnd) {
-        console.log('🔍 [DEBUG] UserContext - Trial expired, reverting to freemium');
         // Trial expired, revert to freemium
         currentPlan = 'freemium';
         trialStartDate = undefined;
@@ -226,84 +199,63 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       trial_ends_at: profile.trial_ends_at ?? null
     };
 
-    console.log('✅ [SUCCESS] UserContext - Final authenticated user data:', finalUserData);
     setUserData(finalUserData);
   };
 
   const loadAnonymousUser = async () => {
-    console.log('🔍 [DEBUG] UserContext - Loading anonymous user...');
-    
     try {
       // Generate or retrieve a persistent UUID for this anonymous user
       let anonUuid = localStorage.getItem('amara_anon_uuid');
       if (!anonUuid) {
         anonUuid = crypto.randomUUID();
         localStorage.setItem('amara_anon_uuid', anonUuid);
-        console.log('🔍 [DEBUG] UserContext - Generated new anonymous UUID:', anonUuid);
-      } else {
-        console.log('🔍 [DEBUG] UserContext - Retrieved existing anonymous UUID:', anonUuid);
       }
       
       const deviceId = generateDeviceId();
-      console.log('🔍 [DEBUG] UserContext - Generated/retrieved device ID:', deviceId);
-      
       let device: AnonymousDevice | null = null;
       let validDeviceId: string | undefined = undefined;
 
       // First, try to get existing device record
       try {
-        console.log('🔍 [DEBUG] UserContext - Attempting to fetch existing device record...');
         device = await db.anonymousDevices.get(deviceId);
         if (device) {
           validDeviceId = device.device_id;
-          console.log('✅ [SUCCESS] UserContext - Found existing device record:', device);
-        } else {
-          console.log('ℹ️ [INFO] UserContext - No existing device record found');
         }
       } catch (error) {
-        console.log('ℹ️ [INFO] UserContext - Device record not found, will create new one:', error);
+        // Device record not found, will create new one
       }
 
       // If device doesn't exist, create it
       if (!device) {
         try {
-          console.log('🔍 [DEBUG] UserContext - Creating new device record...');
           device = await db.anonymousDevices.create(deviceId);
           if (device) {
             validDeviceId = device.device_id;
-            console.log('✅ [SUCCESS] UserContext - Created new device record:', device);
           }
         } catch (createError: unknown) {
-          console.error('🚨 [ERROR] UserContext - Failed to create device record:', createError);
-          
           // If creation fails due to duplicate key, try to fetch again
           if (createError instanceof Error && createError.message.includes('23505')) {
             try {
-              console.log('🔍 [DEBUG] UserContext - Duplicate key error, trying to fetch again...');
               device = await db.anonymousDevices.get(deviceId);
               if (device) {
                 validDeviceId = device.device_id;
-                console.log('✅ [SUCCESS] UserContext - Retrieved device after duplicate key error:', device);
               }
             } catch (fetchError) {
-              console.error('🚨 [ERROR] UserContext - Failed to fetch after duplicate key error:', fetchError);
               // Fall back to creating a new device ID
               const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
               localStorage.setItem('amara_device_id', newDeviceId);
-              console.log('🔍 [DEBUG] UserContext - Created fallback device ID:', newDeviceId);
               
               try {
                 device = await db.anonymousDevices.create(newDeviceId);
                 if (device) {
                   validDeviceId = device.device_id;
-                  console.log('✅ [SUCCESS] UserContext - Created device with fallback ID:', device);
                 }
               } catch (finalError) {
-                console.error('🚨 [ERROR] UserContext - Final device creation attempt failed:', finalError);
+                console.error('Final device creation attempt failed:', finalError);
               }
             }
           } else {
-            console.error('🚨 [ERROR] UserContext - Non-duplicate key error during device creation:', createError);
+            console.error('Non-duplicate key error during device creation:', createError);
           }
         }
       }
@@ -312,14 +264,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const today = new Date().toISOString().split('T')[0];
       if (device && device.last_active_date !== today) {
         try {
-          console.log('🔍 [DEBUG] UserContext - Resetting daily limits for device...');
           device = await db.anonymousDevices.resetDailyLimits(deviceId);
           if (device) {
             validDeviceId = device.device_id;
-            console.log('✅ [SUCCESS] UserContext - Reset daily limits:', device);
           }
         } catch (resetError) {
-          console.error('🚨 [ERROR] UserContext - Failed to reset daily limits:', resetError);
+          console.error('Failed to reset daily limits:', resetError);
           // Continue with existing device data if reset fails
           validDeviceId = device.device_id;
         }
@@ -343,11 +293,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         trial_ends_at: null
       };
       
-      console.log('✅ [SUCCESS] UserContext - Final anonymous user data:', finalUserData);
       setUserData(finalUserData);
       
     } catch (error) {
-      console.error('🚨 [ERROR] UserContext - Failed to load anonymous user, using fallback:', error);
+      console.error('Failed to load anonymous user, using fallback:', error);
       
       // Fallback to basic anonymous user without database persistence
       const fallbackUserData = {
@@ -365,7 +314,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         trial_ends_at: null
       };
       
-      console.log('⚠️ [FALLBACK] UserContext - Using fallback anonymous user data:', fallbackUserData);
       setUserData(fallbackUserData);
     }
   };
@@ -419,7 +367,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, [userData]);
 
   const clearUserData = () => {
-    console.log('🔍 [DEBUG] UserContext - clearUserData called');
     setUserData(null);
     setSupabaseUser(null);
   };

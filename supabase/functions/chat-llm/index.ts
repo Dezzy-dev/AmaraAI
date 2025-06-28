@@ -35,17 +35,7 @@ serve(async (req) => {
   try {
     const { message, userId, deviceId, sessionId, messageType, isVoiceResponse = false }: ChatRequest = await req.json()
 
-    console.log('🔍 [DEBUG] chat-llm function received request:', {
-      hasMessage: !!message,
-      userId: userId,
-      deviceId: deviceId,
-      sessionId: sessionId,
-      messageType: messageType,
-      isVoiceResponse: isVoiceResponse
-    });
-
     if (!message || (!userId && !deviceId)) {
-      console.error('🚨 [ERROR] Missing required fields:', { hasMessage: !!message, hasUserId: !!userId, hasDeviceId: !!deviceId });
       return new Response(
         JSON.stringify({ error: 'Message and user/device ID are required' }),
         { 
@@ -67,7 +57,6 @@ serve(async (req) => {
 
     // First, try to get user profile if userId is provided
     if (userId) {
-      console.log('🔍 [DEBUG] Fetching user profile for userId:', userId);
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -75,12 +64,11 @@ serve(async (req) => {
         .maybeSingle()
 
       if (profileError) {
-        console.error('🚨 [ERROR] Error fetching user profile:', profileError)
+        console.error('Error fetching user profile:', profileError)
         // Don't return error here, fall back to anonymous device
       } else if (profile) {
         userProfile = profile
         isAuthenticated = true
-        console.log('✅ [SUCCESS] Found user profile:', { id: profile.id, plan: profile.current_plan });
 
         // --- TRIAL EXPIRY LOGIC ---
         planToUse = profile.current_plan;
@@ -109,7 +97,6 @@ serve(async (req) => {
 
     // If no authenticated user profile found, try to get anonymous device
     if (!isAuthenticated && deviceId) {
-      console.log('🔍 [DEBUG] Fetching anonymous device for deviceId:', deviceId);
       const { data: device, error: deviceError } = await supabase
         .from('anonymous_devices')
         .select('*')
@@ -117,7 +104,7 @@ serve(async (req) => {
         .maybeSingle()
 
       if (deviceError && deviceError.code !== 'PGRST116') {
-        console.error('🚨 [ERROR] Error fetching anonymous device:', deviceError)
+        console.error('Error fetching anonymous device:', deviceError)
         return new Response(
           JSON.stringify({ error: 'Failed to fetch device data' }),
           { 
@@ -128,7 +115,6 @@ serve(async (req) => {
       }
 
       if (!device) {
-        console.log('ℹ️ [INFO] No anonymous device found, creating new one for deviceId:', deviceId);
         // Create a new anonymous device record
         try {
           const today = new Date().toISOString().split('T')[0];
@@ -146,7 +132,7 @@ serve(async (req) => {
             .single();
 
           if (createError) {
-            console.error('🚨 [ERROR] Failed to create anonymous device:', createError);
+            console.error('Failed to create anonymous device:', createError);
             return new Response(
               JSON.stringify({ error: 'Failed to create device record' }),
               { 
@@ -157,9 +143,8 @@ serve(async (req) => {
           }
 
           anonymousDevice = newDevice;
-          console.log('✅ [SUCCESS] Created new anonymous device:', newDevice);
         } catch (createError) {
-          console.error('🚨 [ERROR] Exception creating anonymous device:', createError);
+          console.error('Exception creating anonymous device:', createError);
           return new Response(
             JSON.stringify({ error: 'Failed to create device record' }),
             { 
@@ -170,7 +155,6 @@ serve(async (req) => {
         }
       } else {
         anonymousDevice = device;
-        console.log('✅ [SUCCESS] Found anonymous device:', { device_id: device.device_id, messages_today: device.messages_today });
       }
 
       if (anonymousDevice) {
@@ -185,7 +169,7 @@ serve(async (req) => {
 
     // If neither authenticated user nor anonymous device found, return error
     if (!isAuthenticated && !anonymousDevice) {
-      console.error('🚨 [ERROR] No user profile or device found');
+      console.error('No user profile or device found');
       return new Response(
         JSON.stringify({ error: 'User or device not found' }),
         { 
@@ -195,14 +179,11 @@ serve(async (req) => {
       )
     }
 
-    console.log('🔍 [DEBUG] Current usage limits:', currentUsage);
-
     // Check if this is an initial session greeting (empty message)
     const isInitialGreeting = !message || message.trim() === '' || message === 'Hello';
 
     // Only check limits for actual user messages, not initial greetings
     if (!isInitialGreeting && currentUsage.messagesUsed >= currentUsage.maxMessages) {
-      console.error('🚨 [ERROR] Daily message limit exceeded:', { used: currentUsage.messagesUsed, max: currentUsage.maxMessages });
       return new Response(
         JSON.stringify({ error: 'Daily message limit exceeded' }),
         { 
@@ -213,14 +194,6 @@ serve(async (req) => {
     }
 
     if (!isInitialGreeting && messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
-      // Add debug logging for voice note limit
-      console.error('🚨 [ERROR] Voice note limit exceeded:', { 
-        userId: userId, 
-        plan: userProfile?.current_plan, 
-        planToUse: planToUse, 
-        voiceNotesUsed: currentUsage.voiceNotesUsed, 
-        maxVoiceNotes: currentUsage.maxVoiceNotes 
-      });
       return new Response(
         JSON.stringify({ error: 'Voice note limit exceeded' }),
         { 
@@ -233,7 +206,6 @@ serve(async (req) => {
     let conversationHistory: any[] = []
     
     if (sessionId) {
-      console.log('🔍 [DEBUG] Fetching conversation history for sessionId:', sessionId);
       const { data: history, error: historyError } = await supabase
         .from('chat_messages')
         .select('sender, message_text')
@@ -246,9 +218,8 @@ serve(async (req) => {
           role: msg.sender === 'user' ? 'user' : 'assistant',
           content: msg.message_text,
         }))
-        console.log('✅ [SUCCESS] Loaded conversation history:', { messageCount: conversationHistory.length });
       } else if (historyError) {
-        console.error('⚠️ [WARNING] Failed to load conversation history:', historyError);
+        console.error('Failed to load conversation history:', historyError);
       }
     }
 
@@ -342,7 +313,7 @@ Compose a single, emotionally attuned message in response to the current user in
     const groqApiKey = Deno.env.get('GROQ_API_KEY')
     
     if (!groqApiKey) {
-      console.error('🚨 [ERROR] Groq API key not configured');
+      console.error('Groq API key not configured');
       return new Response(
         JSON.stringify({ error: 'Groq API key not configured' }),
         { 
@@ -352,7 +323,6 @@ Compose a single, emotionally attuned message in response to the current user in
       )
     }
 
-    console.log('🔍 [DEBUG] Calling Groq API...');
     const groqResponse = await fetch(
       'https://api.groq.com/openai/v1/chat/completions',
       {
@@ -374,7 +344,7 @@ Compose a single, emotionally attuned message in response to the current user in
 
     if (!groqResponse.ok) {
       const errorData = await groqResponse.text()
-      console.error('🚨 [ERROR] Groq API error:', errorData)
+      console.error('Groq API error:', errorData)
       return new Response(
         JSON.stringify({ error: 'Failed to generate response from Groq' }),
         { 
@@ -387,9 +357,8 @@ Compose a single, emotionally attuned message in response to the current user in
     let groqResult;
     try {
       groqResult = await groqResponse.json();
-      console.log('✅ [SUCCESS] Groq API response received');
     } catch (err) {
-      console.error('🚨 [ERROR] Failed to parse Groq API response:', err);
+      console.error('Failed to parse Groq API response:', err);
       return new Response(
         JSON.stringify({ error: 'Failed to parse Groq API response' }),
         { 
@@ -405,7 +374,7 @@ Compose a single, emotionally attuned message in response to the current user in
       !Array.isArray(groqResult.choices) ||
       !groqResult.choices[0]
     ) {
-      console.error('🚨 [ERROR] Groq API response did not contain choices:', groqResult);
+      console.error('Groq API response did not contain choices:', groqResult);
       return new Response(
         JSON.stringify({ error: 'Failed to parse response from Groq', raw: groqResult }),
         { 
@@ -417,7 +386,7 @@ Compose a single, emotionally attuned message in response to the current user in
     const aiResponse = groqResult.choices[0].message?.content?.trim();
 
     if (!aiResponse) {
-      console.error('🚨 [ERROR] Groq API response did not contain a message:', groqResult)
+      console.error('Groq API response did not contain a message:', groqResult)
       return new Response(
         JSON.stringify({ error: 'Failed to parse response from Groq' }),
         { 
@@ -426,8 +395,6 @@ Compose a single, emotionally attuned message in response to the current user in
         }
       )
     }
-
-    console.log('✅ [SUCCESS] Generated AI response');
 
     // Generate a UUID for the message ID
     const messageId = crypto.randomUUID();
@@ -445,15 +412,12 @@ Compose a single, emotionally attuned message in response to the current user in
         created_at: new Date().toISOString()
       }
 
-      console.log('🔍 [DEBUG] Storing user message...');
       const { error: userMessageError } = await supabase
         .from('chat_messages')
         .insert(userMessage)
 
       if (userMessageError) {
-        console.error('⚠️ [WARNING] Error storing user message:', userMessageError)
-      } else {
-        console.log('✅ [SUCCESS] User message stored');
+        console.error('Error storing user message:', userMessageError)
       }
     }
 
@@ -469,21 +433,17 @@ Compose a single, emotionally attuned message in response to the current user in
       created_at: new Date().toISOString()
     }
     
-    console.log('🔍 [DEBUG] Storing AI message...');
     const { error: aiMessageError } = await supabase
       .from('chat_messages')
       .insert(aiMessage)
 
     if (aiMessageError) {
-      console.error('⚠️ [WARNING] Error storing AI response:', aiMessageError)
-    } else {
-      console.log('✅ [SUCCESS] AI message stored');
+      console.error('Error storing AI response:', aiMessageError)
     }
     
     // Update usage counts only for actual user messages, not initial greetings
     if (!isInitialGreeting) {
       if (isAuthenticated && userProfile) {
-        console.log('🔍 [DEBUG] Updating user profile usage counts...');
         const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
         if (messageType === 'voice') {
           updates['voice_notes_used'] = (userProfile.voice_notes_used || 0) + 1;
@@ -493,12 +453,9 @@ Compose a single, emotionally attuned message in response to the current user in
           .update(updates)
           .eq('id', userId)
         if (error) {
-          console.error('⚠️ [WARNING] Error updating user message/voice note count:', error)
-        } else {
-          console.log('✅ [SUCCESS] User profile usage updated');
+          console.error('Error updating user message/voice note count:', error)
         }
       } else if (!isAuthenticated && deviceId) {
-        console.log('🔍 [DEBUG] Updating anonymous device usage counts...');
         if (anonymousDevice) {
           const updates = { messages_today: (anonymousDevice.messages_today || 0) + 1 };
           if (messageType === 'voice') {
@@ -509,19 +466,14 @@ Compose a single, emotionally attuned message in response to the current user in
             .update(updates)
             .eq('device_id', deviceId)
           if (error) {
-            console.error('⚠️ [WARNING] Error updating device message/voice note count:', error)
-          } else {
-            console.log('✅ [SUCCESS] Anonymous device usage updated');
+            console.error('Error updating device message/voice note count:', error)
           }
         } else {
-          console.log('🔍 [DEBUG] Creating new device record with usage...');
           const { error } = await supabase
             .from('anonymous_devices')
             .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' ? 1 : 0 })
           if (error) {
-            console.error('⚠️ [WARNING] Error creating new device record:', error)
-          } else {
-            console.log('✅ [SUCCESS] New device record created with usage');
+            console.error('Error creating new device record:', error)
           }
         }
       }
@@ -529,7 +481,6 @@ Compose a single, emotionally attuned message in response to the current user in
     
     let voiceNoteUrl = null
     if (isVoiceResponse) {
-      console.log('🔍 [DEBUG] Generating voice response...');
       try {
         const ttsResponse = await supabase.functions.invoke('generate-tts', {
           body: { 
@@ -539,12 +490,11 @@ Compose a single, emotionally attuned message in response to the current user in
         })
         if (ttsResponse.data?.voiceNoteUrl) {
           voiceNoteUrl = ttsResponse.data.voiceNoteUrl
-          console.log('✅ [SUCCESS] Voice response generated');
         } else {
-          console.error('⚠️ [WARNING] TTS function did not return a voice note URL:', ttsResponse.error, ttsResponse.data);
+          console.error('TTS function did not return a voice note URL:', ttsResponse.error, ttsResponse.data);
         }
       } catch (e) {
-        console.error('🚨 [ERROR] Error invoking TTS function:', e)
+        console.error('Error invoking TTS function:', e)
       }
     }
     
@@ -560,7 +510,6 @@ Compose a single, emotionally attuned message in response to the current user in
       },
     }
 
-    console.log('✅ [SUCCESS] chat-llm function completed successfully');
     return new Response(
       JSON.stringify(responsePayload), 
       {
@@ -568,7 +517,7 @@ Compose a single, emotionally attuned message in response to the current user in
       }
     )
   } catch (error) {
-    console.error('🚨 [ERROR] Unhandled error in chat-llm function:', error)
+    console.error('Unhandled error in chat-llm function:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,

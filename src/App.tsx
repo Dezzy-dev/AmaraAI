@@ -55,7 +55,6 @@ function AppContent() {
   const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
 
   const navigateTo = (newView: AppView) => {
-    console.log('🔍 [DEBUG] App.tsx - navigateTo called:', { from: view, to: newView });
     setPreviousView(view);
     setView(newView);
   };
@@ -130,7 +129,6 @@ function AppContent() {
   };
 
   const openAuthModal = (mode: 'signup' | 'signin', path: UserPath = null) => {
-    console.log('🔍 [DEBUG] App.tsx - openAuthModal called:', { mode, path });
     setAuthMode(mode);
     setUserPath(path);
     setShowAuthModal(true);
@@ -152,14 +150,6 @@ function AppContent() {
   };
 
   const handleAuthSuccess = () => {
-    console.log('🔍 [DEBUG] App.tsx - handleAuthSuccess called');
-    console.log('🔍 [DEBUG] App.tsx - Current state:', {
-      authSuccessTrigger,
-      isUserDataLoading,
-      userPath,
-      userData: userData ? { isAuthenticated: userData.isAuthenticated, name: userData.name } : null
-    });
-    
     setShowAuthModal(false);
     setAuthSuccessTrigger(true);
     
@@ -178,27 +168,15 @@ function AppContent() {
 
   // Handle post-authentication routing
   useEffect(() => {
-    console.log('🔍 [DEBUG] App.tsx - Post-auth routing useEffect triggered:', {
-      authSuccessTrigger,
-      isUserDataLoading,
-      userDataIsAuthenticated: userData?.isAuthenticated,
-      userPath
-    });
-
     if (authSuccessTrigger && !isUserDataLoading && userData?.isAuthenticated) {
-      console.log('✅ [SUCCESS] App.tsx - Post-auth routing conditions met, navigating...');
-      
       // Route user based on their chosen path
       if (userPath === 'trial_path') {
-        console.log('🔍 [DEBUG] App.tsx - Routing to comparison page (trial path)');
         // Redirect to comparison/pricing page
         navigateTo('comparison');
       } else if (userPath === 'freemium_path') {
-        console.log('🔍 [DEBUG] App.tsx - Routing to dashboard (freemium path)');
         // Redirect to dashboard with freemium user
         navigateTo('dashboard');
       } else {
-        console.log('🔍 [DEBUG] App.tsx - Routing to dashboard (default)');
         // Default redirect for any other successful auth (e.g., direct sign-in)
         navigateTo('dashboard');
       }
@@ -206,26 +184,12 @@ function AppContent() {
       // Reset states
       setUserPath(null);
       setAuthSuccessTrigger(false);
-    } else {
-      console.log('⚠️ [WARNING] App.tsx - Post-auth routing conditions not met:', {
-        authSuccessTrigger,
-        isUserDataLoading,
-        userDataIsAuthenticated: userData?.isAuthenticated,
-        userPath
-      });
     }
   }, [authSuccessTrigger, isUserDataLoading, userData?.isAuthenticated, userPath]);
 
   // Handle OAuth authentication routing (when user signs in via OAuth)
   useEffect(() => {
-    console.log('🔍 [DEBUG] App.tsx - OAuth routing useEffect triggered:', {
-      isUserDataLoading,
-      userDataIsAuthenticated: userData?.isAuthenticated,
-      initialAuthCheckComplete
-    });
-
     if (!isUserDataLoading && userData?.isAuthenticated && !initialAuthCheckComplete) {
-      console.log('✅ [SUCCESS] App.tsx - OAuth authentication detected, routing to dashboard');
       // User just authenticated via OAuth, route them to dashboard
       navigateTo('dashboard');
       setInitialAuthCheckComplete(true); // Mark the initial check as complete
@@ -424,7 +388,6 @@ function AppContent() {
   };
 
   const handleCloseAuthModal = () => {
-    console.log('🔍 [DEBUG] App.tsx - handleCloseAuthModal called');
     setShowAuthModal(false);
     setUserPath(null); // Reset user path when closing modal
   };
@@ -454,14 +417,6 @@ function AppContent() {
     window.addEventListener('navigate', handleNavigate);
     return () => window.removeEventListener('navigate', handleNavigate);
   }, []);
-
-  console.log('🔍 [DEBUG] App.tsx - Current state:', { 
-    isUserDataLoading, 
-    userData: userData ? { isAuthenticated: userData.isAuthenticated, name: userData.name } : null, 
-    view,
-    showAuthModal,
-    authSuccessTrigger
-  });
 
   // Instead, show loading screen only for protected views
   if (isUserDataLoading && (view === 'dashboard' || view === 'session' || view === 'settings')) {

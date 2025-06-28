@@ -97,22 +97,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       const userId = userData?.id;
       const deviceId = userData?.deviceId;
 
-      // DEBUG: Log the values being sent to the Edge Function
-      console.log('🔍 [DEBUG] Sending to chat-llm Edge Function:', {
-        message: text,
-        userId: userId,
-        deviceId: deviceId,
-        sessionId: currentSessionId,
-        messageType: type,
-        isVoiceResponse: type === 'voice',
-        userDataSnapshot: {
-          isAuthenticated: userData?.isAuthenticated,
-          name: userData?.name,
-          hasDeviceId: !!userData?.deviceId,
-          hasUserId: !!userData?.id
-        }
-      });
-
       // Step 1: Wait 1 second before showing typing indicator (only for non-empty messages)
       if (text.trim() !== '') {
         await new Promise(resolve => setTimeout(resolve, 1000));
@@ -141,22 +125,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('🚨 [ERROR] chat-llm Edge Function failed:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData: errorData,
-          requestData: {
-            userId: userId,
-            deviceId: deviceId,
-            sessionId: currentSessionId,
-            messageType: type
-          }
-        });
         throw new Error(errorData.error || 'Failed to send message');
       }
 
       const result = await response.json();
-      console.log('✅ [SUCCESS] chat-llm Edge Function response:', result);
       
       // Hide typing indicator
       setIsTyping(false);
@@ -259,15 +231,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setIsLoading(true);
     setMessages([]);
     
-    console.log('🔍 [DEBUG] Starting new session with:', {
-      userId: userId,
-      deviceId: deviceId,
-      userDataSnapshot: userData
-    });
-    
     try {
       const session = await db.sessions.create(userId, deviceId);
-      console.log('✅ [SUCCESS] Session created:', session);
       setCurrentSessionId(session.id);
       
       // Instead of inserting the greeting directly, trigger the chat-llm function
@@ -275,7 +240,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       await sendMessage('', 'text'); // Empty message will trigger initial greeting
       
     } catch (error) {
-      console.error("🚨 [ERROR] Error starting new session:", error);
+      console.error("Error starting new session:", error);
     } finally {
       setIsLoading(false);
     }

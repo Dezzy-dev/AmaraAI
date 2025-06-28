@@ -35,7 +35,6 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
   useEffect(() => {
     const initializeSession = async () => {
       if (!sessionInitialized && userData) {
-        console.log('🔍 [DEBUG] Initializing session...');
         try {
           if (userData.isAuthenticated) {
             await startNewSession(userData.id, undefined);
@@ -43,9 +42,8 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
             await startNewSession(undefined, userData.deviceId);
           }
           setSessionInitialized(true);
-          console.log('✅ [SUCCESS] Session initialized');
         } catch (error) {
-          console.error('🚨 [ERROR] Failed to initialize session:', error);
+          console.error('Failed to initialize session:', error);
         }
       }
     };
