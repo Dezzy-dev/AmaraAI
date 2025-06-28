@@ -36,10 +36,10 @@ const LLM_CONFIGS = {
     apiKeyEnv: 'GROQ_API_KEY'
   },
   fallback: {
-    name: 'OpenAI GPT',
-    url: 'https://api.openai.com/v1/chat/completions',
-    model: 'gpt-3.5-turbo',
-    apiKeyEnv: 'OPENAI_API_KEY'
+    name: 'OpenRouter',
+    url: 'https://openrouter.ai/api/v1/chat/completions',
+    model: 'mistralai/mistral-small-3.2-24b',
+    apiKeyEnv: 'OPENROUTER_API_KEY'
   }
 }
 
@@ -102,7 +102,7 @@ async function generateAIResponse(messages: any[]): Promise<string> {
     lastError = error as Error;
   }
 
-  // Try fallback LLM (OpenAI)
+  // Try fallback LLM (OpenRouter)
   try {
     console.log('🔄 Falling back to secondary LLM...');
     return await callLLM(LLM_CONFIGS.fallback, messages, 2);
