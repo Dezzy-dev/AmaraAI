@@ -27,6 +27,97 @@ interface ChatResponse {
   };
 }
 
+// LLM Configuration
+const LLM_CONFIGS = {
+  primary: {
+    name: 'Groq Llama',
+    url: 'https://api.groq.com/openai/v1/chat/completions',
+    model: 'llama3-8b-8192',
+    apiKeyEnv: 'GROQ_API_KEY'
+  },
+  fallback: {
+    name: 'OpenAI GPT',
+    url: 'https://api.openai.com/v1/chat/completions',
+    model: 'gpt-3.5-turbo',
+    apiKeyEnv: 'OPENAI_API_KEY'
+  }
+}
+
+async function callLLM(config: any, messages: any[], attempt: number = 1): Promise<any> {
+  const apiKey = Deno.env.get(config.apiKeyEnv);
+  
+  if (!apiKey) {
+    throw new Error(`${config.name} API key not configured`);
+  }
+
+  console.log(`Attempt ${attempt}: Calling ${config.name} API...`);
+
+  const response = await fetch(config.url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: config.model,
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500,
+      top_p: 0.95,
+      stream: false,
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error(`${config.name} API error (${response.status}):`, errorData);
+    throw new Error(`${config.name} API failed with status ${response.status}: ${errorData}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result || !result.choices || !Array.isArray(result.choices) || !result.choices[0]) {
+    console.error(`${config.name} API response missing choices:`, result);
+    throw new Error(`${config.name} API response format invalid`);
+  }
+
+  const aiResponse = result.choices[0].message?.content?.trim();
+  if (!aiResponse) {
+    console.error(`${config.name} API response missing content:`, result);
+    throw new Error(`${config.name} API response missing content`);
+  }
+
+  console.log(`✅ ${config.name} API call successful`);
+  return aiResponse;
+}
+
+async function generateAIResponse(messages: any[]): Promise<string> {
+  let lastError: Error | null = null;
+
+  // Try primary LLM (Groq)
+  try {
+    return await callLLM(LLM_CONFIGS.primary, messages, 1);
+  } catch (error) {
+    console.error(`Primary LLM (${LLM_CONFIGS.primary.name}) failed:`, error);
+    lastError = error as Error;
+  }
+
+  // Try fallback LLM (OpenAI)
+  try {
+    console.log('🔄 Falling back to secondary LLM...');
+    return await callLLM(LLM_CONFIGS.fallback, messages, 2);
+  } catch (error) {
+    console.error(`Fallback LLM (${LLM_CONFIGS.fallback.name}) failed:`, error);
+    lastError = error as Error;
+  }
+
+  // If both fail, provide a graceful fallback response
+  console.error('🚨 All LLM services failed, using emergency response');
+  
+  // Return a compassionate fallback message
+  return "I'm experiencing some technical difficulties right now, but I'm still here for you. Sometimes it helps just to know that someone is listening. Would you like to try sharing what's on your mind again in a moment? In the meantime, remember that whatever you're going through, you're not alone.";
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -318,87 +409,16 @@ Compose a single, emotionally attuned message in response to the current user in
       { role: 'user', content: messageForAI },
     ]
 
-    const groqApiKey = Deno.env.get('GROQ_API_KEY')
-    
-    if (!groqApiKey) {
-      console.error('Groq API key not configured');
-      return new Response(
-        JSON.stringify({ error: 'Groq API key not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    const groqResponse = await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqApiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'llama3-8b-8192',
-          messages: messagesForApi,
-          temperature: 0.7,
-          max_tokens: 500,
-          top_p: 0.95,
-          stream: false,
-        })
-      }
-    )
-
-    if (!groqResponse.ok) {
-      const errorData = await groqResponse.text()
-      console.error('Groq API error:', errorData)
-      return new Response(
-        JSON.stringify({ error: 'Failed to generate response from Groq' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    let groqResult;
+    // Generate AI response with fallback system
+    let aiResponse: string;
     try {
-      groqResult = await groqResponse.json();
-    } catch (err) {
-      console.error('Failed to parse Groq API response:', err);
+      aiResponse = await generateAIResponse(messagesForApi);
+    } catch (error) {
+      console.error('All LLM attempts failed:', error);
       return new Response(
-        JSON.stringify({ error: 'Failed to parse Groq API response' }),
+        JSON.stringify({ error: 'AI service temporarily unavailable. Please try again in a moment.' }),
         { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    if (
-      !groqResult ||
-      !groqResult.choices ||
-      !Array.isArray(groqResult.choices) ||
-      !groqResult.choices[0]
-    ) {
-      console.error('Groq API response did not contain choices:', groqResult);
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse response from Groq', raw: groqResult }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-    const aiResponse = groqResult.choices[0].message?.content?.trim();
-
-    if (!aiResponse) {
-      console.error('Groq API response did not contain a message:', groqResult)
-      return new Response(
-        JSON.stringify({ error: 'Failed to parse response from Groq' }),
-        { 
-          status: 500, 
+          status: 503, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
