@@ -63,69 +63,58 @@ serve(async (req) => {
     let anonymousDevice: any = null
     let currentUsage = { messagesUsed: 0, voiceNotesUsed: 0, maxMessages: 50, maxVoiceNotes: 5 }
     let planToUse = 'freemium';
+    let isAuthenticated = false;
 
+    // First, try to get user profile if userId is provided
     if (userId) {
       console.log('🔍 [DEBUG] Fetching user profile for userId:', userId);
       const { data: profile, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle() // Changed from .single() to .maybeSingle()
+        .maybeSingle()
 
       if (profileError) {
         console.error('🚨 [ERROR] Error fetching user profile:', profileError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch user profile' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        // Don't return error here, fall back to anonymous device
+      } else if (profile) {
+        userProfile = profile
+        isAuthenticated = true
+        console.log('✅ [SUCCESS] Found user profile:', { id: profile.id, plan: profile.current_plan });
+
+        // --- TRIAL EXPIRY LOGIC ---
+        planToUse = profile.current_plan;
+        if ((planToUse === 'monthly_trial' || planToUse === 'yearly_trial') && profile.trial_end_date) {
+          const now = new Date();
+          const trialEnd = new Date(profile.trial_end_date);
+          if (now > trialEnd) {
+            // Trial expired, revert to freemium in DB and for this request
+            planToUse = 'freemium';
+            await supabase
+              .from('user_profiles')
+              .update({ current_plan: 'freemium', trial_start_date: null, trial_end_date: null })
+              .eq('id', userId);
           }
-        )
-      }
+        }
+        // --- END TRIAL EXPIRY LOGIC ---
 
-      if (!profile) {
-        console.error('🚨 [ERROR] No user profile found for userId:', userId);
-        return new Response(
-          JSON.stringify({ error: 'User profile not found' }),
-          { 
-            status: 404, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        )
-      }
-
-      userProfile = profile
-      console.log('✅ [SUCCESS] Found user profile:', { id: profile.id, plan: profile.current_plan });
-
-      // --- TRIAL EXPIRY LOGIC ---
-      planToUse = profile.current_plan;
-      if ((planToUse === 'monthly_trial' || planToUse === 'yearly_trial') && profile.trial_end_date) {
-        const now = new Date();
-        const trialEnd = new Date(profile.trial_end_date);
-        if (now > trialEnd) {
-          // Trial expired, revert to freemium in DB and for this request
-          planToUse = 'freemium';
-          await supabase
-            .from('user_profiles')
-            .update({ current_plan: 'freemium', trial_start_date: null, trial_end_date: null })
-            .eq('id', userId);
+        currentUsage = {
+          messagesUsed: profile.daily_messages_used || 0,
+          voiceNotesUsed: profile.voice_notes_used || 0,
+          maxMessages: getMaxMessagesForPlan(planToUse),
+          maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse)
         }
       }
-      // --- END TRIAL EXPIRY LOGIC ---
+    }
 
-      currentUsage = {
-        messagesUsed: profile.daily_messages_used || 0,
-        voiceNotesUsed: profile.voice_notes_used || 0,
-        maxMessages: getMaxMessagesForPlan(planToUse),
-        maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse)
-      }
-    } else if (deviceId) {
+    // If no authenticated user profile found, try to get anonymous device
+    if (!isAuthenticated && deviceId) {
       console.log('🔍 [DEBUG] Fetching anonymous device for deviceId:', deviceId);
       const { data: device, error: deviceError } = await supabase
         .from('anonymous_devices')
         .select('*')
         .eq('device_id', deviceId)
-        .maybeSingle() // Changed from .single() to .maybeSingle()
+        .maybeSingle()
 
       if (deviceError && deviceError.code !== 'PGRST116') {
         console.error('🚨 [ERROR] Error fetching anonymous device:', deviceError)
@@ -194,9 +183,25 @@ serve(async (req) => {
       }
     }
 
+    // If neither authenticated user nor anonymous device found, return error
+    if (!isAuthenticated && !anonymousDevice) {
+      console.error('🚨 [ERROR] No user profile or device found');
+      return new Response(
+        JSON.stringify({ error: 'User or device not found' }),
+        { 
+          status: 404, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
     console.log('🔍 [DEBUG] Current usage limits:', currentUsage);
 
-    if (currentUsage.messagesUsed >= currentUsage.maxMessages) {
+    // Check if this is an initial session greeting (empty message)
+    const isInitialGreeting = !message || message.trim() === '' || message === 'Hello';
+
+    // Only check limits for actual user messages, not initial greetings
+    if (!isInitialGreeting && currentUsage.messagesUsed >= currentUsage.maxMessages) {
       console.error('🚨 [ERROR] Daily message limit exceeded:', { used: currentUsage.messagesUsed, max: currentUsage.maxMessages });
       return new Response(
         JSON.stringify({ error: 'Daily message limit exceeded' }),
@@ -207,7 +212,7 @@ serve(async (req) => {
       )
     }
 
-    if (messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
+    if (!isInitialGreeting && messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
       // Add debug logging for voice note limit
       console.error('🚨 [ERROR] Voice note limit exceeded:', { 
         userId: userId, 
@@ -325,10 +330,13 @@ Compose a single, emotionally attuned message in response to the current user in
 - Country: ${userProfile.country || 'Not specified'}`
     }
 
+    // Use appropriate message for AI processing
+    const messageForAI = isInitialGreeting ? 'Hello, I am starting a new therapy session. Please greet me warmly.' : message;
+
     const messagesForApi = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory,
-      { role: 'user', content: message },
+      { role: 'user', content: messageForAI },
     ]
 
     const groqApiKey = Deno.env.get('GROQ_API_KEY')
@@ -424,35 +432,38 @@ Compose a single, emotionally attuned message in response to the current user in
     // Generate a UUID for the message ID
     const messageId = crypto.randomUUID();
 
-    const userMessage = {
-      id: messageId,
-      session_id: sessionId,
-      user_id: userId,
-      device_id: deviceId,
-      sender: 'user',
-      message_text: message,
-      message_type: messageType,
-      created_at: new Date().toISOString()
-    }
+    // Only store user message if it's not an initial greeting
+    if (!isInitialGreeting) {
+      const userMessage = {
+        id: messageId,
+        session_id: sessionId,
+        user_id: isAuthenticated ? userId : null,
+        device_id: !isAuthenticated ? deviceId : null,
+        sender: 'user',
+        message_text: message,
+        message_type: messageType,
+        created_at: new Date().toISOString()
+      }
 
-    console.log('🔍 [DEBUG] Storing user message...');
-    const { error: userMessageError } = await supabase
-      .from('chat_messages')
-      .insert(userMessage)
+      console.log('🔍 [DEBUG] Storing user message...');
+      const { error: userMessageError } = await supabase
+        .from('chat_messages')
+        .insert(userMessage)
 
-    if (userMessageError) {
-      console.error('⚠️ [WARNING] Error storing user message:', userMessageError)
-    } else {
-      console.log('✅ [SUCCESS] User message stored');
+      if (userMessageError) {
+        console.error('⚠️ [WARNING] Error storing user message:', userMessageError)
+      } else {
+        console.log('✅ [SUCCESS] User message stored');
+      }
     }
 
     const aiMessageId = crypto.randomUUID();
     const aiMessage = {
       id: aiMessageId,
       session_id: sessionId,
-      user_id: userId,
-      device_id: deviceId,
-      sender: 'ai',
+      user_id: isAuthenticated ? userId : null,
+      device_id: !isAuthenticated ? deviceId : null,
+      sender: 'amara',
       message_text: aiResponse,
       message_type: 'text',
       created_at: new Date().toISOString()
@@ -469,47 +480,49 @@ Compose a single, emotionally attuned message in response to the current user in
       console.log('✅ [SUCCESS] AI message stored');
     }
     
-    // Update usage counts
-    if (userId && userProfile) {
-      console.log('🔍 [DEBUG] Updating user profile usage counts...');
-      const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
-      if (messageType === 'voice') {
-        updates['voice_notes_used'] = (userProfile.voice_notes_used || 0) + 1;
-      }
-      const { error } = await supabase
-        .from('user_profiles')
-        .update(updates)
-        .eq('id', userId)
-      if (error) {
-        console.error('⚠️ [WARNING] Error updating user message/voice note count:', error)
-      } else {
-        console.log('✅ [SUCCESS] User profile usage updated');
-      }
-    } else if (deviceId) {
-      console.log('🔍 [DEBUG] Updating anonymous device usage counts...');
-      if (anonymousDevice) {
-        const updates = { messages_today: (anonymousDevice.messages_today || 0) + 1 };
+    // Update usage counts only for actual user messages, not initial greetings
+    if (!isInitialGreeting) {
+      if (isAuthenticated && userProfile) {
+        console.log('🔍 [DEBUG] Updating user profile usage counts...');
+        const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
         if (messageType === 'voice') {
-          updates['voice_notes_used'] = (anonymousDevice.voice_notes_used || 0) + 1;
+          updates['voice_notes_used'] = (userProfile.voice_notes_used || 0) + 1;
         }
         const { error } = await supabase
-          .from('anonymous_devices')
+          .from('user_profiles')
           .update(updates)
-          .eq('device_id', deviceId)
+          .eq('id', userId)
         if (error) {
-          console.error('⚠️ [WARNING] Error updating device message/voice note count:', error)
+          console.error('⚠️ [WARNING] Error updating user message/voice note count:', error)
         } else {
-          console.log('✅ [SUCCESS] Anonymous device usage updated');
+          console.log('✅ [SUCCESS] User profile usage updated');
         }
-      } else {
-        console.log('🔍 [DEBUG] Creating new device record with usage...');
-        const { error } = await supabase
-          .from('anonymous_devices')
-          .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' ? 1 : 0 })
-        if (error) {
-          console.error('⚠️ [WARNING] Error creating new device record:', error)
+      } else if (!isAuthenticated && deviceId) {
+        console.log('🔍 [DEBUG] Updating anonymous device usage counts...');
+        if (anonymousDevice) {
+          const updates = { messages_today: (anonymousDevice.messages_today || 0) + 1 };
+          if (messageType === 'voice') {
+            updates['voice_notes_used'] = (anonymousDevice.voice_notes_used || 0) + 1;
+          }
+          const { error } = await supabase
+            .from('anonymous_devices')
+            .update(updates)
+            .eq('device_id', deviceId)
+          if (error) {
+            console.error('⚠️ [WARNING] Error updating device message/voice note count:', error)
+          } else {
+            console.log('✅ [SUCCESS] Anonymous device usage updated');
+          }
         } else {
-          console.log('✅ [SUCCESS] New device record created with usage');
+          console.log('🔍 [DEBUG] Creating new device record with usage...');
+          const { error } = await supabase
+            .from('anonymous_devices')
+            .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' ? 1 : 0 })
+          if (error) {
+            console.error('⚠️ [WARNING] Error creating new device record:', error)
+          } else {
+            console.log('✅ [SUCCESS] New device record created with usage');
+          }
         }
       }
     }
@@ -540,7 +553,7 @@ Compose a single, emotionally attuned message in response to the current user in
       response: aiResponse,
       voiceNoteUrl,
       usage: {
-        messagesUsed: currentUsage.messagesUsed + 1,
+        messagesUsed: isInitialGreeting ? currentUsage.messagesUsed : currentUsage.messagesUsed + 1,
         voiceNotesUsed: currentUsage.voiceNotesUsed,
         maxMessages: currentUsage.maxMessages,
         maxVoiceNotes: currentUsage.maxVoiceNotes,

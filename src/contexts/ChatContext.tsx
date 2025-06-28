@@ -76,19 +76,22 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      // Add user message to UI immediately with slide-in animation
-      const userMessage: ChatMessage = {
-        id: `user_${Date.now()}`,
-        session_id: currentSessionId,
-        sender: 'user',
-        message_text: text,
-        message_type: type,
-        voice_note_url: url,
-        created_at: new Date().toISOString(),
-        isAnimating: true,
-      };
-      
-      setMessages(prev => [...prev, userMessage]);
+      // Only add user message to UI if it's not an empty trigger message
+      if (text.trim() !== '') {
+        // Add user message to UI immediately with slide-in animation
+        const userMessage: ChatMessage = {
+          id: `user_${Date.now()}`,
+          session_id: currentSessionId,
+          sender: 'user',
+          message_text: text,
+          message_type: type,
+          voice_note_url: url,
+          created_at: new Date().toISOString(),
+          isAnimating: true,
+        };
+        
+        setMessages(prev => [...prev, userMessage]);
+      }
 
       // Get user/device ID from userData
       const userId = userData?.id;
@@ -110,12 +113,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
       });
 
-      // Step 1: Wait 1 second before showing typing indicator
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Step 2: Show typing indicator for 2-3 seconds
-      setIsTyping(true);
-      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+      // Step 1: Wait 1 second before showing typing indicator (only for non-empty messages)
+      if (text.trim() !== '') {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Step 2: Show typing indicator for 2-3 seconds
+        setIsTyping(true);
+        await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 1000));
+      }
 
       // Call the chat-llm Edge Function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-llm`, {
@@ -125,7 +130,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          message: text,
+          message: text || 'Hello', // Use a default greeting if empty
           userId: userId || undefined,
           deviceId: deviceId || undefined,
           sessionId: currentSessionId,
@@ -180,8 +185,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } catch (error) {
       console.error("Error sending message:", error);
       setIsTyping(false);
-      // Remove the user message if there was an error
-      setMessages(prev => prev.slice(0, -1));
+      // Remove the user message if there was an error (only if it was added)
+      if (text.trim() !== '') {
+        setMessages(prev => prev.slice(0, -1));
+      }
       throw error; // Re-throw to let the calling component handle it
     } finally {
       setIsLoading(false);
@@ -263,31 +270,16 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       console.log('✅ [SUCCESS] Session created:', session);
       setCurrentSessionId(session.id);
       
-      const greeting: ChatMessage = {
-        id: Date.now().toString(), // Temporary ID for UI
-        session_id: session.id,
-        sender: 'amara',
-        message_text: 'Hello, I am Amara. How are you feeling today?',
-        message_type: 'text',
-        created_at: new Date().toISOString(),
-        isAnimating: true,
-      };
-
-      setMessages([greeting]);
-      await db.messages.create(greeting); // db.messages.create should expect this shape
+      // Instead of inserting the greeting directly, trigger the chat-llm function
+      // to generate and store the initial greeting message
+      await sendMessage('', 'text'); // Empty message will trigger initial greeting
       
-      // Remove animation flag after animation completes
-      setTimeout(() => {
-        setMessages(prev => prev.map(msg => 
-          msg.id === greeting.id ? { ...msg, isAnimating: false } : msg
-        ));
-      }, 600);
     } catch (error) {
       console.error("🚨 [ERROR] Error starting new session:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [userData]);
+  }, [userData, sendMessage]);
 
   const value = useMemo(() => ({
     messages,
