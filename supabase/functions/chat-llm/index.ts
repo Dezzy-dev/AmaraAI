@@ -32,7 +32,7 @@ const LLM_CONFIGS = {
   primary: {
     name: 'Groq Llama',
     url: 'https://api.groq.com/openai/v1/chat/completions',
-    model: 'llama3-8b-8192',
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     apiKeyEnv: 'GROQ_API_KEY'
   },
   fallback: {
