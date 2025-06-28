@@ -90,7 +90,7 @@ serve(async (req) => {
 
         currentUsage = {
           messagesUsed: profile.daily_messages_used || 0,
-          voiceNotesUsed: profile.voice_notes_used || 0,
+          voiceNotesUsed: profile.voice_notes_used ? 1 : 0, // Convert boolean to number
           maxMessages: getMaxMessagesForPlan(planToUse, isJudge),
           maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse, isJudge)
         }
@@ -162,7 +162,7 @@ serve(async (req) => {
       if (anonymousDevice) {
         currentUsage = {
           messagesUsed: anonymousDevice.messages_today || 0,
-          voiceNotesUsed: anonymousDevice.voice_notes_used || 0,
+          voiceNotesUsed: anonymousDevice.voice_notes_used ? 1 : 0, // Convert boolean to number
           maxMessages: 3,
           maxVoiceNotes: 0
         }
@@ -455,7 +455,7 @@ Compose a single, emotionally attuned message in response to the current user in
       if (isAuthenticated && userProfile) {
         const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
         if (messageType === 'voice') {
-          updates['voice_notes_used'] = (userProfile.voice_notes_used || 0) + 1;
+          updates['voice_notes_used'] = (userProfile.voice_notes_used ? 1 : 0) + 1 > 0; // Convert to boolean
         }
         const { error } = await supabase
           .from('user_profiles')
@@ -468,7 +468,7 @@ Compose a single, emotionally attuned message in response to the current user in
         if (anonymousDevice) {
           const updates = { messages_today: (anonymousDevice.messages_today || 0) + 1 };
           if (messageType === 'voice') {
-            updates['voice_notes_used'] = (anonymousDevice.voice_notes_used || 0) + 1;
+            updates['voice_notes_used'] = (anonymousDevice.voice_notes_used ? 1 : 0) + 1 > 0; // Convert to boolean
           }
           const { error } = await supabase
             .from('anonymous_devices')
@@ -480,7 +480,7 @@ Compose a single, emotionally attuned message in response to the current user in
         } else {
           const { error } = await supabase
             .from('anonymous_devices')
-            .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' ? 1 : 0 })
+            .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' })
           if (error) {
             console.error('Error creating new device record:', error)
           }

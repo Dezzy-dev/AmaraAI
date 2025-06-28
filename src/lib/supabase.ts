@@ -219,9 +219,15 @@ export const db = {
     },
 
     async update(deviceId: string, updates: Partial<AnonymousDevice>): Promise<AnonymousDevice> {
+      // Ensure voice_notes_used is properly converted to boolean
+      const processedUpdates = { ...updates };
+      if ('voice_notes_used' in processedUpdates && typeof processedUpdates.voice_notes_used === 'number') {
+        processedUpdates.voice_notes_used = processedUpdates.voice_notes_used > 0;
+      }
+
       const { data, error } = await supabase
         .from('anonymous_devices')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update({ ...processedUpdates, updated_at: new Date().toISOString() })
         .eq('device_id', deviceId)
         .select()
         .single();

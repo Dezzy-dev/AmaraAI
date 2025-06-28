@@ -226,7 +226,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           validDeviceId = device.device_id;
         }
       } catch (error) {
-        // Device record not found, will create new one
+        console.log('Device record not found, will create new one');
       }
 
       // If device doesn't exist, create it
@@ -237,14 +237,19 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             validDeviceId = device.device_id;
           }
         } catch (createError: unknown) {
+          console.log('Error creating device, attempting to fetch existing:', createError);
+          
           // If creation fails due to duplicate key, try to fetch again
           if (createError instanceof Error && createError.message.includes('23505')) {
             try {
               device = await db.anonymousDevices.get(deviceId);
               if (device) {
                 validDeviceId = device.device_id;
+                console.log('Successfully retrieved existing device after duplicate key error');
               }
             } catch (fetchError) {
+              console.error('Failed to fetch existing device after duplicate key error:', fetchError);
+              
               // Fall back to creating a new device ID
               const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
               localStorage.setItem('amara_device_id', newDeviceId);
@@ -253,13 +258,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
                 device = await db.anonymousDevices.create(newDeviceId);
                 if (device) {
                   validDeviceId = device.device_id;
+                  console.log('Successfully created device with new ID');
                 }
               } catch (finalError) {
                 console.error('Final device creation attempt failed:', finalError);
+                // Continue without database persistence
               }
             }
           } else {
             console.error('Non-duplicate key error during device creation:', createError);
+            // Continue without database persistence
           }
         }
       }
@@ -275,7 +283,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         } catch (resetError) {
           console.error('Failed to reset daily limits:', resetError);
           // Continue with existing device data if reset fails
-          validDeviceId = device.device_id;
+          if (device) {
+            validDeviceId = device.device_id;
+          }
         }
       }
 
@@ -287,9 +297,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         currentPlan: 'freemium' as const,
         deviceId: validDeviceId || deviceId,
         dailyMessagesUsed: device?.messages_today || 0,
-        voiceNotesUsed: typeof device?.voice_notes_used === 'number'
-          ? device.voice_notes_used
-          : 0,
+        voiceNotesUsed: device?.voice_notes_used ? 1 : 0, // Convert boolean to number
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
         createdAt: device?.created_at || undefined,
         hasEverTrialed: false,
@@ -397,7 +405,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(prev => prev ? {
             ...prev,
             dailyMessagesUsed: profile.daily_messages_used || 0,
-            voiceNotesUsed: profile.voice_notes_used || 0,
+            voiceNotesUsed: profile.voice_notes_used ? 1 : 0, // Convert boolean to number
           } : null);
         }
       } else if (userData.deviceId) {
@@ -407,9 +415,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           setUserData(prev => prev ? {
             ...prev,
             dailyMessagesUsed: device.messages_today || 0,
-            voiceNotesUsed: typeof device.voice_notes_used === 'number'
-              ? device.voice_notes_used
-              : 0,
+            voiceNotesUsed: device.voice_notes_used ? 1 : 0, // Convert boolean to number
           } : null);
         }
       }
