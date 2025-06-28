@@ -477,7 +477,7 @@ function AppContent() {
         return (
           <>
             <Navigation onSignUp={handleSignUp} onSignIn={handleSignIn} />
-            <Hero onStartTalking={handleStartTalking} onSignUp={handleSignUp} />
+            <Hero onStartTalking={handleStartTalking} onSignUp={handleSignUp} onSignIn={handleSignIn} />
             <Brands />
             <Features />
             <Unique />
