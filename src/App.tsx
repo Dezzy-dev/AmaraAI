@@ -60,6 +60,13 @@ function AppContent() {
   };
 
   const handleBack = () => {
+    // Fix for settings page back navigation
+    if (view === 'settings' && userData?.isAuthenticated) {
+      setView('dashboard');
+      setPreviousView(null);
+      return;
+    }
+    
     if (previousView) {
       setView(previousView);
       setPreviousView(null);
