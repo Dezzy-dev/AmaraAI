@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useUser } from '../contexts/UserContext';
+import useUser from '../contexts/useUser';
 import { useChat } from '../contexts/ChatContext';
 import LoadingScreen from './LoadingScreen';
-import { Send, Mic, ArrowLeft, Bot, User, Moon, Sun } from 'lucide-react';
+import { Send, Mic, ArrowLeft, Bot, User, Moon, Sun, Lock } from 'lucide-react';
 import TypingIndicator from './TypingIndicator';
 import AdvancedVoiceRecorder from './AdvancedVoiceRecorder';
 import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { useDarkMode } from '../hooks/useDarkMode';
+import SignUpNudge from './SignUpNudge';
+import UpgradeModal from './UpgradeModal';
 import amaraAvatar from '../assets/amara_avatar.png';
+import { toast } from 'react-hot-toast';
 
 interface TherapySessionProps {
   onEndSession: () => void;
@@ -16,24 +19,24 @@ interface TherapySessionProps {
   onChooseFreemium: () => void;
 }
 
-const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp }) => {
-  const { userData, limits, isLoading: isUserLoading } = useUser();
+type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
+
+const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp, onSignIn, onChooseFreemium }) => {
+  const { userData, limits, isLoading: isUserLoading, isAnonymousUser, refreshUserDataAfterChat } = useUser();
   const { messages, isLoading: isChatLoading, isTyping, sendMessage, sendVoiceMessage, startNewSession } = useChat();
   const [isDark, toggleDarkMode] = useDarkMode();
 
   const [currentMessage, setCurrentMessage] = useState('');
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text');
+  const [showUpgradeModal, setShowUpgradeModal] = useState<UpgradeReason | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializeSession = async () => {
       if (messages.length === 0 && userData) {
-        console.log('userData before session:', userData);
         if (userData.isAuthenticated) {
-          console.log('Calling startNewSession with:', userData.id, undefined);
           await startNewSession(userData.id, undefined);
         } else {
-          console.log('Calling startNewSession with:', undefined, userData.deviceId);
           await startNewSession(undefined, userData.deviceId);
         }
       }
@@ -48,32 +51,65 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
   }, [messages, isTyping]);
 
   const handleSendMessage = async () => {
-    if (currentMessage.trim() === '' || (limits.hasLimits && limits.messagesRemaining <= 0)) {
-      if (limits.hasLimits && limits.messagesRemaining <= 0) {
-        onSignUp('message_limit');
-      }
-      return;
-    }
+    if (currentMessage.trim() === '') return;
+    
     const text = currentMessage.trim();
     setCurrentMessage('');
-    await sendMessage(text, 'text');
+    
+    try {
+      await sendMessage(text, 'text');
+      // Refresh user data after sending a message
+      await refreshUserDataAfterChat();
+    } catch (error: any) {
+      if (error.message === 'Daily message limit exceeded') {
+        setShowUpgradeModal('message_limit');
+      } else {
+        console.error('Error sending message:', error);
+      }
+    }
   };
 
   const handleSendVoiceMessage = async (blob: Blob, duration: number) => {
-    if (limits.hasLimits && limits.voiceNotesRemaining <= 0) {
-      onSignUp('voice_limit');
-      return;
-    }
-    
     try {
       await sendVoiceMessage(blob, duration);
       setInputMode('text');
-    } catch (error) {
-      console.error('Error sending voice message:', error);
-      // Handle error appropriately
+      await refreshUserDataAfterChat();
+    } catch (error: any) {
+      if (error.message === 'Voice note limit exceeded') {
+        if (userData?.currentPlan === 'freemium') {
+          setShowUpgradeModal('voice_limit');
+        } else {
+          toast.error('You have reached your daily voice note limit. Try again tomorrow.', {
+            duration: 4000,
+            position: 'top-right',
+          });
+        }
+      } else {
+        console.error('Error sending voice message:', error);
+      }
     }
   };
-  
+
+  const handleUpgradeModalClose = () => setShowUpgradeModal(null);
+  const handleUpgradeModalSignUp = (path: 'trial_path' | 'freemium_path') => {
+    setShowUpgradeModal(null);
+    // You can call onSignUp or onChooseFreemium here if needed
+    if (path === 'trial_path') {
+      onSignUp('message_limit');
+    } else {
+      onChooseFreemium();
+    }
+  };
+
+  // Custom end session handler
+  const handleEndSession = () => {
+    if (userData?.isAuthenticated) {
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+    } else {
+      onEndSession();
+    }
+  };
+
   if (isUserLoading || (messages.length === 0 && !isUserLoading && !isChatLoading)) {
     return <LoadingScreen onComplete={() => {}} userName={userData?.name} />;
   }
@@ -90,10 +126,21 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
     </div>
   );
 
+  const isAnonymous = isAnonymousUser();
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 font-sans">
+      {/* End Session Button */}
+      <div className="flex justify-end p-2">
+        <button
+          onClick={handleEndSession}
+          className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm"
+        >
+          End Session
+        </button>
+      </div>
       <header className="flex items-center justify-between p-3 bg-white dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700/60 backdrop-blur-sm sticky top-0 z-10">
-        <button onClick={onEndSession} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+        <button onClick={handleEndSession} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
           <ArrowLeft size={20} />
         </button>
         <div className="text-center">
@@ -102,7 +149,12 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
         </div>
         <div className="flex items-center space-x-2">
           {limits.hasLimits && (
-            <div className="flex items-center space-x-2 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50 px-3 py-1.5 rounded-full">
+            <div className={`flex items-center space-x-2 text-xs font-medium px-3 py-1.5 rounded-full ${
+              isAnonymous 
+                ? 'text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700' 
+                : 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700/50'
+            }`}>
+              {isAnonymous && <Lock size={12} className="mr-1" />}
               <span>MSG: {limits.messagesRemaining}/{limits.maxMessages}</span>
               <span>VOICE: {limits.voiceNotesRemaining}/{limits.maxVoiceNotes}</span>
             </div>
@@ -161,15 +213,33 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-              placeholder="Share what's on your mind..."
-              className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 dark:focus:ring-purple-500 transition-shadow"
+              placeholder={
+                isAnonymous && limits.messagesRemaining <= 0 
+                  ? "Message limit reached - Sign up to continue" 
+                  : "Share what's on your mind..."
+              }
+              className="w-full px-4 py-2.5 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-400 dark:focus:ring-purple-500 transition-shadow disabled:opacity-50"
               disabled={limits.hasLimits && limits.messagesRemaining <= 0}
             />
-            <button onClick={() => setInputMode('voice')} className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              disabled={limits.hasLimits && limits.voiceNotesRemaining <= 0}>
+            <button 
+              onClick={() => setInputMode('voice')} 
+              className="p-3 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={limits.hasLimits && limits.voiceNotesRemaining <= 0}
+              title={
+                isAnonymous 
+                  ? "Voice notes not available for anonymous users" 
+                  : limits.voiceNotesRemaining <= 0 
+                    ? "Voice note limit reached" 
+                    : "Send voice message"
+              }
+            >
               <Mic size={20} />
             </button>
-            <button onClick={handleSendMessage} disabled={!currentMessage.trim()} className="p-3 rounded-full bg-purple-600 text-white hover:bg-purple-700 disabled:bg-purple-300 dark:disabled:bg-purple-800 disabled:cursor-not-allowed transition-colors">
+            <button 
+              onClick={handleSendMessage} 
+              disabled={!currentMessage.trim() || (limits.hasLimits && limits.messagesRemaining <= 0)} 
+              className="p-3 rounded-full bg-purple-600 text-white hover:bg-purple-700 disabled:bg-purple-300 dark:disabled:bg-purple-800 disabled:cursor-not-allowed transition-colors"
+            >
               <Send size={20} />
             </button>
           </div>
@@ -180,6 +250,24 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp 
           />
         )}
       </footer>
+
+      {/* Show sign-up nudge for anonymous users */}
+      {isAnonymous && (
+        <SignUpNudge
+          onSignUp={() => setShowUpgradeModal('message_limit')}
+          onSignIn={onSignIn}
+          onChooseFreemium={onChooseFreemium}
+        />
+      )}
+
+      {/* Show UpgradeModal when limit is hit */}
+      {showUpgradeModal && (
+        <UpgradeModal
+          onClose={handleUpgradeModalClose}
+          onSignUp={handleUpgradeModalSignUp}
+          reason={showUpgradeModal}
+        />
+      )}
     </div>
   );
 };

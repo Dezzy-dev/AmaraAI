@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { db, Message, supabase } from '../lib/supabase';
+import useUser from './useUser';
 
 export interface ChatContextType {
   messages: ChatMessage[];
@@ -38,6 +39,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const { userData } = useUser();
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -88,9 +90,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       
       setMessages(prev => [...prev, userMessage]);
 
-      // Get user/device ID from localStorage or context
-      const userId = localStorage.getItem('amara_user_id');
-      const deviceId = localStorage.getItem('amara_device_id');
+      // Get user/device ID from userData
+      const userId = userData?.id;
+      const deviceId = userData?.deviceId;
 
       // Step 1: Wait 1 second before showing typing indicator
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -152,10 +154,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       setIsTyping(false);
       // Remove the user message if there was an error
       setMessages(prev => prev.slice(0, -1));
+      throw error; // Re-throw to let the calling component handle it
     } finally {
       setIsLoading(false);
     }
-  }, [currentSessionId]);
+  }, [currentSessionId, userData]);
 
   const sendVoiceMessage = useCallback(async (audioBlob: Blob, duration: number) => {
     if (!currentSessionId) return;
@@ -194,8 +197,8 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         },
         body: JSON.stringify({
           filePath: uploadData.path, // Use the path from the upload data
-          userId: localStorage.getItem('amara_user_id') || undefined,
-          deviceId: localStorage.getItem('amara_device_id') || undefined
+          userId: userData?.id || undefined,
+          deviceId: userData?.deviceId || undefined
         })
       });
 
@@ -211,10 +214,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
     } catch (error) {
       console.error("Error sending voice message:", error);
+      throw error; // Re-throw to let the calling component handle it
     } finally {
       setIsLoading(false);
     }
-  }, [currentSessionId, sendMessage]);
+  }, [currentSessionId, sendMessage, userData]);
 
   const startNewSession = useCallback(async (userId?: string, deviceId?: string) => {
     setIsLoading(true);

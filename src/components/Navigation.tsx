@@ -29,9 +29,8 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignI
     }
   };
 
-  const handleStartTalking = () => {
-    // You can replace this with your navigation logic
-    console.log('Navigate to onboarding');
+  const handleOnboardingClick = () => {
+    onNavigateToOnboarding();
   };
 
   const navItems = [
@@ -92,7 +91,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignI
             )}
             
             <button
-              onClick={handleStartTalking}
+              onClick={handleOnboardingClick}
               className="bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-4 xl:px-6 py-2 xl:py-2.5 rounded-full font-medium transition-all duration-200 transform hover:scale-105 shadow-sm hover:shadow-md text-sm xl:text-base whitespace-nowrap opacity-0 animate-fade-in-up animate-delay-500"
             >
               Start Talking
@@ -158,7 +157,7 @@ const Navigation: React.FC<NavigationProps> = ({ isDark, toggleDarkMode, onSignI
               )}
               
               <button
-                onClick={handleStartTalking}
+                onClick={handleOnboardingClick}
                 className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 mt-4 opacity-0 animate-fade-in-up animate-delay-500"
               >
                 Start Talking

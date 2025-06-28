@@ -84,12 +84,25 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     let mounted = true;
     setIsLoading(true);
 
+    // Restore session from Supabase on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        loadAuthenticatedUser(session.user).finally(() => {
+          if (mounted) setIsLoading(false);
+        });
+      } else {
+        loadAnonymousUser().finally(() => {
+          if (mounted) setIsLoading(false);
+        });
+      }
+    }).catch(() => {
+      if (mounted) setIsLoading(false);
+    });
+
     // The onAuthStateChange listener will handle all auth events.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-
-      // We only care about the initial session establishment and SIGNED_IN events.
-      // SIGNED_OUT is handled manually by the handleLogout function in App.tsx.
       if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
         try {
           if (session?.user) {
@@ -106,9 +119,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           }
         }
       } else if (event === 'SIGNED_OUT') {
-        // When logout happens, App.tsx handles state clearing and navigation.
-        // The context will be re-initialized with an anonymous user on the next page load
-        // or when the user signs in again. Here, we just ensure loading is false.
         setIsLoading(false);
       }
     });
@@ -123,50 +133,61 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     let profile: UserProfile | null = null;
     try {
       profile = await db.profiles.get(user.id);
-
-      // Create profile if it doesn't exist
       if (!profile) {
-        console.log(`No profile found for user ${user.id}, creating a new one.`);
         const name = user.user_metadata?.name || user.email?.split('@')[0] || 'User';
         try {
           profile = await db.profiles.create(user.id, user.email!, name);
-        } catch (createError: any) {
-          console.error('Error creating user profile:', createError);
-          // If profile creation fails, we cannot proceed.
-          // Log out the user to prevent an inconsistent state.
+        } catch (createError: unknown) {
           await supabase.auth.signOut();
           return; 
         }
       }
-    } catch (error: any) {
-      console.error('Error loading or creating authenticated user profile:', error);
-      // If we can't get or create a profile, something is wrong. Log out.
+    } catch (error: unknown) {
       await supabase.auth.signOut();
       return;
     }
 
-    // If, after all attempts, the profile is still not available, we can't continue.
     if (!profile) {
-      console.error('Failed to load or create a user profile. Aborting sign-in.');
-      await supabase.auth.signOut();
       return;
     }
+
+    // --- TRIAL EXPIRY LOGIC ---
+    let currentPlan = profile.current_plan;
+    let trialStartDate = profile.trial_start_date;
+    let trialEndDate = profile.trial_end_date;
+    const now = new Date();
+    if ((currentPlan === 'monthly_trial' || currentPlan === 'yearly_trial') && trialEndDate) {
+      const trialEnd = new Date(trialEndDate);
+      if (now > trialEnd) {
+        // Trial expired, revert to freemium
+        currentPlan = 'freemium';
+        trialStartDate = undefined;
+        trialEndDate = undefined;
+        // Update in DB
+        await db.profiles.update(profile.id, {
+          current_plan: 'freemium',
+          trial_start_date: null,
+          trial_end_date: null
+        });
+      }
+    }
+    // --- END TRIAL EXPIRY LOGIC ---
 
     setUserData({
       id: profile.id,
       name: profile.name,
-      email: profile.email,
-      profile_image_url: profile.profile_image_url,
+      email: profile.email ?? undefined,
+      profile_image_url: profile.profile_image_url ?? undefined,
       isAuthenticated: true,
-      currentPlan: profile.current_plan,
-      trialStartDate: profile.trial_start_date,
-      trialEndDate: profile.trial_end_date,
-      createdAt: profile.created_at,
+      currentPlan,
+      trialStartDate: trialStartDate || undefined,
+      trialEndDate: trialEndDate || undefined,
+      createdAt: profile.created_at || undefined,
       dailyMessagesUsed: 0, // Reset for authenticated users daily
       voiceNotesUsed: 0,
       lastResetDate: new Date().toISOString().split('T')[0],
-      subscription_status: profile.subscription_status,
-      trial_ends_at: profile.trial_ends_at
+      subscription_status: profile.subscription_status ?? null,
+      trial_ends_at: profile.trial_ends_at ?? null
     });
   };
 
@@ -181,7 +202,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const deviceId = generateDeviceId();
       let device: AnonymousDevice | null = null;
       let validDeviceId: string | undefined = undefined;
-      
+
       // First, try to get existing device record
       try {
         device = await db.anonymousDevices.get(deviceId);
@@ -189,9 +210,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           validDeviceId = device.device_id;
         }
       } catch (error) {
-        console.log('Device record not found, will create new one');
+        // Device record not found, will create new one
       }
-      
+
       // If device doesn't exist, create it
       if (!device) {
         try {
@@ -199,17 +220,15 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           if (device) {
             validDeviceId = device.device_id;
           }
-        } catch (createError: any) {
+        } catch (createError: unknown) {
           // If creation fails due to duplicate key, try to fetch again
-          if (createError.code === '23505') {
-            console.log('Device already exists (race condition), fetching existing record');
+          if (createError instanceof Error && createError.message.includes('23505')) {
             try {
               device = await db.anonymousDevices.get(deviceId);
               if (device) {
                 validDeviceId = device.device_id;
               }
             } catch (fetchError) {
-              console.error('Failed to fetch existing device after duplicate key error:', fetchError);
               // Fall back to creating a new device ID
               const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
               localStorage.setItem('amara_device_id', newDeviceId);
@@ -219,55 +238,51 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
                   validDeviceId = device.device_id;
                 }
               } catch (finalError) {
-                console.error('Failed to create fallback device:', finalError);
-                // Don't set validDeviceId, will fall back to local-only mode
               }
             }
           } else {
-            console.error('Failed to create device record:', createError);
-            // Don't set validDeviceId, will fall back to local-only mode
           }
         }
-      } else {
-        // Check if we need to reset daily limits
-        const today = new Date().toISOString().split('T')[0];
-        if (device.last_active_date !== today) {
-          try {
-            device = await db.anonymousDevices.resetDailyLimits(deviceId);
-            if (device) {
-              validDeviceId = device.device_id;
-            }
-          } catch (resetError) {
-            console.error('Failed to reset daily limits:', resetError);
-            // Continue with existing device data if reset fails
+      }
+
+      // Check if we need to reset daily limits
+      const today = new Date().toISOString().split('T')[0];
+      if (device && device.last_active_date !== today) {
+        try {
+          device = await db.anonymousDevices.resetDailyLimits(deviceId);
+          if (device) {
             validDeviceId = device.device_id;
           }
+        } catch (resetError) {
+          // Continue with existing device data if reset fails
+          validDeviceId = device.device_id;
         }
       }
 
       // Set user data - always include deviceId (fallback to local if needed)
       setUserData({
-        id: anonUuid, // Use UUID for all session/message operations
+        id: anonUuid,
         name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: validDeviceId || deviceId, // Always set deviceId, fallback to generated
+        deviceId: validDeviceId || deviceId,
         dailyMessagesUsed: device?.messages_today || 0,
-        voiceNotesUsed: device?.voice_notes_used ? 1 : 0,
+        voiceNotesUsed: typeof device?.voice_notes_used === 'number'
+          ? device.voice_notes_used
+          : 0,
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
-        createdAt: device?.created_at || new Date().toISOString(),
+        createdAt: device?.created_at || undefined,
         subscription_status: null,
         trial_ends_at: null
       });
     } catch (error) {
-      console.error('Error loading anonymous user:', error);
       // Fallback to basic anonymous user without database persistence
       setUserData({
-        id: localStorage.getItem('amara_anon_uuid') || crypto.randomUUID(), // fallback
+        id: localStorage.getItem('amara_anon_uuid') || crypto.randomUUID(),
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium',
-        deviceId: localStorage.getItem('amara_device_id') || 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(), // Always set deviceId
+        deviceId: localStorage.getItem('amara_device_id') || 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(),
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
@@ -308,15 +323,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (Object.keys(deviceUpdates).length > 0) {
           try {
             await db.anonymousDevices.update(userData.deviceId, deviceUpdates);
-          } catch (updateError: any) {
-            console.warn('Error updating anonymous device (switching to local-only mode):', updateError);
-            
+          } catch (updateError: unknown) {
             // If the record doesn't exist or there's an RLS issue, remove deviceId from userData
             // This prevents future database update attempts and switches to local-only mode
-            if (updateError.message?.includes('0 rows') || 
-                updateError.code === 'PGRST116' || 
-                updateError.code === '42501') {
-              console.log('Device record no longer exists or access denied, switching to local-only mode');
+            if (updateError instanceof Error && (updateError.message.includes('0 rows') || 
+                updateError.message.includes('PGRST116') || 
+                updateError.message.includes('42501'))) {
               setUserData(prev => prev ? { ...prev, deviceId: undefined } : null);
             }
           }
@@ -333,42 +345,71 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setSupabaseUser(null);
   };
 
-  const refreshUserData = async () => {
+  const refreshUserData = useCallback(async () => {
     if (supabaseUser) {
       await loadAuthenticatedUser(supabaseUser);
     } else {
       await loadAnonymousUser();
     }
-  };
+  }, [supabaseUser]);
+
+  // New method to refresh user data after chat interactions
+  const refreshUserDataAfterChat = useCallback(async () => {
+    if (!userData) return;
+    try {
+      if (userData.isAuthenticated && userData.id) {
+        // Refresh authenticated user data
+        const profile = await db.profiles.get(userData.id);
+        if (profile) {
+          setUserData(prev => prev ? {
+            ...prev,
+            dailyMessagesUsed: profile.daily_messages_used || 0,
+            voiceNotesUsed: profile.voice_notes_used || 0,
+          } : null);
+        }
+      } else if (userData.deviceId) {
+        // Refresh anonymous device data
+        const device = await db.anonymousDevices.get(userData.deviceId);
+        if (device) {
+          setUserData(prev => prev ? {
+            ...prev,
+            dailyMessagesUsed: device.messages_today || 0,
+            voiceNotesUsed: typeof device.voice_notes_used === 'number'
+              ? device.voice_notes_used
+              : 0,
+          } : null);
+        }
+      }
+    } catch (error) {
+      console.error('Error refreshing user data after chat:', error);
+    }
+  }, [userData]);
 
   const incrementMessageCount = useCallback(async () => {
     if (!userData) return;
-    // The Edge Functions will handle database updates for usage tracking
-    // This method now only updates local state for immediate UI feedback
     await updateUserData({
       dailyMessagesUsed: (userData.dailyMessagesUsed || 0) + 1,
     });
-  }, [userData, updateUserData]);
+    await refreshUserDataAfterChat();
+  }, [userData, updateUserData, refreshUserDataAfterChat]);
 
   const incrementVoiceNoteCount = useCallback(async () => {
     if (!userData) return;
-    // The Edge Functions will handle database updates for usage tracking
-    // This method now only updates local state for immediate UI feedback
     await updateUserData({
       voiceNotesUsed: (userData.voiceNotesUsed || 0) + 1,
     });
-  }, [userData, updateUserData]);
+    await refreshUserDataAfterChat();
+  }, [userData, updateUserData, refreshUserDataAfterChat]);
 
-  const resetDailyLimits = async () => {
+  const resetDailyLimits = useCallback(async () => {
     if (!userData) return;
-
     const today = new Date().toISOString().split('T')[0];
     await updateUserData({
       dailyMessagesUsed: 0,
       voiceNotesUsed: 0,
       lastResetDate: today
     });
-  };
+  }, [userData, updateUserData]);
 
   const recordMessage = useCallback(async () => {
     if (!userData) return;
@@ -382,55 +423,22 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     await updateUserData({ voiceNotesUsed: newCount });
   }, [userData, updateUserData]);
 
-  // New method to refresh user data after chat interactions
-  const refreshUserDataAfterChat = useCallback(async () => {
-    if (!userData) return;
-    
-    try {
-      if (userData.isAuthenticated && userData.id) {
-        // Refresh authenticated user data
-        const profile = await db.profiles.get(userData.id);
-        if (profile) {
-          setUserData(prev => prev ? {
-            ...prev,
-            dailyMessagesUsed: profile.daily_messages_used || 0,
-            voiceNotesUsed: profile.voice_notes_used ? 1 : 0,
-          } : null);
-        }
-      } else if (userData.deviceId) {
-        // Refresh anonymous device data
-        const device = await db.anonymousDevices.get(userData.deviceId);
-        if (device) {
-          setUserData(prev => prev ? {
-            ...prev,
-            dailyMessagesUsed: device.messages_today || 0,
-            voiceNotesUsed: device.voice_notes_used ? 1 : 0,
-          } : null);
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing user data after chat:', error);
-    }
-  }, [userData]);
-
   const value = useMemo(() => {
-    const isAuth = !!supabaseUser;
-    const isPremium = userData?.subscription_status === 'active';
+    const isPremium = userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
     const isTrial = userData?.subscription_status === 'trialing';
-    const isFreemium = !isPremium && !isTrial && userData?.id;
-    const isAnonymous = !userData?.id;
-
+    const isAnonymous = userData?.isAuthenticated === false;
+    const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium';
     let limits: UserLimits;
-
     if (isPremium || isTrial) {
+      // Premium and trial users: unlimited messages, but 50 voice notes per day (match backend)
       limits = {
-        hasLimits: false,
+        hasLimits: true, // Only voice notes are limited
         maxMessages: Infinity,
         messagesUsed: userData?.dailyMessagesUsed || 0,
         messagesRemaining: Infinity,
-        maxVoiceNotes: Infinity,
+        maxVoiceNotes: 50,
         voiceNotesUsed: userData?.voiceNotesUsed || 0,
-        voiceNotesRemaining: Infinity,
+        voiceNotesRemaining: Math.max(0, 50 - (userData?.voiceNotesUsed || 0)),
         resetsOn: 'Never'
       };
     } else if (isFreemium) {
@@ -444,38 +452,50 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         voiceNotesRemaining: Math.max(0, 1 - (userData?.voiceNotesUsed || 0)),
         resetsOn: userData?.lastResetDate || today
       };
-    } else { // Anonymous
+    } else if (isAnonymous) {
       limits = {
         hasLimits: true,
-        maxMessages: 5,
+        maxMessages: 3,
         messagesUsed: userData?.dailyMessagesUsed || 0,
-        messagesRemaining: Math.max(0, 5 - (userData?.dailyMessagesUsed || 0)),
-        maxVoiceNotes: 0, // No voice notes for anonymous users
+        messagesRemaining: Math.max(0, 3 - (userData?.dailyMessagesUsed || 0)),
+        maxVoiceNotes: 0,
+        voiceNotesUsed: 0,
+        voiceNotesRemaining: 0,
+        resetsOn: userData?.lastResetDate || today
+      };
+    } else {
+      limits = {
+        hasLimits: true,
+        maxMessages: 3,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Math.max(0, 3 - (userData?.dailyMessagesUsed || 0)),
+        maxVoiceNotes: 0,
         voiceNotesUsed: 0,
         voiceNotesRemaining: 0,
         resetsOn: userData?.lastResetDate || today
       };
     }
-
     return {
-      user: supabaseUser,
       userData,
+      supabaseUser,
       setUserData,
       updateUserData,
       isLoading,
       clearUserData,
+      refreshUserData,
       limits,
       recordMessage,
       recordVoiceNote,
       incrementMessageCount,
       incrementVoiceNoteCount,
+      resetDailyLimits,
       isPremiumUser: () => isPremium,
       isFreemiumUser: () => isFreemium,
       isAnonymousUser: () => isAnonymous,
       isActiveTrialUser: () => isTrial,
       refreshUserDataAfterChat,
     };
-  }, [supabaseUser, userData, isLoading, recordMessage, recordVoiceNote, incrementMessageCount, incrementVoiceNoteCount, refreshUserDataAfterChat]);
+  }, [supabaseUser, userData, isLoading, recordMessage, recordVoiceNote, incrementMessageCount, incrementVoiceNoteCount, refreshUserDataAfterChat, refreshUserData, resetDailyLimits, today, updateUserData]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
@@ -487,3 +507,5 @@ export const useUser = (): UserContextType => {
   }
   return context;
 };
+
+export { UserContext };

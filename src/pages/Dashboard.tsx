@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   MessageCircle,
@@ -30,45 +29,19 @@ import {
   Download,
   Trash2,
   Eye,
-  Lock
+  Lock,
+  RefreshCcw
 } from 'lucide-react';
-import { useUser, UserData } from '../contexts/UserContext';
+import useUser from '../contexts/useUser';
+import { useDarkMode } from '../hooks/useDarkMode';
+import { UserData } from '../contexts/UserContext';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
-import WelcomeModal from './WelcomeModal';
-import SessionHistory from './SessionHistory';
+import WelcomeModal from '../components/WelcomeModal';
+import SessionHistory from '../components/SessionHistory';
 import { TherapySession as SessionData, JournalEntry, MoodLog } from '../lib/supabase';
+import { supabase } from '../lib/supabase';
 
-interface DashboardProps {
-  user: UserData;
-  onStartNewSession: () => void;
-  onResumeSession: () => void;
-  onUpgrade: () => void;
-  onManageSubscription: () => void;
-  onLogMood: (mood: string) => void;
-  onQuickJournal: (entry: string) => void;
-  onGetAIPrompt: () => void;
-  onNavigateToSettings: () => void;
-  onLogout: () => void;
-  onViewSessionHistory: (sessionId: string) => void;
-  isDark: boolean;
-  toggleDarkMode: () => void;
-}
-
-const Dashboard: React.FC<DashboardProps> = ({
-  user,
-  onStartNewSession,
-  onResumeSession,
-  onUpgrade,
-  onManageSubscription,
-  onLogMood,
-  onQuickJournal,
-  onGetAIPrompt,
-  onNavigateToSettings,
-  onLogout,
-  onViewSessionHistory,
-  isDark,
-  toggleDarkMode
-}) => {
+const Dashboard: React.FC = () => {
   const moods = [
     { emoji: '😊', label: 'Happy', value: 'happy' },
     { emoji: '😐', label: 'Neutral', value: 'neutral' },
@@ -89,7 +62,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [showSessionHistory, setShowSessionHistory] = useState(false);
   
-  const { userData } = useUser();
+  const { userData, refreshUserData, clearUserData } = useUser();
+  const [isDark, toggleDarkMode] = useDarkMode();
+  if (!userData) return null;
 
   useEffect(() => {
     setIsVisible(true);
@@ -99,28 +74,28 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   useEffect(() => {
     // Only show for new users who haven't seen the tour
-    if (user && localStorage.getItem('amaraUserTourShown') !== 'true') {
+    if (userData && localStorage.getItem('amaraUserTourShown') !== 'true') {
       setShowWelcome(true);
     }
-  }, [user]);
+  }, [userData]);
 
   // Load session history when component mounts or user changes
   useEffect(() => {
-    if (user && user.isAuthenticated && user.id && !isFreemiumUser()) {
+    if (userData && userData.isAuthenticated && userData.id && !isFreemiumUser()) {
       loadSessionHistory();
     }
-  }, [user]);
+  }, [userData]);
 
   // Load session history from database
   const loadSessionHistory = async () => {
     // Only load session history for trial and premium users
-    if (!user.id || isFreemiumUser()) return;
+    if (!userData.id || isFreemiumUser()) return;
     
     setIsLoadingSessions(true);
     try {
       // Import the database functions
       const { db } = await import('../lib/supabase');
-      const userSessions = await db.sessions.getByUser(user.id);
+      const userSessions = await db.sessions.getByUser(userData.id);
       setSessions(userSessions || []);
     } catch (error) {
       console.error('Error loading session history:', error);
@@ -133,7 +108,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Clear all session history
   const handleClearSessionHistory = async () => {
-    if (!user.id) return;
+    if (!userData.id) return;
     
     if (!confirm('Are you sure you want to clear all your session history? This action cannot be undone.')) {
       return;
@@ -145,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       const { error } = await supabase
         .from('therapy_sessions')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', userData.id);
       
       if (error) throw error;
       
@@ -173,7 +148,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   // Handle session selection
   const handleSelectSession = (sessionId: string) => {
-    onViewSessionHistory(sessionId);
+    // Implement the logic to handle session selection
   };
 
   // Helper functions
@@ -185,34 +160,34 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const getTrialDaysRemaining = () => {
-    if (!user.trialEndDate) return 0;
-    const endDate = new Date(user.trialEndDate);
+    if (!userData.trialEndDate) return 0;
+    const endDate = new Date(userData.trialEndDate);
     const today = new Date();
     const diffTime = endDate.getTime() - today.getTime();
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
   const isTrialUser = () => {
-    return user.currentPlan === 'monthly_trial' || user.currentPlan === 'yearly_trial';
+    return userData.currentPlan === 'monthly_trial' || userData.currentPlan === 'yearly_trial';
   };
 
   const isFreemiumUser = () => {
-    return user.currentPlan === 'freemium';
+    return userData.currentPlan === 'freemium';
   };
 
   const isPremiumUser = () => {
-    return user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
+    return userData.currentPlan === 'monthly_premium' || userData.currentPlan === 'yearly_premium';
   };
 
   const getFreemiumLimits = () => {
     const dailyLimit = 5;
-    const used = user.dailyMessagesUsed || 0;
+    const used = userData?.dailyMessagesUsed || 0;
     return { used, limit: dailyLimit, remaining: Math.max(0, dailyLimit - used) };
   };
 
   // Local storage helpers for journal and mood logs
-  const JOURNAL_KEY = `amara_journal_${user.id || 'anon'}`;
-  const MOOD_KEY = `amara_mood_${user.id || 'anon'}`;
+  const JOURNAL_KEY = `amara_journal_${userData.id || 'anon'}`;
+  const MOOD_KEY = `amara_mood_${userData.id || 'anon'}`;
 
   // Load journal entries and mood logs from Supabase
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -222,25 +197,25 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!isFreemiumUser()) {
       loadJournalAndMoodData();
     }
-  }, [user.id]);
+  }, [userData.id]);
 
   const loadJournalAndMoodData = async () => {
     try {
       const { db } = await import('../lib/supabase');
       
-      if (user.id) {
+      if (userData.id) {
         // Authenticated user
         const [journalData, moodData] = await Promise.all([
-          db.journalEntries.getByUser(user.id, 5),
-          db.moodLogs.getByUser(user.id, 5)
+          db.journalEntries.getByUser(userData.id, 5),
+          db.moodLogs.getByUser(userData.id, 5)
         ]);
         setJournalEntries(journalData);
         setMoodLogs(moodData);
-      } else if (user.deviceId) {
+      } else if (userData.deviceId) {
         // Anonymous user
         const [journalData, moodData] = await Promise.all([
-          db.journalEntries.getByDevice(user.deviceId, 5),
-          db.moodLogs.getByDevice(user.deviceId, 5)
+          db.journalEntries.getByDevice(userData.deviceId, 5),
+          db.moodLogs.getByDevice(userData.deviceId, 5)
         ]);
         setJournalEntries(journalData);
         setMoodLogs(moodData);
@@ -256,14 +231,13 @@ const Dashboard: React.FC<DashboardProps> = ({
       try {
         const { db } = await import('../lib/supabase');
         
-        if (user.id) {
-          await db.journalEntries.create(journalEntry.trim(), user.id);
-        } else if (user.deviceId) {
-          await db.journalEntries.create(journalEntry.trim(), undefined, user.deviceId);
+        if (userData.id) {
+          await db.journalEntries.create(journalEntry.trim(), userData.id);
+        } else if (userData.deviceId) {
+          await db.journalEntries.create(journalEntry.trim(), undefined, userData.deviceId);
         }
         
         setJournalEntry('');
-        onQuickJournal(journalEntry.trim());
         
         // Reload data
         await loadJournalAndMoodData();
@@ -280,13 +254,11 @@ const Dashboard: React.FC<DashboardProps> = ({
       try {
         const { db } = await import('../lib/supabase');
         
-        if (user.id) {
-          await db.moodLogs.create(mood, user.id);
-        } else if (user.deviceId) {
-          await db.moodLogs.create(mood, undefined, user.deviceId);
+        if (userData.id) {
+          await db.moodLogs.create(mood, userData.id);
+        } else if (userData.deviceId) {
+          await db.moodLogs.create(mood, undefined, userData.deviceId);
         }
-        
-        onLogMood(mood);
         
         // Reload data
         await loadJournalAndMoodData();
@@ -361,6 +333,43 @@ const Dashboard: React.FC<DashboardProps> = ({
       : []),
   ];
 
+  useEffect(() => {
+    // Fetch latest user data on dashboard mount
+    refreshUserData();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    clearUserData();
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+    // Optionally, you can redirect or show a toast here
+  };
+
+  // Add navigation handlers
+  const handleUpgrade = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+  };
+  const handleManageSubscription = () => {
+    // You can expand this to open a modal or navigate to a subscription page
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
+  };
+  const handleNavigateToSettings = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
+  };
+  const handleStartNewSession = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+  };
+  const handleResumeSession = () => {
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+  };
+
+  // Add a new handler for the refresh button
+  const handleRefreshDashboard = async () => {
+    await refreshUserData();
+    await loadSessionHistory();
+    await loadJournalAndMoodData();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20">
       {/* Joyride Tour */}
@@ -394,7 +403,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       />
       {/* Welcome Modal */}
       {showWelcome && (
-        <WelcomeModal userName={user.name} onStartTour={handleStartTour} />
+        <WelcomeModal userName={userData.name} onStartTour={handleStartTour} />
       )}
       {/* Top Navigation */}
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40" data-tour="dashboard-nav">
@@ -415,6 +424,14 @@ const Dashboard: React.FC<DashboardProps> = ({
               {isPremiumUser() && (
                 <Crown className="w-5 h-5 text-yellow-500 ml-2" fill="currentColor" />
               )}
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefreshDashboard}
+                className="ml-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Refresh"
+              >
+                <RefreshCcw className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              </button>
             </div>
 
             {/* Right side navigation */}
@@ -424,8 +441,8 @@ const Dashboard: React.FC<DashboardProps> = ({
               </button>
               
               {/* Theme Toggle */}
-              <button 
-                onClick={toggleDarkMode}
+              <button
+                onClick={() => toggleDarkMode(!isDark)}
                 className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
                 aria-label="Toggle dark mode"
               >
@@ -442,7 +459,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               {/* Logout Button */}
               <button
-                onClick={onLogout}
+                onClick={handleLogout}
                 className="p-2 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-200"
                 title="Logout"
               >
@@ -450,11 +467,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               </button>
               
               <button
-                onClick={onNavigateToSettings}
+                onClick={handleNavigateToSettings}
                 className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-medium text-sm relative cursor-pointer hover:scale-105 transition-transform duration-200"
                 data-tour="profile-settings"
               >
-                {user.name.charAt(0).toUpperCase()}
+                {userData.name.charAt(0).toUpperCase()}
                 {isPremiumUser() && (
                   <Crown className="absolute -top-1 -right-1 w-3 h-3 text-yellow-400" fill="currentColor" />
                 )}
@@ -469,7 +486,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         <div className={`mb-8 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
           <div className="flex items-center space-x-3 mb-2">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-              {getGreeting()}, {user.name}!
+              {getGreeting()}, {userData.name}!
             </h1>
             {isPremiumUser() && (
               <div className="flex items-center space-x-2 px-3 py-1 bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 rounded-full border border-yellow-200 dark:border-yellow-700">
@@ -510,7 +527,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={onManageSubscription}
+                  onClick={handleManageSubscription}
                   className="px-6 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold rounded-full hover:from-yellow-700 hover:to-orange-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
                 >
                   Manage Subscription
@@ -539,7 +556,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={onUpgrade}
+                  onClick={handleUpgrade}
                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-full hover:from-purple-700 hover:to-pink-700 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
                 >
                   Secure Your Premium Access
@@ -566,7 +583,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={onUpgrade}
+                  onClick={handleUpgrade}
                   className="px-6 py-3 bg-white text-purple-600 font-semibold rounded-full hover:bg-gray-50 transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl w-full md:w-auto"
                 >
                   Upgrade to Premium
@@ -595,7 +612,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  onClick={onStartNewSession}
+                  onClick={handleStartNewSession}
                   disabled={isFreemiumUser() && getFreemiumLimits().remaining === 0}
                   className={`group p-6 rounded-xl border-2 border-dashed transition-all duration-200 ${
                     isFreemiumUser() && getFreemiumLimits().remaining === 0
@@ -645,7 +662,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </button>
 
                 <button
-                  onClick={onResumeSession}
+                  onClick={handleResumeSession}
                   className={`group p-6 rounded-xl border transition-all duration-200 ${
                     isPremiumUser()
                       ? 'border-green-200 dark:border-green-600 hover:border-green-300 dark:hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/20'
@@ -737,7 +754,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       🔒 Mood tracking available with Premium
                     </span>
                     <button
-                      onClick={onUpgrade}
+                      onClick={handleUpgrade}
                       className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
                     >
                       Upgrade
@@ -787,7 +804,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     {/* AI Prompt button - Available for trial and premium users */}
                     {!isFreemiumUser() && (isTrialUser() || isPremiumUser()) && (
                       <button
-                        onClick={onGetAIPrompt}
+                        onClick={handleUpgrade}
                         className={`inline-flex items-center px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                           isPremiumUser()
                             ? 'text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300'
@@ -823,7 +840,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         🔒 Journaling available with Premium
                       </span>
                       <button
-                        onClick={onUpgrade}
+                        onClick={handleUpgrade}
                         className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
                       >
                         Upgrade
@@ -887,7 +904,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   Upgrade to Premium to access your complete conversation history, download sessions, and get advanced insights.
                 </p>
                 <button
-                  onClick={onUpgrade}
+                  onClick={handleUpgrade}
                   className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-medium rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   <Crown className="w-4 h-4 mr-2" />
@@ -958,14 +975,14 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
 
             {/* Existing activity: mood and messages today */}
-            {user.feeling && (
+            {userData.feeling && (
               <div className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <div className="w-8 h-8 bg-pink-100 dark:bg-pink-900/30 rounded-full flex items-center justify-center">
                   <Heart className="w-4 h-4 text-pink-600" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">Current Mood</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{user.feeling}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 capitalize">{userData.feeling}</p>
                 </div>
               </div>
             )}
@@ -977,7 +994,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div>
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Messages Today</p>
                 <p className="text-xs text-gray-600 dark:text-gray-400">
-                  {user.dailyMessagesUsed || 0} sent
+                  {userData.dailyMessagesUsed || 0} sent
                 </p>
               </div>
             </div>
@@ -1049,7 +1066,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Plan</span>
                   <span className="text-sm font-medium text-gray-900 dark:text-white capitalize flex items-center">
-                    {user.currentPlan?.replace('_', ' ')}
+                    {userData.currentPlan?.replace('_', ' ')}
                     <Shield className="w-4 h-4 ml-2 text-green-500" />
                   </span>
                 </div>
@@ -1063,7 +1080,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </div>
 
                 <button
-                  onClick={onManageSubscription}
+                  onClick={handleManageSubscription}
                   className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-200 text-left"
                 >
                   <div className="flex items-center justify-between">

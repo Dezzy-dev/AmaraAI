@@ -61,7 +61,7 @@ const FAQ: React.FC = () => {
   // Use an array to track each item's state individually instead of a single openIndex
   const [openStates, setOpenStates] = useState<boolean[]>(new Array(faqs.length).fill(false));
 
-  const toggleItem = (index: number) => {
+  const handleFAQClick = (index: number) => {
     setOpenStates(prevStates => {
       const newStates = new Array(faqs.length).fill(false); // Close all first
       newStates[index] = !prevStates[index]; // Then toggle the clicked one
@@ -92,8 +92,7 @@ const FAQ: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  console.log(`Clicked FAQ ${index}`); // Debug log
-                  toggleItem(index);
+                  handleFAQClick(index);
                 }}
                 className="w-full text-left px-6 py-4 flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#9d8cd4] focus:ring-opacity-50 rounded-t-2xl"
                 type="button"

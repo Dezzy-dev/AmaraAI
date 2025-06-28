@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Phone, ExternalLink, AlertCircle, Heart, Shield, Users, Baby, Stethoscope, ChevronDown, ChevronUp, ChevronLeft, Moon, Sun, MessageCircle, ArrowRight } from 'lucide-react';
-import { useUser } from '../contexts/UserContext';
+import useUser from '../contexts/useUser';
 import { useDarkMode } from '../hooks/useDarkMode';
 
 const CRISIS_SECTIONS = [

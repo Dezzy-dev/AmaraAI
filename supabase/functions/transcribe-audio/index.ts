@@ -23,7 +23,6 @@ serve(async (req) => {
   try {
     console.log('Parsing request body...');
     const { filePath, userId, deviceId }: TranscribeRequest = await req.json()
-    console.log('Parsed request:', { filePath, userId, deviceId });
 
     if (!filePath) {
       console.error('File path is required');
@@ -83,7 +82,6 @@ serve(async (req) => {
       },
       body: formData
     })
-    console.log('ElevenLabs API response status:', elevenResponse.status);
 
     if (!elevenResponse.ok) {
       const errorData = await elevenResponse.text()
@@ -98,7 +96,6 @@ serve(async (req) => {
     }
 
     const elevenResult = await elevenResponse.json()
-    console.log('ElevenLabs transcription result:', elevenResult);
     
     return new Response(
       JSON.stringify({ 

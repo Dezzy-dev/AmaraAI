@@ -52,6 +52,7 @@ serve(async (req) => {
     let userProfile: any = null
     let anonymousDevice: any = null
     let currentUsage = { messagesUsed: 0, voiceNotesUsed: 0, maxMessages: 50, maxVoiceNotes: 5 }
+    let planToUse = 'freemium';
 
     if (userId) {
       const { data: profile, error: profileError } = await supabase
@@ -72,11 +73,28 @@ serve(async (req) => {
       }
 
       userProfile = profile
+
+      // --- TRIAL EXPIRY LOGIC ---
+      planToUse = profile.current_plan;
+      if ((planToUse === 'monthly_trial' || planToUse === 'yearly_trial') && profile.trial_end_date) {
+        const now = new Date();
+        const trialEnd = new Date(profile.trial_end_date);
+        if (now > trialEnd) {
+          // Trial expired, revert to freemium in DB and for this request
+          planToUse = 'freemium';
+          await supabase
+            .from('user_profiles')
+            .update({ current_plan: 'freemium', trial_start_date: null, trial_end_date: null })
+            .eq('id', userId);
+        }
+      }
+      // --- END TRIAL EXPIRY LOGIC ---
+
       currentUsage = {
         messagesUsed: profile.daily_messages_used || 0,
-        voiceNotesUsed: profile.voice_notes_used ? 1 : 0,
-        maxMessages: getMaxMessagesForPlan(profile.current_plan),
-        maxVoiceNotes: getMaxVoiceNotesForPlan(profile.current_plan)
+        voiceNotesUsed: profile.voice_notes_used || 0,
+        maxMessages: getMaxMessagesForPlan(planToUse),
+        maxVoiceNotes: getMaxVoiceNotesForPlan(planToUse)
       }
     } else if (deviceId) {
       const { data: device, error: deviceError } = await supabase
@@ -100,9 +118,9 @@ serve(async (req) => {
         anonymousDevice = device
         currentUsage = {
           messagesUsed: device.messages_today || 0,
-          voiceNotesUsed: device.voice_notes_used ? 1 : 0,
-          maxMessages: 10,
-          maxVoiceNotes: 1
+          voiceNotesUsed: device.voice_notes_used || 0,
+          maxMessages: 3,
+          maxVoiceNotes: 0
         }
       }
     }
@@ -118,6 +136,8 @@ serve(async (req) => {
     }
 
     if (messageType === 'voice' && currentUsage.voiceNotesUsed >= currentUsage.maxVoiceNotes) {
+      // Add debug logging for voice note limit
+      console.error('[Voice Note Limit] userId:', userId, 'plan:', userProfile?.current_plan, 'planToUse:', planToUse, 'voiceNotesUsed:', currentUsage.voiceNotesUsed, 'maxVoiceNotes:', currentUsage.maxVoiceNotes);
       return new Response(
         JSON.stringify({ error: 'Voice note limit exceeded' }),
         { 
@@ -250,7 +270,7 @@ Compose a single, emotionally attuned message in response to the current user in
           'Authorization': `Bearer ${groqApiKey}`,
         },
         body: JSON.stringify({
-          model: 'mistral-saba-24b',
+          model: 'deepseek/deepseek-r1-0528:free',
           messages: messagesForApi,
           temperature: 0.7,
           max_tokens: 500,
@@ -274,8 +294,8 @@ Compose a single, emotionally attuned message in response to the current user in
 
     let groqResult;
     try {
-      groqResult = await groqResponse.json();
-      console.log('Groq API raw response:', groqResult);
+      openRouterResult = await openRouterResponse.json();
+      console.log('OpenRouter API raw response:', openRouterResult);
     } catch (err) {
       console.error('Failed to parse Groq API response:', err);
       return new Response(
@@ -358,22 +378,30 @@ Compose a single, emotionally attuned message in response to the current user in
     }
     
     if (userId && userProfile) {
+      const updates = { daily_messages_used: (userProfile.daily_messages_used || 0) + 1 };
+      if (messageType === 'voice') {
+        updates['voice_notes_used'] = (userProfile.voice_notes_used || 0) + 1;
+      }
       const { error } = await supabase
         .from('user_profiles')
-        .update({ daily_messages_used: (userProfile.daily_messages_used || 0) + 1 })
+        .update(updates)
         .eq('id', userId)
-      if (error) console.error('Error updating user message count:', error)
+      if (error) console.error('Error updating user message/voice note count:', error)
     } else if (deviceId) {
       if (anonymousDevice) {
+        const updates = { messages_today: (anonymousDevice.messages_today || 0) + 1 };
+        if (messageType === 'voice') {
+          updates['voice_notes_used'] = (anonymousDevice.voice_notes_used || 0) + 1;
+        }
         const { error } = await supabase
           .from('anonymous_devices')
-          .update({ messages_today: (anonymousDevice.messages_today || 0) + 1 })
+          .update(updates)
           .eq('device_id', deviceId)
-        if (error) console.error('Error updating device message count:', error)
+        if (error) console.error('Error updating device message/voice note count:', error)
       } else {
         const { error } = await supabase
           .from('anonymous_devices')
-          .insert({ device_id: deviceId, messages_today: 1 })
+          .insert({ device_id: deviceId, messages_today: 1, voice_notes_used: messageType === 'voice' ? 1 : 0 })
         if (error) console.error('Error creating new device record:', error)
       }
     }
@@ -381,14 +409,12 @@ Compose a single, emotionally attuned message in response to the current user in
     let voiceNoteUrl = null
     if (isVoiceResponse) {
       try {
-        console.log('[TTS] Invoking generate-tts with:', { text: aiResponse, messageId: aiMessageId });
         const ttsResponse = await supabase.functions.invoke('generate-tts', {
           body: { 
             text: aiResponse,
             messageId: aiMessageId
           },
         })
-        console.log('[TTS] generate-tts response:', ttsResponse);
         if (ttsResponse.data?.voiceNoteUrl) {
           voiceNoteUrl = ttsResponse.data.voiceNoteUrl
         } else {
@@ -431,6 +457,8 @@ function getMaxMessagesForPlan(plan: string): number {
     case 'free':
       return 50;
     case 'premium':
+    case 'monthly_trial':
+    case 'yearly_trial':
       return 500;
     case 'super':
       return Infinity; // Or a very high number
@@ -444,6 +472,8 @@ function getMaxVoiceNotesForPlan(plan: string): number {
     case 'free':
       return 5;
     case 'premium':
+    case 'monthly_trial':
+    case 'yearly_trial':
       return 50;
     case 'super':
       return Infinity;

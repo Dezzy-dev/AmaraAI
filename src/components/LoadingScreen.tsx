@@ -110,7 +110,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onComplete, userName }) =
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in {
           from {
             opacity: 0;

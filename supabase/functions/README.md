@@ -197,8 +197,8 @@ Error responses include a descriptive message:
 
 The system enforces different limits based on user type:
 
-- **Anonymous users**: 10 messages, 1 voice note
-- **Freemium users**: 50 messages, 5 voice notes
+- **Anonymous users**: 3 messages, 0 voice notes
+- **Freemium users**: 5 messages, 1 voice note
 - **Trial users**: 100 messages, 20 voice notes
 - **Premium users**: 1000 messages, 100 voice notes
 

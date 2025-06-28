@@ -22,8 +22,8 @@ export const config = {
   
   // Usage limits
   ANONYMOUS_LIMITS: {
-    maxMessages: 10,
-    maxVoiceNotes: 1
+    maxMessages: 3,
+    maxVoiceNotes: 0
   },
   
   PLAN_LIMITS: {

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon, MapPin, UserPlus } from 'lucide-react';
-import { useUser, UserData } from '../contexts/UserContext';
+import useUser from '../contexts/useUser';
+import { UserData } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
 

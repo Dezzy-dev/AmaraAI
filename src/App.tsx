@@ -18,15 +18,17 @@ import PersonalizationFlow, { PersonalizationData } from './components/personali
 import AuthModal from './components/auth/AuthModal';
 import ComparisonPricingPage from './components/ComparisonPricingPage';
 import CreditCardPage from './components/CreditCardPage';
-import Dashboard from './components/Dashboard';
+import Dashboard from './pages/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
-import { UserProvider, useUser, UserData } from './contexts/UserContext';
+import { UserProvider, UserData } from './contexts/UserContext';
+import useUser from './contexts/useUser';
 import { ChatProvider, useChat } from './contexts/ChatContext';
 import Settings from './components/Settings';
 import { auth, db } from './lib/supabase';
 import UpgradeModal from './components/UpgradeModal';
 import { Session } from '@supabase/supabase-js';
 import CrisisResources from './pages/CrisisResources';
+import LoadingScreen from './components/LoadingScreen';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
 type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings' | 'crisis-resources';
@@ -133,7 +135,6 @@ function AppContent() {
 
   const handleSignUp = (path: 'trial_path' | 'freemium_path') => {
     // Logic for what happens when user picks a plan in the modal
-    console.log('User selected plan:', path);
     setShowUpgradeModal(false);
   };
 
@@ -189,7 +190,6 @@ function AppContent() {
   useEffect(() => {
     if (!isUserDataLoading && userData?.isAuthenticated && !initialAuthCheckComplete) {
       // User just authenticated via OAuth, route them to dashboard
-      console.log('OAuth user authenticated, routing to dashboard');
       navigateTo('dashboard');
       setInitialAuthCheckComplete(true); // Mark the initial check as complete
       
@@ -213,8 +213,6 @@ function AppContent() {
   };
 
   const handleCreditCardSuccess = () => {
-    console.log(`Starting ${selectedPlan} free trial...`);
-    
     // Calculate trial end date (7 days from now)
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 7);
@@ -283,11 +281,10 @@ function AppContent() {
   };
 
   const handleManageSubscription = () => {
-    console.log('Managing subscription...');
+    // Subscription management logic
   };
 
   const handleLogMood = (mood: string) => {
-    console.log('Logging mood:', mood);
     // Update user data with mood if needed
     if (userData) {
       updateUserData({ feeling: mood });
@@ -306,7 +303,6 @@ function AppContent() {
   };
 
   const handleQuickJournal = (entry: string) => {
-    console.log('Saving journal entry:', entry);
     // In a real app, this would save to the database
     // For now, just show a success message
     toast.success('Journal entry saved!', {
@@ -322,7 +318,7 @@ function AppContent() {
   };
 
   const handleGetAIPrompt = () => {
-    console.log('Get AI Prompt clicked');
+    // AI prompt logic
   };
 
   const handleNavigateToSettings = () => {
@@ -377,6 +373,12 @@ function AppContent() {
   };
 
   const handleShowUpgradeModal = (reason: UpgradeReason) => {
+    // For anonymous users, show the sign-up modal instead of upgrade modal
+    if (!userData?.isAuthenticated) {
+      openAuthModal('signup');
+      return;
+    }
+    
     setUpgradeReason(reason);
     setShowUpgradeModal(true);
   };
@@ -396,27 +398,18 @@ function AppContent() {
     return () => window.removeEventListener('navigate', handleNavigate);
   }, []);
 
+  console.log('AppContent:', { isUserDataLoading, userData, view });
+
+  // Instead, show loading screen only for protected views
+  if (isUserDataLoading && (view === 'dashboard' || view === 'session' || view === 'settings')) {
+    return <LoadingScreen onComplete={() => {}} userName={userData?.name} />;
+  }
+
   // Render current view
   const renderCurrentView = () => {
     switch (view) {
       case 'dashboard':
-        return userData && userData.isAuthenticated ? (
-          <Dashboard 
-            user={userData}
-            onStartNewSession={handleStartNewSession}
-            onResumeSession={handleResumeSession}
-            onUpgrade={handleUpgrade}
-            onManageSubscription={handleManageSubscription}
-            onLogMood={handleLogMood}
-            onQuickJournal={handleQuickJournal}
-            onGetAIPrompt={handleGetAIPrompt}
-            onNavigateToSettings={handleNavigateToSettings}
-            onLogout={handleLogout}
-            onViewSessionHistory={handleViewSessionHistory}
-            isDark={isDark}
-            toggleDarkMode={toggleDarkMode}
-          />
-        ) : null;
+        return userData && userData.isAuthenticated ? <Dashboard /> : null;
 
       case 'settings':
         return (

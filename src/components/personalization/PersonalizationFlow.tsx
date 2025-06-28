@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import NameInputScreen from './NameInputScreen';
 import CountryInputScreen from './CountryInputScreen';
 import FeelingInputScreen from './FeelingInputScreen';
-import { useUser } from '../../contexts/UserContext';
+import useUser from '../../contexts/useUser';
 
 export interface PersonalizationData {
   name: string;
