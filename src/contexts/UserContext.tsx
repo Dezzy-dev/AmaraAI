@@ -192,55 +192,79 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   const loadAnonymousUser = async () => {
+    console.log('🔍 [DEBUG] Loading anonymous user...');
+    
     try {
       // Generate or retrieve a persistent UUID for this anonymous user
       let anonUuid = localStorage.getItem('amara_anon_uuid');
       if (!anonUuid) {
         anonUuid = crypto.randomUUID();
         localStorage.setItem('amara_anon_uuid', anonUuid);
+        console.log('🔍 [DEBUG] Generated new anonymous UUID:', anonUuid);
+      } else {
+        console.log('🔍 [DEBUG] Retrieved existing anonymous UUID:', anonUuid);
       }
+      
       const deviceId = generateDeviceId();
+      console.log('🔍 [DEBUG] Generated/retrieved device ID:', deviceId);
+      
       let device: AnonymousDevice | null = null;
       let validDeviceId: string | undefined = undefined;
 
       // First, try to get existing device record
       try {
+        console.log('🔍 [DEBUG] Attempting to fetch existing device record...');
         device = await db.anonymousDevices.get(deviceId);
         if (device) {
           validDeviceId = device.device_id;
+          console.log('✅ [SUCCESS] Found existing device record:', device);
+        } else {
+          console.log('ℹ️ [INFO] No existing device record found');
         }
       } catch (error) {
-        // Device record not found, will create new one
+        console.log('ℹ️ [INFO] Device record not found, will create new one:', error);
       }
 
       // If device doesn't exist, create it
       if (!device) {
         try {
+          console.log('🔍 [DEBUG] Creating new device record...');
           device = await db.anonymousDevices.create(deviceId);
           if (device) {
             validDeviceId = device.device_id;
+            console.log('✅ [SUCCESS] Created new device record:', device);
           }
         } catch (createError: unknown) {
+          console.error('🚨 [ERROR] Failed to create device record:', createError);
+          
           // If creation fails due to duplicate key, try to fetch again
           if (createError instanceof Error && createError.message.includes('23505')) {
             try {
+              console.log('🔍 [DEBUG] Duplicate key error, trying to fetch again...');
               device = await db.anonymousDevices.get(deviceId);
               if (device) {
                 validDeviceId = device.device_id;
+                console.log('✅ [SUCCESS] Retrieved device after duplicate key error:', device);
               }
             } catch (fetchError) {
+              console.error('🚨 [ERROR] Failed to fetch after duplicate key error:', fetchError);
               // Fall back to creating a new device ID
               const newDeviceId = 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
               localStorage.setItem('amara_device_id', newDeviceId);
+              console.log('🔍 [DEBUG] Created fallback device ID:', newDeviceId);
+              
               try {
                 device = await db.anonymousDevices.create(newDeviceId);
                 if (device) {
                   validDeviceId = device.device_id;
+                  console.log('✅ [SUCCESS] Created device with fallback ID:', device);
                 }
               } catch (finalError) {
+                console.error('🚨 [ERROR] Final device creation attempt failed:', finalError);
               }
             }
           } else {
+            console.error('🚨 [ERROR] Non-duplicate key error during device creation:', createError);
           }
         }
       }
@@ -249,22 +273,25 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const today = new Date().toISOString().split('T')[0];
       if (device && device.last_active_date !== today) {
         try {
+          console.log('🔍 [DEBUG] Resetting daily limits for device...');
           device = await db.anonymousDevices.resetDailyLimits(deviceId);
           if (device) {
             validDeviceId = device.device_id;
+            console.log('✅ [SUCCESS] Reset daily limits:', device);
           }
         } catch (resetError) {
+          console.error('🚨 [ERROR] Failed to reset daily limits:', resetError);
           // Continue with existing device data if reset fails
           validDeviceId = device.device_id;
         }
       }
 
       // Set user data - always include deviceId (fallback to local if needed)
-      setUserData({
+      const finalUserData = {
         id: anonUuid,
         name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
-        currentPlan: 'freemium',
+        currentPlan: 'freemium' as const,
         deviceId: validDeviceId || deviceId,
         dailyMessagesUsed: device?.messages_today || 0,
         voiceNotesUsed: typeof device?.voice_notes_used === 'number'
@@ -274,14 +301,20 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         createdAt: device?.created_at || undefined,
         subscription_status: null,
         trial_ends_at: null
-      });
+      };
+      
+      console.log('✅ [SUCCESS] Final anonymous user data:', finalUserData);
+      setUserData(finalUserData);
+      
     } catch (error) {
+      console.error('🚨 [ERROR] Failed to load anonymous user, using fallback:', error);
+      
       // Fallback to basic anonymous user without database persistence
-      setUserData({
+      const fallbackUserData = {
         id: localStorage.getItem('amara_anon_uuid') || crypto.randomUUID(),
         name: 'Anonymous User',
         isAuthenticated: false,
-        currentPlan: 'freemium',
+        currentPlan: 'freemium' as const,
         deviceId: localStorage.getItem('amara_device_id') || 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(),
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
@@ -289,7 +322,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         createdAt: new Date().toISOString(),
         subscription_status: null,
         trial_ends_at: null
-      });
+      };
+      
+      console.log('⚠️ [FALLBACK] Using fallback anonymous user data:', fallbackUserData);
+      setUserData(fallbackUserData);
     }
   };
 
