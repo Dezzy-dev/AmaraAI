@@ -29,22 +29,31 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
   const [currentMessage, setCurrentMessage] = useState('');
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text');
   const [showUpgradeModal, setShowUpgradeModal] = useState<UpgradeReason | null>(null);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const initializeSession = async () => {
-      if (messages.length === 0 && userData) {
-        if (userData.isAuthenticated) {
-          await startNewSession(userData.id, undefined);
-        } else {
-          await startNewSession(undefined, userData.deviceId);
+      if (!sessionInitialized && userData) {
+        console.log('🔍 [DEBUG] Initializing session...');
+        try {
+          if (userData.isAuthenticated) {
+            await startNewSession(userData.id, undefined);
+          } else {
+            await startNewSession(undefined, userData.deviceId);
+          }
+          setSessionInitialized(true);
+          console.log('✅ [SUCCESS] Session initialized');
+        } catch (error) {
+          console.error('🚨 [ERROR] Failed to initialize session:', error);
         }
       }
     };
-    if (!isUserLoading) {
+
+    if (!isUserLoading && userData && !sessionInitialized) {
       initializeSession();
     }
-  }, [isUserLoading, userData, startNewSession, messages.length]);
+  }, [isUserLoading, userData, sessionInitialized, startNewSession]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -110,7 +119,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
     }
   };
 
-  if (isUserLoading || (messages.length === 0 && !isUserLoading && !isChatLoading)) {
+  if (isUserLoading || (!sessionInitialized && !isUserLoading && !isChatLoading)) {
     return <LoadingScreen onComplete={() => {}} userName={userData?.name} />;
   }
 
