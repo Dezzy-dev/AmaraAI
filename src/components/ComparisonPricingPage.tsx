@@ -16,6 +16,7 @@ import {
   Sparkles,
   Star
 } from 'lucide-react';
+import useUser from '../contexts/useUser';
 
 interface ComparisonPricingPageProps {
   onStartFreeTrial: (planType: 'monthly' | 'yearly') => void;
@@ -28,6 +29,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
   const [isVisible, setIsVisible] = useState(false);
+  const { userData } = useUser();
 
   useEffect(() => {
     setIsVisible(true);
@@ -37,6 +39,9 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
   const yearlyPrice = 159.99;
   const yearlyMonthlyEquivalent = yearlyPrice / 12;
   const savings = Math.round(((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100);
+
+  // Check if user has trialed before and is on freemium
+  const hasTrialedBefore = userData?.isAuthenticated && userData?.hasEverTrialed && userData?.currentPlan === 'freemium';
 
   const comparisonData = [
     {
@@ -232,10 +237,10 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
           <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.4s' }}>
             <div className="text-center mb-8 sm:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 px-4">
-                Choose Your Plan: Start Your 7-Day Free Trial
+                {hasTrialedBefore ? 'Choose Your Plan' : 'Choose Your Plan: Start Your 7-Day Free Trial'}
               </h2>
               <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 px-4">
-                No credit card required during trial • Cancel anytime
+                {hasTrialedBefore ? 'Continue with premium features' : 'No credit card required during trial • Cancel anytime'}
               </p>
             </div>
 
@@ -251,12 +256,14 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
                 onClick={() => setSelectedPlan('yearly')}
               >
                 {/* Most Popular Badge */}
-                <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-2 rounded-full flex items-center">
-                    <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="currentColor" />
-                    Most Popular
+                {!hasTrialedBefore && (
+                  <div className="absolute -top-3 sm:-top-4 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs sm:text-sm font-bold px-3 sm:px-4 py-1 sm:py-2 rounded-full flex items-center">
+                      <Star className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill="currentColor" />
+                      Most Popular
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="p-6 sm:p-8">
                   <div className="text-center mb-6">
@@ -354,15 +361,23 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
                 
                 <span className="relative flex items-center justify-center w-full sm:w-auto">
                   <Heart className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 animate-pulse" fill="currentColor" />
-                  <span className="text-center">Start Your 7 Days Free Trial</span>
+                  <span className="text-center">
+                    {hasTrialedBefore ? 'Subscribe Now' : 'Start Your 7 Days Free Trial'}
+                  </span>
                   <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 ml-2 sm:ml-3 group-hover:animate-spin" />
                 </span>
               </button>
               
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-4">
-                {selectedPlan === 'yearly' 
-                  ? `Then ${yearlyMonthlyEquivalent.toFixed(2)}/month (billed annually at $${yearlyPrice})`
-                  : `Then $${monthlyPrice}/month`
+                {hasTrialedBefore 
+                  ? `${selectedPlan === 'yearly' 
+                      ? `$${yearlyMonthlyEquivalent.toFixed(2)}/month (billed annually at $${yearlyPrice})`
+                      : `$${monthlyPrice}/month`
+                    }`
+                  : `Then ${selectedPlan === 'yearly' 
+                      ? `${yearlyMonthlyEquivalent.toFixed(2)}/month (billed annually at $${yearlyPrice})`
+                      : `$${monthlyPrice}/month`
+                    }`
                 }
               </p>
             </div>

@@ -3,6 +3,7 @@ import { ArrowLeft, CreditCard, Shield, Lock, CheckCircle, AlertCircle, Loader2 
 
 interface CreditCardPageProps {
   selectedPlan?: 'monthly' | 'yearly';
+  isDirectSubscription?: boolean;
   onSuccess: () => void;
   onBack: () => void;
 }
@@ -23,6 +24,7 @@ interface FormErrors {
 
 const CreditCardPage: React.FC<CreditCardPageProps> = ({
   selectedPlan = 'monthly',
+  isDirectSubscription = false,
   onSuccess,
   onBack
 }) => {
@@ -193,7 +195,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
             <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-            Trial Activated Successfully!
+            {isDirectSubscription ? 'Subscription Activated!' : 'Trial Activated Successfully!'}
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-4">
             Redirecting to your dashboard...
@@ -228,7 +230,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
             
             <div className="text-center flex-1 px-2">
               <h1 className="text-sm sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white leading-tight">
-                Activate Your 7-Day Free Trial
+                {isDirectSubscription ? 'Activate Your Subscription' : 'Activate Your 7-Day Free Trial'}
               </h1>
             </div>
             
@@ -247,11 +249,14 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
             </div>
             
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 leading-tight px-2">
-              Activate Your 7-Day Free Trial
+              {isDirectSubscription ? 'Activate Your Subscription' : 'Activate Your 7-Day Free Trial'}
             </h1>
             
             <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 mb-2 px-2">
-              Just one more step to unlock full access. No charges for 7 days.
+              {isDirectSubscription 
+                ? 'Complete your subscription to unlock full access to Amara.'
+                : 'Just one more step to unlock full access. No charges for 7 days.'
+              }
             </p>
             
             <div className="inline-flex items-center text-xs sm:text-sm text-gray-500 dark:text-gray-400">
@@ -269,7 +274,10 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                   {selectedPlan} Plan
                 </p>
                 <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-1">
-                  7-day free trial, then ${currentPlan.price}/{currentPlan.period}
+                  {isDirectSubscription 
+                    ? `${currentPlan.price}/${currentPlan.period}`
+                    : `7-day free trial, then $${currentPlan.price}/${currentPlan.period}`
+                  }
                   {selectedPlan === 'yearly' && (
                     <span className="text-green-600 dark:text-green-400 block sm:inline sm:ml-2">
                       (${currentPlan.monthlyEquivalent}/month)
@@ -279,10 +287,10 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
               </div>
               <div className="text-left sm:text-right">
                 <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  $0.00
+                  {isDirectSubscription ? `$${currentPlan.price}` : '$0.00'}
                 </p>
                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                  Today
+                  {isDirectSubscription ? 'Today' : 'Today'}
                 </p>
               </div>
             </div>
@@ -410,7 +418,7 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 mr-2 sm:mr-3" />
-                    Start My Free Trial
+                    {isDirectSubscription ? 'Subscribe Now' : 'Start My Free Trial'}
                   </>
                 )}
               </button>
@@ -420,11 +428,11 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
           {/* Trial Confirmation & Disclaimer */}
           <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
-              Trial Terms
+              {isDirectSubscription ? 'Subscription Terms' : 'Trial Terms'}
             </h3>
             <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
               <p>
-                By clicking "Start My Free Trial", you agree to our{' '}
+                By clicking "{isDirectSubscription ? 'Subscribe Now' : 'Start My Free Trial'}", you agree to our{' '}
                 <a href="#" className="text-purple-600 dark:text-purple-400 hover:underline">
                   Terms of Service
                 </a>{' '}
@@ -433,9 +441,11 @@ const CreditCardPage: React.FC<CreditCardPageProps> = ({
                   Privacy Policy
                 </a>.
               </p>
-              <p>
-                After 7 days, you will be charged ${currentPlan.price}/{currentPlan.period} unless you cancel.
-              </p>
+              {!isDirectSubscription && (
+                <p>
+                  After 7 days, you will be charged ${currentPlan.price}/{currentPlan.period} unless you cancel.
+                </p>
+              )}
               <p>
                 You can cancel anytime from your account settings. No questions asked.
               </p>

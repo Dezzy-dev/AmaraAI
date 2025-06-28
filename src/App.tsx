@@ -49,6 +49,7 @@ function AppContent() {
   const [session, setSession] = useState<Session | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<UpgradeReason>('trial_end');
+  const [isDirectSubscription, setIsDirectSubscription] = useState(false);
   
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
   const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
@@ -209,19 +210,38 @@ function AppContent() {
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);
+    
+    // Check if user has ever trialed before
+    if (userData?.isAuthenticated && userData?.hasEverTrialed && userData?.currentPlan === 'freemium') {
+      // User has trialed before, this is a direct subscription
+      setIsDirectSubscription(true);
+    } else {
+      // First time trial or not authenticated
+      setIsDirectSubscription(false);
+    }
+    
     navigateTo('credit-card');
   };
 
   const handleCreditCardSuccess = () => {
-    // Calculate trial end date (7 days from now)
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 7);
+    if (!userData) return;
     
-    // Update user context with trial plan and end date
-    if (userData) {
+    if (isDirectSubscription) {
+      // Direct subscription for users who have trialed before
+      const premiumPlan = selectedPlan === 'monthly' ? 'monthly_premium' : 'yearly_premium';
       updateUserData({
-        currentPlan: selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial',
-        trialEndDate: trialEndDate.toISOString()
+        currentPlan: premiumPlan
+      });
+    } else {
+      // First time trial
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 7);
+      
+      const trialPlan = selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial';
+      updateUserData({
+        currentPlan: trialPlan,
+        trialEndDate: trialEndDate.toISOString(),
+        hasEverTrialed: true
       });
     }
     
@@ -425,6 +445,7 @@ function AppContent() {
         return (
           <CreditCardPage
             selectedPlan={selectedPlan}
+            isDirectSubscription={isDirectSubscription}
             onSuccess={handleCreditCardSuccess}
             onBack={handleBackToComparison}
           />

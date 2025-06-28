@@ -21,6 +21,7 @@ export interface UserData {
   trialStartDate?: string;
   trialEndDate?: string;
   createdAt?: string;
+  hasEverTrialed?: boolean;
   
   // Usage tracking
   dailyMessagesUsed?: number;
@@ -183,6 +184,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       trialStartDate: trialStartDate || undefined,
       trialEndDate: trialEndDate || undefined,
       createdAt: profile.created_at || undefined,
+      hasEverTrialed: profile.has_ever_trialed ?? false,
       dailyMessagesUsed: 0, // Reset for authenticated users daily
       voiceNotesUsed: 0,
       lastResetDate: new Date().toISOString().split('T')[0],
@@ -299,6 +301,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           : 0,
         lastResetDate: device?.last_active_date || new Date().toISOString().split('T')[0],
         createdAt: device?.created_at || undefined,
+        hasEverTrialed: false,
         subscription_status: null,
         trial_ends_at: null
       };
@@ -320,6 +323,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
         createdAt: new Date().toISOString(),
+        hasEverTrialed: false,
         subscription_status: null,
         trial_ends_at: null
       };
@@ -345,6 +349,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (updates.currentPlan) profileUpdates.current_plan = updates.currentPlan;
         if (updates.trialStartDate) profileUpdates.trial_start_date = updates.trialStartDate;
         if (updates.trialEndDate) profileUpdates.trial_end_date = updates.trialEndDate;
+        if (updates.hasEverTrialed !== undefined) profileUpdates.has_ever_trialed = updates.hasEverTrialed;
 
         if (Object.keys(profileUpdates).length > 0) {
           await db.profiles.update(userData.id, profileUpdates);

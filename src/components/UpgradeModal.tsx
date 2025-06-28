@@ -1,11 +1,12 @@
 import React from 'react';
 import { X, Crown, ShieldCheck, Zap, Star } from 'lucide-react';
+import useUser from '../contexts/useUser';
 
 type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
 interface UpgradeModalProps {
   onClose: () => void;
-  onSignUp: (path: 'trial_path' | 'freemium_path') => void;
+  onSignUp: (path: 'trial_path' | 'freemium_path' | 'premium_path') => void;
   reason: UpgradeReason;
 }
 
@@ -25,9 +26,14 @@ const content: { [key in UpgradeReason]: { title: string; description: string } 
 };
 
 const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onSignUp, reason }) => {
+  const { userData } = useUser();
+  
   // If the reason is invalid, default to 'trial_end' to prevent a crash
   const safeReason = reason in content ? reason : 'trial_end';
   const { title, description } = content[safeReason];
+
+  // Check if user has trialed before and is on freemium
+  const hasTrialedBefore = userData?.isAuthenticated && userData?.hasEverTrialed && userData?.currentPlan === 'freemium';
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
@@ -46,13 +52,20 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onSignUp, reason }
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* 7-Day Free Trial Option */}
+            {/* Trial/Premium Option */}
             <div className="bg-gray-700/50 border-2 border-purple-500 rounded-xl p-6 flex flex-col relative">
                 <span className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full">RECOMMENDED</span>
                 <div className="text-center mb-4">
                     <Zap className="mx-auto text-purple-400 mb-2" size={28}/>
-                    <h3 className="text-xl font-bold">7-Day Free Trial</h3>
-                    <p className="text-sm text-gray-400">Full access to all premium features.</p>
+                    <h3 className="text-xl font-bold">
+                      {hasTrialedBefore ? 'Premium Plan' : '7-Day Free Trial'}
+                    </h3>
+                    <p className="text-sm text-gray-400">
+                      {hasTrialedBefore 
+                        ? 'Full access to all premium features.'
+                        : 'Full access to all premium features.'
+                      }
+                    </p>
                 </div>
                 <ul className="space-y-2 text-sm text-gray-300 flex-grow">
                     <li className="flex items-start"><Star className="w-4 h-4 text-yellow-400 mr-2 mt-0.5 shrink-0"/>Unlimited conversations</li>
@@ -61,9 +74,15 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onSignUp, reason }
                     <li className="flex items-start"><Star className="w-4 h-4 text-yellow-400 mr-2 mt-0.5 shrink-0"/>Priority support</li>
                 </ul>
                 <button 
-                    onClick={() => onSignUp('trial_path')}
+                    onClick={() => onSignUp(hasTrialedBefore ? 'premium_path' : 'trial_path')}
                     className="mt-6 w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">
-                    Start 7-Day Free Trial <span className="font-normal text-sm">(Card Required)</span>
+                    {hasTrialedBefore 
+                      ? 'Subscribe Now'
+                      : 'Start 7-Day Free Trial'
+                    }
+                    {!hasTrialedBefore && (
+                      <span className="font-normal text-sm"> (Card Required)</span>
+                    )}
                 </button>
             </div>
 
@@ -95,4 +114,4 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ onClose, onSignUp, reason }
   );
 };
 
-export default UpgradeModal; 
+export default UpgradeModal;

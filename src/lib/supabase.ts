@@ -23,6 +23,7 @@ export interface UserProfile {
   daily_messages_used?: number;
   voice_notes_used?: boolean;
   country?: string;
+  has_ever_trialed?: boolean;
 }
 
 export interface AnonymousDevice {
@@ -129,6 +130,7 @@ export const db = {
         name,
         email,
         current_plan: plan,
+        has_ever_trialed: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
