@@ -326,7 +326,7 @@ const Dashboard: React.FC = () => {
                 </button>
               </div>
 
-              {/* Usage Stats - Show for all users */}
+              {/* Usage Stats - Show correct limits for trial users */}
               <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Messages</span>
@@ -431,13 +431,13 @@ const Dashboard: React.FC = () => {
 
           {/* Right Column - Session History & Stats */}
           <div className="space-y-6">
-            {/* Session History */}
+            {/* Session History - Only show Premium badge for actual premium users */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
                   <Calendar className="w-5 h-5 mr-2 text-blue-500" />
                   Session History
-                  {hasPremiumAccess && (
+                  {isPremiumUser() && (
                     <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
                       Premium
                     </span>
@@ -470,12 +470,12 @@ const Dashboard: React.FC = () => {
               )}
             </div>
 
-            {/* Insights & Analytics - Premium Feature */}
+            {/* Insights & Analytics - Only show Premium badge for actual premium users */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                 <BarChart3 className="w-5 h-5 mr-2 text-indigo-500" />
                 Your Insights
-                {hasPremiumAccess && (
+                {isPremiumUser() && (
                   <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
                     Premium
                   </span>

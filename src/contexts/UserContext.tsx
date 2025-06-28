@@ -465,8 +465,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const value = useMemo(() => {
     // Judge accounts get unlimited access and are treated as premium
     const isJudge = userData?.isJudge === true;
-    const isPremium = isJudge || userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
-    const isTrial = userData?.subscription_status === 'trialing';
+    const isPremium = isJudge || userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_premium' || userData?.currentPlan === 'yearly_premium';
+    const isTrial = userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
     const isAnonymous = userData?.isAuthenticated === false;
     const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium' && !isJudge;
     
@@ -483,10 +483,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         voiceNotesRemaining: Infinity,
         resetsOn: 'Never'
       };
-    } else if (isPremium || isTrial) {
-      // Premium and trial users: unlimited messages, but 50 voice notes per day (match backend)
+    } else if (isPremium) {
+      // Premium users: unlimited messages, but 50 voice notes per day (match backend)
       limits = {
-        hasLimits: true, // Only voice notes are limited
+        hasLimits: false, // No limits for premium users
         maxMessages: Infinity,
         messagesUsed: userData?.dailyMessagesUsed || 0,
         messagesRemaining: Infinity,
@@ -494,6 +494,18 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         voiceNotesUsed: userData?.voiceNotesUsed || 0,
         voiceNotesRemaining: Math.max(0, 50 - (userData?.voiceNotesUsed || 0)),
         resetsOn: 'Never'
+      };
+    } else if (isTrial) {
+      // Trial users: 1000 messages, 20 voice notes per day
+      limits = {
+        hasLimits: true,
+        maxMessages: 1000,
+        messagesUsed: userData?.dailyMessagesUsed || 0,
+        messagesRemaining: Math.max(0, 1000 - (userData?.dailyMessagesUsed || 0)),
+        maxVoiceNotes: 20,
+        voiceNotesUsed: userData?.voiceNotesUsed || 0,
+        voiceNotesRemaining: Math.max(0, 20 - (userData?.voiceNotesUsed || 0)),
+        resetsOn: userData?.lastResetDate || today
       };
     } else if (isFreemium) {
       limits = {
