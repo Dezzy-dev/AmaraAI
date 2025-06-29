@@ -13,7 +13,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMode }) => {
-  const { userData, updateUserData } = useUser();
+  const { userData, updateUserData, clearUserData } = useUser();
 
   // State for form fields
   const [editName, setEditName] = useState(user.name);
@@ -145,12 +145,27 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
     setIsLoggingOut(true);
     
     try {
+      console.log('Starting logout process...');
+      
+      // Clear user data first
+      clearUserData();
+      
       // Sign out from Supabase
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Supabase signout error:', error);
+        // Don't throw here, continue with cleanup
+      }
+      
+      // Clear any remaining local storage
+      localStorage.removeItem('amaraOnboardingComplete');
+      localStorage.removeItem('amaraUserName');
+      
+      console.log('Logout successful, showing toast...');
       
       // Show success toast
       toast.success('You have successfully logged out', {
-        duration: 4000,
+        duration: 3000,
         position: 'top-right',
         style: {
           background: '#10b981',
@@ -160,15 +175,29 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
         },
       });
 
-      // Navigate to landing page
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+      // Small delay to ensure toast is shown
+      setTimeout(() => {
+        console.log('Navigating to landing page...');
+        // Navigate to landing page
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+      }, 500);
 
     } catch (error) {
-      console.error('Error logging out:', error);
-      toast.error('Error logging out. Please try again.', {
+      console.error('Error during logout:', error);
+      
+      // Even if there's an error, clear local state and navigate
+      clearUserData();
+      
+      toast.error('Logged out with some issues. Please refresh if needed.', {
         duration: 4000,
         position: 'top-right',
       });
+      
+      // Navigate anyway
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+      }, 1000);
+      
     } finally {
       setIsLoggingOut(false);
       setShowLogoutConfirm(false);
@@ -404,14 +433,17 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                 {/* Logout Button */}
                 <button 
                   onClick={() => setShowLogoutConfirm(true)}
-                  className="w-full text-left p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 group"
+                  disabled={isLoggingOut}
+                  className="w-full text-left p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors duration-200">
                       <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-white group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-200">Sign Out</p>
+                      <p className="font-medium text-gray-900 dark:text-white group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-200">
+                        {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
+                      </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Log out of your account</p>
                     </div>
                   </div>
