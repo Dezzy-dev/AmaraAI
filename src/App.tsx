@@ -196,24 +196,32 @@ function AppContent() {
 
   // Handle OAuth authentication routing (when user signs in via OAuth)
   useEffect(() => {
+    // Only proceed if user data has finished loading and user is authenticated
     if (!isUserDataLoading && userData?.isAuthenticated && !initialAuthCheckComplete) {
-      // User just authenticated via OAuth, route them to dashboard
-      navigateTo('dashboard');
-      setInitialAuthCheckComplete(true); // Mark the initial check as complete
+      // Check if we're not already on a logged-in view to avoid unnecessary navigation
+      const loggedInViews: AppView[] = ['dashboard', 'session', 'settings', 'comparison', 'credit-card'];
       
-      // Show success toast for OAuth login
-      toast.success('You have successfully signed in!', {
-        duration: 4000,
-        position: 'top-right',
-        style: {
-          background: '#10b981',
-          color: '#fff',
-          borderRadius: '8px',
-          padding: '12px 16px',
-        },
-      });
+      if (!loggedInViews.includes(view)) {
+        // User just authenticated via OAuth, route them to dashboard
+        navigateTo('dashboard');
+        
+        // Show success toast for OAuth login
+        toast.success('You have successfully signed in!', {
+          duration: 4000,
+          position: 'top-right',
+          style: {
+            background: '#10b981',
+            color: '#fff',
+            borderRadius: '8px',
+            padding: '12px 16px',
+          },
+        });
+      }
+      
+      // Mark the initial check as complete after navigation attempt
+      setInitialAuthCheckComplete(true);
     }
-  }, [userData?.isAuthenticated, isUserDataLoading, initialAuthCheckComplete]);
+  }, [userData?.isAuthenticated, isUserDataLoading, initialAuthCheckComplete, view, navigateTo]);
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
     setSelectedPlan(planType);
