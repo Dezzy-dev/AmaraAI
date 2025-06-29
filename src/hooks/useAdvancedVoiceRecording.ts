@@ -21,6 +21,31 @@ export interface UseAdvancedVoiceRecordingReturn {
   formatTime: (time: number) => string;
 }
 
+// Helper function to get supported MIME types for different browsers
+function getSupportedMimeType(): string {
+  const types = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/mp4;codecs=mp4a.40.2',
+    'audio/mpeg',
+    'audio/wav',
+    'audio/ogg;codecs=opus',
+    'audio/ogg'
+  ];
+
+  for (const type of types) {
+    if (MediaRecorder.isTypeSupported(type)) {
+      console.log('Using MIME type:', type);
+      return type;
+    }
+  }
+
+  // Fallback - let MediaRecorder choose
+  console.log('No specific MIME type supported, using default');
+  return '';
+}
+
 export const useAdvancedVoiceRecording = (maxDurationInSeconds: number = 60): UseAdvancedVoiceRecordingReturn => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingTime, setRecordingTime] = useState(0);
@@ -108,9 +133,24 @@ export const useAdvancedVoiceRecording = (maxDurationInSeconds: number = 60): Us
       
       streamRef.current = stream;
       
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Get the best supported MIME type
+      const mimeType = getSupportedMimeType();
+      
+      let mediaRecorder: MediaRecorder;
+      
+      try {
+        // Try with the detected MIME type
+        if (mimeType) {
+          mediaRecorder = new MediaRecorder(stream, { mimeType });
+        } else {
+          // Fallback to default (no options)
+          mediaRecorder = new MediaRecorder(stream);
+        }
+      } catch (mimeError) {
+        console.warn('Failed to create MediaRecorder with MIME type, trying default:', mimeError);
+        // Final fallback - create without any options
+        mediaRecorder = new MediaRecorder(stream);
+      }
       
       mediaRecorderRef.current = mediaRecorder;
       
@@ -124,7 +164,9 @@ export const useAdvancedVoiceRecording = (maxDurationInSeconds: number = 60): Us
         cleanupStream();
         
         if (audioChunksRef.current.length > 0) {
-          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          // Use the same MIME type for the blob that was used for recording
+          const blobMimeType = mediaRecorder.mimeType || 'audio/webm';
+          const blob = new Blob(audioChunksRef.current, { type: blobMimeType });
           setAudioBlob(blob);
           const url = URL.createObjectURL(blob);
           setAudioUrl(url);
@@ -144,7 +186,21 @@ export const useAdvancedVoiceRecording = (maxDurationInSeconds: number = 60): Us
       
     } catch (err) {
       console.error('Error starting recording:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start recording');
+      let errorMessage = 'Failed to start recording';
+      
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
+        } else if (err.name === 'NotFoundError') {
+          errorMessage = 'No microphone found. Please connect a microphone and try again.';
+        } else if (err.name === 'NotSupportedError') {
+          errorMessage = 'Audio recording is not supported on this device.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
       setRecordingState('error');
     }
   }, [hasPermission, requestPermission, startTimer, cleanupStream]);
@@ -249,4 +305,4 @@ export const useAdvancedVoiceRecording = (maxDurationInSeconds: number = 60): Us
     hasPermission,
     requestPermission,
   };
-}; 
+};

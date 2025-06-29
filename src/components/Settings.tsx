@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon, MapPin, UserPlus } from 'lucide-react';
+import { ArrowLeft, User, Mail, Camera, Save, Crown, Zap, Shield, Sun, Moon, MapPin, UserPlus, LogOut, AlertTriangle } from 'lucide-react';
 import useUser from '../contexts/useUser';
 import { UserData } from '../contexts/UserContext';
 import { supabase } from '../lib/supabase';
@@ -25,7 +25,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
 
   // State for UI feedback
   const [savingProfile, setSavingProfile] = useState(false);
-  const [showSaveMessage, setShowSaveMessage] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isPremiumUser = () => {
     return user.isJudge || user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
@@ -140,6 +141,40 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
     }
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    
+    try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Show success toast
+      toast.success('You have successfully logged out', {
+        duration: 4000,
+        position: 'top-right',
+        style: {
+          background: '#10b981',
+          color: '#fff',
+          borderRadius: '8px',
+          padding: '12px 16px',
+        },
+      });
+
+      // Navigate to landing page
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Error logging out. Please try again.', {
+        duration: 4000,
+        position: 'top-right',
+      });
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
+
   const getPlanDisplayName = () => {
     if (user.isJudge) return 'Judge Premium';
     if (isPremiumUser()) return 'Premium';
@@ -202,15 +237,6 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
       </header>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Success Message */}
-        {showSaveMessage && (
-          <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
-            <p className="text-green-800 dark:text-green-200 font-medium">
-              ✓ Changes saved successfully!
-            </p>
-          </div>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Profile Section */}
           <div className="lg:col-span-2 space-y-6">
@@ -374,6 +400,22 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                     </div>
                   </button>
                 )}
+
+                {/* Logout Button */}
+                <button 
+                  onClick={() => setShowLogoutConfirm(true)}
+                  className="w-full text-left p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-200 group"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center group-hover:bg-red-200 dark:group-hover:bg-red-800/50 transition-colors duration-200">
+                      <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-white group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-200">Sign Out</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Log out of your account</p>
+                    </div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -398,6 +440,51 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mr-4">
+                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Sign Out</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Are you sure you want to sign out?</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              You'll need to sign in again to access your account and continue your conversations with Amara.
+            </p>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={isLoggingOut}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 disabled:opacity-50 flex items-center justify-center"
+              >
+                {isLoggingOut ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
