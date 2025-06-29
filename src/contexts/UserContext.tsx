@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { supabase, db, generateDeviceId, UserProfile, AnonymousDevice } from '../lib/supabase';
 import { User } from '@supabase/supabase-js';
+import { logger } from '../utils/logger';
 
 export interface UserData {
   // User identification
@@ -226,7 +227,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
           validDeviceId = device.device_id;
         }
       } catch (error) {
-        console.log('Device record not found, will create new one');
+        logger.log('Device record not found, will create new one');
       }
 
       // If device doesn't exist, create it
@@ -237,7 +238,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
             validDeviceId = device.device_id;
           }
         } catch (createError: unknown) {
-          console.log('Error creating device, attempting to fetch existing:', createError);
+          logger.log('Error creating device, attempting to fetch existing:', createError);
           
           // If creation fails due to duplicate key, try to fetch again
           if (createError instanceof Error && createError.message.includes('23505')) {
@@ -245,7 +246,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
               device = await db.anonymousDevices.get(deviceId);
               if (device) {
                 validDeviceId = device.device_id;
-                console.log('Successfully retrieved existing device after duplicate key error');
+                logger.log('Successfully retrieved existing device after duplicate key error');
               }
             } catch (fetchError) {
               console.error('Failed to fetch existing device after duplicate key error:', fetchError);
@@ -258,7 +259,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
                 device = await db.anonymousDevices.create(newDeviceId);
                 if (device) {
                   validDeviceId = device.device_id;
-                  console.log('Successfully created device with new ID');
+                  logger.log('Successfully created device with new ID');
                 }
               } catch (finalError) {
                 console.error('Final device creation attempt failed:', finalError);

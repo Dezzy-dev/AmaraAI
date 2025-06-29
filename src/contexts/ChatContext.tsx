@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { db, Message, supabase } from '../lib/supabase';
 import useUser from './useUser';
+import { logger } from '../utils/logger';
 
 export interface ChatContextType {
   messages: ChatMessage[];
@@ -73,7 +74,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   // New: sendMessageWithSessionId helper
   const sendMessageWithSessionId = useCallback(async (text: string, type: 'text' | 'voice' = 'text', url?: string, sessionIdOverride?: string) => {
     // Debug log
-    console.log('currentSessionId in sendMessageWithSessionId:', currentSessionId);
+    logger.log('currentSessionId in sendMessageWithSessionId:', currentSessionId);
     const sessionIdToUse = sessionIdOverride || currentSessionId;
     if (!sessionIdToUse) {
       console.error('No session ID available');
@@ -81,7 +82,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
     setIsLoading(true);
     try {
-      console.log('Sending message:', { text, type, sessionId: sessionIdToUse });
+      logger.log('Sending message:', { text, type, sessionId: sessionIdToUse });
       if (text.trim() !== '') {
         const userMessage: ChatMessage = {
           id: `user_${Date.now()}`,
@@ -97,7 +98,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
       const userId = userData?.id;
       const deviceId = userData?.deviceId;
-      console.log('User data for API call:', { userId, deviceId });
+      logger.log('User data for API call:', { userId, deviceId });
       if (text.trim() !== '') {
         await new Promise(resolve => setTimeout(resolve, 1000));
         setIsTyping(true);
@@ -127,14 +128,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           isVoiceResponse: type === 'voice'
         })
       });
-      console.log('API response status:', response.status);
+      logger.log('API response status:', response.status);
       if (!response.ok) {
         const errorData = await response.json();
         console.error('API error response:', errorData);
         throw new Error(errorData.error || 'Failed to send message');
       }
       const result = await response.json();
-      console.log('API success response:', result);
+      logger.log('API success response:', result);
       setIsTyping(false);
       const amaraMessage: ChatMessage = {
         id: result.messageId,
@@ -233,14 +234,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setIsLoading(true);
     setMessages([]);
     try {
-      console.log('Starting new session with:', { userId, deviceId });
+      logger.log('Starting new session with:', { userId, deviceId });
       const session = await db.sessions.create(userId, deviceId);
-      console.log('Session created:', session);
+      logger.log('Session created:', session);
       setCurrentSessionId(session.id);
-      console.log('Sending initial greeting message...');
+      logger.log('Sending initial greeting message...');
       try {
         await sendMessageWithSessionId('', 'text', undefined, session.id); // Use session.id directly
-        console.log('Initial greeting sent successfully');
+        logger.log('Initial greeting sent successfully');
       } catch (greetingError) {
         console.error('Failed to send initial greeting via API:', greetingError);
         const fallbackMessage: ChatMessage = {

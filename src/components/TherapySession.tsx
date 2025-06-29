@@ -9,7 +9,6 @@ import VoiceMessagePlayer from './VoiceMessagePlayer';
 import { useDarkMode } from '../hooks/useDarkMode';
 import SignUpNudge from './SignUpNudge';
 import UpgradeModal from './UpgradeModal';
-import DiagnosticInfo from './DiagnosticInfo';
 import amaraAvatar from '../assets/amara_avatar.png';
 import { toast } from 'react-hot-toast';
 
@@ -38,13 +37,11 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
       if (!sessionInitializedRef.current && userData) {
         sessionInitializedRef.current = true;
         try {
-          console.log('Initializing therapy session for user:', userData);
           if (userData.isAuthenticated) {
             await startNewSession(userData.id, undefined);
           } else {
             await startNewSession(undefined, userData.deviceId);
           }
-          console.log('Session initialized successfully');
         } catch (error) {
           console.error('Failed to initialize session:', error);
           toast.error('Unable to start session. Please try refreshing the page.', {
@@ -280,6 +277,49 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
           onSignUp={handleUpgradeModalSignUp}
           reason={showUpgradeModal}
         />
+      )}
+
+      {/* Only show DiagnosticInfo in development */}
+      {import.meta.env.DEV && (
+        <div className="fixed bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-w-sm text-xs">
+          <h3 className="font-bold mb-2 text-gray-900 dark:text-white">🔧 Diagnostic Info</h3>
+          
+          <div className="space-y-1 text-gray-600 dark:text-gray-300">
+            <div>
+              <strong>Environment:</strong>
+              <div className="ml-2">
+                <div>SUPABASE_URL: {import.meta.env.VITE_SUPABASE_URL ? '✅' : '❌'}</div>
+                <div>SUPABASE_ANON_KEY: {import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅' : '❌'}</div>
+              </div>
+            </div>
+            
+            <div>
+              <strong>User:</strong>
+              <div className="ml-2">
+                <div>Authenticated: {userData?.isAuthenticated ? 'Yes' : 'No'}</div>
+                <div>Name: {userData?.name || 'N/A'}</div>
+                <div>Plan: {userData?.currentPlan || 'N/A'}</div>
+              </div>
+            </div>
+            
+            <div>
+              <strong>Session:</strong>
+              <div className="ml-2">
+                <div>Session ID: {currentSessionId ? '✅' : '❌'}</div>
+                <div>Loading: {isChatLoading ? 'Yes' : 'No'}</div>
+                <div>Typing: {isTyping ? 'Yes' : 'No'}</div>
+              </div>
+            </div>
+            
+            <div>
+              <strong>Messages:</strong>
+              <div className="ml-2">
+                <div>Count: {messages.length}</div>
+                <div>Last sender: {messages[messages.length - 1]?.sender || 'N/A'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
