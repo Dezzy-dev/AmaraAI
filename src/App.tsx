@@ -437,6 +437,13 @@ function AppContent() {
         return userData && userData.isAuthenticated ? <Dashboard /> : null;
 
       case 'settings':
+        // Add null check for userData before rendering Settings
+        if (!userData) {
+          // If userData is null, redirect to landing and show auth modal
+          setView('landing');
+          openAuthModal('signin');
+          return null;
+        }
         return (
           <Settings 
             user={userData}
