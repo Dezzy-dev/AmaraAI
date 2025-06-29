@@ -148,9 +148,31 @@ export const db = {
         .single();
       
       if (error) {
+        // Check if this is a duplicate key violation (profile already exists)
+        if (error.code === '23505' && error.message.includes('user_profiles_pkey')) {
+          console.log('Profile already exists, attempting to fetch existing profile...');
+          
+          // Try to fetch the existing profile
+          try {
+            const existingProfile = await this.get(userId);
+            if (existingProfile) {
+              console.log('Successfully retrieved existing profile');
+              return existingProfile;
+            }
+          } catch (fetchError) {
+            console.error('Failed to fetch existing profile after duplicate key error:', fetchError);
+          }
+          
+          // If we can't fetch the existing profile, throw the original error
+          console.error('Could not retrieve existing profile, throwing original error');
+          throw error;
+        }
+        
+        // For any other error, throw it normally
         console.error('Error creating user profile:', error);
         throw error;
       }
+      
       return data;
     },
 
