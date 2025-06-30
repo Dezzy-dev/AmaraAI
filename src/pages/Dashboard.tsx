@@ -205,48 +205,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    if (!userData || !userData.email || !userData.name) {
-      toast.error('Please ensure your profile is complete before upgrading.');
-      return;
-    }
-
-    const amount = 500000; // ₦5000 in kobo
-
-    initializePaystack(
-      userData.email,
-      amount,
-      userData.name,
-      async (response) => {
-        // Payment successful
-        toast.success("🎉 You're now a Premium user – thank you!", {
-          duration: 4000,
-          position: 'top-right',
-          style: {
-            background: '#10b981',
-            color: '#fff',
-            borderRadius: '8px',
-            padding: '12px 16px',
-          },
-        });
-
-        // Update user profile in Supabase
-        await updateUserData({
-          currentPlan: 'premium',
-          isPremium: true,
-          subscriptionStartedAt: new Date().toISOString(),
-          paymentReference: response.reference,
-          trialEndDate: null,
-          hasEverTrialed: true,
-        });
-      },
-      () => {
-        // Payment closed or failed
-        toast.error('❌ Payment was not completed', {
-          duration: 4000,
-          position: 'top-right',
-        });
-      }
-    );
+    // Navigate to comparison page instead of directly opening Paystack
+    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
   };
 
   const handleLogMood = async (mood: string) => {
