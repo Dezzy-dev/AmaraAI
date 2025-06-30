@@ -239,7 +239,7 @@ function AppContent() {
       userData.name,
       async (response) => {
         // Payment successful
-        toast.success('🎉 You\'re now a Premium user – thank you!', {
+        toast.success("🎉 You're now a Premium user – thank you!", {
           duration: 4000,
           position: 'top-right',
           style: {
