@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -54,10 +54,10 @@ function AppContent() {
   const { userData, setUserData, updateUserData, isLoading: isUserDataLoading, clearUserData } = useUser();
   const { clearMessages, loadMessages, loadMessagesFromSession } = useChat();
 
-  const navigateTo = (newView: AppView) => {
+  const navigateTo = useCallback((newView: AppView) => {
     setPreviousView(view);
     setView(newView);
-  };
+  }, [view]);
 
   const handleBack = () => {
     // Fix for settings page back navigation
@@ -133,7 +133,7 @@ function AppContent() {
   };
 
   const handleEndSession = () => {
-    setView('dashboard');
+    navigateTo('dashboard');
   };
 
   const openAuthModal = (mode: 'signup' | 'signin', path: UserPath = null) => {
@@ -193,7 +193,7 @@ function AppContent() {
       setUserPath(null);
       setAuthSuccessTrigger(false);
     }
-  }, [authSuccessTrigger, isUserDataLoading, userData?.isAuthenticated, userPath]);
+  }, [authSuccessTrigger, isUserDataLoading, userData?.isAuthenticated, userPath, navigateTo]);
 
   // Handle OAuth authentication routing (when user signs in via OAuth)
   useEffect(() => {
@@ -394,7 +394,7 @@ function AppContent() {
       });
 
       // 5. Navigate to landing and show sign-in
-      setView('landing');
+      navigateTo('landing');
       openAuthModal('signin');
 
     } catch (error) {
@@ -428,19 +428,8 @@ function AppContent() {
   };
 
   const handleCrisisResourcesClick = () => {
-    setView('crisis-resources');
+    navigateTo('crisis-resources');
   };
-
-  // Listen for custom navigation events from CrisisResources
-  useEffect(() => {
-    const handleNavigate = (e: any) => {
-      if (e.detail && e.detail.view) {
-        setView(e.detail.view);
-      }
-    };
-    window.addEventListener('navigate', handleNavigate);
-    return () => window.removeEventListener('navigate', handleNavigate);
-  }, []);
 
   // Instead, show loading screen only for protected views
   if (isUserDataLoading && (view === 'dashboard' || view === 'session' || view === 'settings')) {
@@ -451,7 +440,11 @@ function AppContent() {
   const renderCurrentView = () => {
     switch (view) {
       case 'dashboard':
-        return userData && userData.isAuthenticated ? <Dashboard /> : null;
+        return userData && userData.isAuthenticated ? (
+          <Dashboard 
+            navigateTo={navigateTo}
+          />
+        ) : null;
 
       case 'settings':
         // Add null check for userData before rendering Settings
@@ -467,6 +460,7 @@ function AppContent() {
             onBack={handleBack}
             isDark={isDark} 
             toggleDarkMode={toggleDarkMode}
+            navigateTo={navigateTo}
           />
         );
 
@@ -485,6 +479,7 @@ function AppContent() {
             onSignUp={handleShowUpgradeModal}
             onSignIn={() => openAuthModal('signin')}
             onChooseFreemium={handleChooseFreemium}
+            navigateTo={navigateTo}
           />
         );
 
@@ -512,7 +507,7 @@ function AppContent() {
         );
 
       case 'crisis-resources':
-        return <CrisisResources />;
+        return <CrisisResources navigateTo={navigateTo} />;
 
       default:
         return (

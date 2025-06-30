@@ -3,6 +3,10 @@ import { Phone, ExternalLink, AlertCircle, Heart, Shield, Users, Baby, Stethosco
 import useUser from '../contexts/useUser';
 import { useDarkMode } from '../hooks/useDarkMode';
 
+interface CrisisResourcesProps {
+  navigateTo: (view: string) => void;
+}
+
 const CRISIS_SECTIONS = [
   {
     heading: 'Suicide Prevention & Depression',
@@ -166,7 +170,7 @@ const ResourceCard = ({ section, index }: { section: any; index: number }) => {
   );
 };
 
-const CrisisResources = () => {
+const CrisisResources: React.FC<CrisisResourcesProps> = ({ navigateTo }) => {
   const [headerVisible, setHeaderVisible] = useState(false);
   const { userData } = useUser();
   const [isDark, setIsDark] = useDarkMode();
@@ -177,13 +181,7 @@ const CrisisResources = () => {
 
   // Navigation handler
   const handleBack = () => {
-    // Custom event for AppContent to listen and handle navigation
-    const event = new CustomEvent('navigate', {
-      detail: {
-        view: userData && userData.isAuthenticated ? 'dashboard' : 'landing',
-      },
-    });
-    window.dispatchEvent(event);
+    navigateTo(userData && userData.isAuthenticated ? 'dashboard' : 'landing');
   };
 
   // Dark mode toggle handler
@@ -239,12 +237,7 @@ const CrisisResources = () => {
           {/* Chat with Amara Button */}
           <div className="mb-8">
             <button
-              onClick={() => {
-                const event = new CustomEvent('navigate', {
-                  detail: { view: 'session' },
-                });
-                window.dispatchEvent(event);
-              }}
+              onClick={() => navigateTo('session')}
               className="group inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-lg font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               aria-label="Start a chat session with Amara"
             >
@@ -323,4 +316,4 @@ const CrisisResources = () => {
   );
 };
 
-export default CrisisResources
+export default CrisisResources;

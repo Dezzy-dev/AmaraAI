@@ -17,11 +17,18 @@ interface TherapySessionProps {
   onSignUp: (reason: 'message_limit' | 'voice_limit') => void;
   onSignIn: () => void;
   onChooseFreemium: () => void;
+  navigateTo: (view: string) => void;
 }
 
 type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
-const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp, onSignIn, onChooseFreemium }) => {
+const TherapySession: React.FC<TherapySessionProps> = ({ 
+  onEndSession, 
+  onSignUp, 
+  onSignIn, 
+  onChooseFreemium,
+  navigateTo
+}) => {
   const { userData, limits, isLoading: isUserLoading, isAnonymousUser, refreshUserDataAfterChat } = useUser();
   const { messages, isLoading: isChatLoading, isTyping, sendMessage, sendVoiceMessage, startNewSession, currentSessionId } = useChat();
   const [isDark, toggleDarkMode] = useDarkMode();
@@ -114,7 +121,7 @@ const TherapySession: React.FC<TherapySessionProps> = ({ onEndSession, onSignUp,
   // Custom end session handler
   const handleEndSession = () => {
     if (userData?.isAuthenticated) {
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'dashboard' } }));
+      navigateTo('dashboard');
     } else {
       onEndSession();
     }

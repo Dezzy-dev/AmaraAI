@@ -10,9 +10,10 @@ interface SettingsProps {
   onBack: () => void;
   isDark: boolean;
   toggleDarkMode: () => void;
+  navigateTo: (view: string) => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMode }) => {
+const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMode, navigateTo }) => {
   const { userData, updateUserData, clearUserData } = useUser();
 
   // State for form fields
@@ -29,7 +30,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const isPremiumUser = () => {
-    return user.isJudge || user.currentPlan === 'monthly_premium' || user.currentPlan === 'yearly_premium';
+    return user.isJudge || user.isPremium || user.currentPlan === 'premium';
   };
 
   const isTrialUser = () => {
@@ -178,8 +179,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
       // Small delay to ensure toast is shown
       setTimeout(() => {
         console.log('Navigating to landing page...');
-        // Navigate to landing page
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+        // Navigate to landing page using the navigateTo prop
+        navigateTo('landing');
       }, 500);
 
     } catch (error) {
@@ -195,7 +196,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
       
       // Navigate anyway
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'landing' } }));
+        navigateTo('landing');
       }, 1000);
       
     } finally {
@@ -417,7 +418,10 @@ const Settings: React.FC<SettingsProps> = ({ user, onBack, isDark, toggleDarkMod
                 </button>
                 
                 {!user.isJudge && (
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <button 
+                    onClick={() => navigateTo('comparison')}
+                    className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200"
+                  >
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
                         <Crown className="w-4 h-4 text-green-600 dark:text-green-400" />

@@ -49,7 +49,11 @@ const DAILY_AFFIRMATIONS = [
   "Today is a new opportunity to be kind to yourself."
 ];
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  navigateTo: (view: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ navigateTo }) => {
   const { userData, limits, isPremiumUser, isActiveTrialUser, isFreemiumUser, updateUserData } = useUser();
   const { clearMessages } = useChat();
   
@@ -178,23 +182,27 @@ const Dashboard: React.FC = () => {
   // Navigation handlers
   const handleStartNewSession = () => {
     clearMessages();
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+    if (userData && userData.name) {
+      navigateTo('session');
+    } else {
+      navigateTo('personalization');
+    }
   };
 
   const handleResumeSession = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+    navigateTo('session');
   };
 
   const handleViewSessionHistory = async (sessionId: string) => {
     if (isFreemiumUser()) {
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+      navigateTo('comparison');
       return;
     }
 
     try {
       const { loadMessagesFromSession } = useChat();
       await loadMessagesFromSession(sessionId);
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'session' } }));
+      navigateTo('session');
     } catch (error) {
       console.error('Error loading session history:', error);
       toast.error('Unable to load session history. Please try again.', {
@@ -205,8 +213,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    // Navigate to comparison page instead of directly opening Paystack
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+    navigateTo('comparison');
   };
 
   const handleLogMood = async (mood: string) => {
@@ -280,7 +287,7 @@ const Dashboard: React.FC = () => {
   };
 
   const handleSettings = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'settings' } }));
+    navigateTo('settings');
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -341,7 +348,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-purple-900/20">
-      {/* Header - Fully Responsive */}
+      {/* Header */}
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8">
           <div className="flex items-center justify-between h-14 sm:h-16">
