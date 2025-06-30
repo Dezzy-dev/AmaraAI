@@ -93,14 +93,14 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-900 dark:via-purple-900/10 dark:to-pink-900/10">
-      {/* Background decorations - Responsive */}
+      {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-purple-200/20 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-40 h-40 sm:w-64 sm:h-64 lg:w-80 lg:h-80 bg-pink-200/20 dark:bg-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
       <div className="relative">
-        {/* Header - Responsive */}
+        {/* Header */}
         <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 px-4 py-3 sm:py-4">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <button
@@ -122,7 +122,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
         </header>
 
         <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8 lg:py-12">
-          {/* Hero Section - Responsive */}
+          {/* Hero Section */}
           <div className={`text-center mb-8 sm:mb-12 lg:mb-16 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
             <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-full border border-purple-200 dark:border-purple-700 mb-4 sm:mb-6">
               <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400" />
@@ -140,7 +140,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
             </p>
           </div>
 
-          {/* Comparison Section - Responsive */}
+          {/* Comparison Section */}
           <div className={`mb-12 sm:mb-16 lg:mb-20 transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.2s' }}>
             <h2 className="text-2xl sm:text-3xl font-bold text-center text-gray-900 dark:text-white mb-8 sm:mb-12 px-4">
               A New Approach to Mental Wellness
@@ -233,7 +233,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
             </div>
           </div>
 
-          {/* Pricing Section - Responsive */}
+          {/* Pricing Section */}
           <div className={`transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`} style={{ transitionDelay: '0.4s' }}>
             <div className="text-center mb-8 sm:mb-12">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 px-4">
@@ -244,7 +244,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
               </p>
             </div>
 
-            {/* Plan Selection - Responsive */}
+            {/* Plan Selection */}
             <div className="max-w-4xl mx-auto grid gap-6 sm:gap-8 md:grid-cols-2">
               {/* Yearly Plan */}
               <div 
@@ -347,7 +347,7 @@ const ComparisonPricingPage: React.FC<ComparisonPricingPageProps> = ({
               </div>
             </div>
 
-            {/* CTA Button - Responsive */}
+            {/* CTA Button */}
             <div className="text-center mt-8 sm:mt-12 px-4">
               <button
                 onClick={() => onStartFreeTrial(selectedPlan)}

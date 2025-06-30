@@ -18,9 +18,12 @@ export interface UserData {
   isAuthenticated: boolean;
   
   // Plan and trial information
-  currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
+  currentPlan?: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium' | 'premium';
+  isPremium: boolean; // New field
   trialStartDate?: string;
   trialEndDate?: string;
+  subscriptionStartedAt?: string; // New field
+  paymentReference?: string; // New field
   createdAt?: string;
   hasEverTrialed?: boolean;
   
@@ -192,8 +195,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       profile_image_url: profile.profile_image_url ?? undefined,
       isAuthenticated: true,
       currentPlan,
+      isPremium: profile.is_premium ?? false, // Map new field
       trialStartDate: trialStartDate || undefined,
       trialEndDate: trialEndDate || undefined,
+      subscriptionStartedAt: profile.subscription_started_at || undefined, // Map new field
+      paymentReference: profile.payment_reference || undefined, // Map new field
       createdAt: profile.created_at || undefined,
       hasEverTrialed: profile.has_ever_trialed ?? false,
       isJudge: profile.is_judge ?? false,
@@ -296,6 +302,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         name: localStorage.getItem('amaraUserName') || 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium' as const,
+        isPremium: false, // Anonymous users are never premium
         deviceId: validDeviceId || deviceId,
         dailyMessagesUsed: device?.messages_today || 0,
         voiceNotesUsed: device?.voice_notes_used ? 1 : 0, // Convert boolean to number
@@ -318,6 +325,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         name: 'Anonymous User',
         isAuthenticated: false,
         currentPlan: 'freemium' as const,
+        isPremium: false, // Anonymous users are never premium
         deviceId: localStorage.getItem('amara_device_id') || 'device_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(),
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
@@ -347,8 +355,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         if (updates.name) profileUpdates.name = updates.name;
         if (updates.profile_image_url) profileUpdates.profile_image_url = updates.profile_image_url;
         if (updates.currentPlan) profileUpdates.current_plan = updates.currentPlan;
+        if (updates.isPremium !== undefined) profileUpdates.is_premium = updates.isPremium; // New
         if (updates.trialStartDate) profileUpdates.trial_start_date = updates.trialStartDate;
         if (updates.trialEndDate) profileUpdates.trial_end_date = updates.trialEndDate;
+        if (updates.subscriptionStartedAt) profileUpdates.subscription_started_at = updates.subscriptionStartedAt; // New
+        if (updates.paymentReference) profileUpdates.payment_reference = updates.paymentReference; // New
         if (updates.hasEverTrialed !== undefined) profileUpdates.has_ever_trialed = updates.hasEverTrialed;
         if (updates.isJudge !== undefined) profileUpdates.is_judge = updates.isJudge;
 
@@ -466,10 +477,10 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const value = useMemo(() => {
     // Judge accounts get unlimited access and are treated as premium
     const isJudge = userData?.isJudge === true;
-    const isPremium = isJudge || userData?.subscription_status === 'active' || userData?.currentPlan === 'monthly_premium' || userData?.currentPlan === 'yearly_premium';
+    const isPremium = isJudge || userData?.isPremium === true; // Use new isPremium field
     const isTrial = userData?.currentPlan === 'monthly_trial' || userData?.currentPlan === 'yearly_trial';
     const isAnonymous = userData?.isAuthenticated === false;
-    const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium' && !isJudge;
+    const isFreemium = userData?.isAuthenticated === true && userData?.currentPlan === 'freemium' && !isJudge && !isPremium; // Adjust freemium logic
     
     let limits: UserLimits;
     if (isJudge) {

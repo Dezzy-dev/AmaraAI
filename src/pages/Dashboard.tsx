@@ -30,6 +30,7 @@ import { useChat } from '../contexts/ChatContext';
 import SessionHistory from '../components/SessionHistory';
 import { db, TherapySession, MoodLog, JournalEntry } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
+import { initializePaystack } from '../utils/paystack';
 
 // Affirmations and quotes for daily inspiration
 const DAILY_AFFIRMATIONS = [
@@ -48,7 +49,7 @@ const DAILY_AFFIRMATIONS = [
 ];
 
 const Dashboard: React.FC = () => {
-  const { userData, limits, isPremiumUser, isActiveTrialUser, isFreemiumUser } = useUser();
+  const { userData, limits, isPremiumUser, isActiveTrialUser, isFreemiumUser, updateUserData } = useUser();
   const { clearMessages } = useChat();
   
   const [sessions, setSessions] = useState<TherapySession[]>([]);
@@ -178,7 +179,52 @@ const Dashboard: React.FC = () => {
   };
 
   const handleUpgrade = () => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+    if (!userData || !userData.email || !userData.name) {
+      // If user is not authenticated or email/name is missing, navigate to comparison page
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { view: 'comparison' } }));
+      return;
+    }
+
+    const amount = 500000; // ₦5000 in kobo
+
+    initializePaystack(
+      userData.email,
+      amount,
+      userData.name,
+      async (response) => {
+        // Payment successful
+        toast.success('🎉 You're now a Premium user – thank you!', {
+          duration: 4000,
+          position: 'top-right',
+          style: {
+            background: '#10b981',
+            color: '#fff',
+            borderRadius: '8px',
+            padding: '12px 16px',
+          },
+        });
+
+        // Update user profile in Supabase
+        await updateUserData({
+          currentPlan: 'premium',
+          isPremium: true,
+          subscriptionStartedAt: new Date().toISOString(),
+          paymentReference: response.reference,
+          trialEndDate: null, // Clear trial end date if upgrading from trial
+          hasEverTrialed: true, // Mark as trialed
+        });
+
+        // Refresh the dashboard to show premium features
+        window.location.reload();
+      },
+      () => {
+        // Payment closed or failed
+        toast.error('❌ Payment was not completed', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+    );
   };
 
   const handleLogMood = async (mood: string) => {
@@ -286,7 +332,7 @@ const Dashboard: React.FC = () => {
     if (userData?.isJudge) {
       return { label: 'Judge', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', icon: Crown };
     }
-    if (isPremiumUser()) {
+    if (userData?.isPremium) { // Use new isPremium field
       return { label: 'Premium', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', icon: Crown };
     }
     if (isActiveTrialUser()) {
@@ -303,7 +349,7 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  const hasPremiumAccess = isPremiumUser() || isActiveTrialUser();
+  const hasPremiumAccess = isPremiumUser() || isActiveTrialUser() || userData.isPremium;
   const accessTier = getAccessTierInfo();
   const AccessIcon = accessTier.icon;
 
@@ -331,7 +377,7 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-4">
               {/* Access Tier Badge - Responsive */}
               <div className={`flex items-center px-2 sm:px-3 py-1 rounded-full border ${accessTier.color}`}>
-                <AccessIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill={userData?.isJudge || isPremiumUser() ? "currentColor" : "none"} />
+                <AccessIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" fill={userData?.isJudge || userData?.isPremium ? "currentColor" : "none"} />
                 <span className="text-xs sm:text-sm font-medium hidden xs:inline">{accessTier.label}</span>
               </div>
 
@@ -587,7 +633,7 @@ const Dashboard: React.FC = () => {
                 Journal Entry
               </h2>
               
-              {hasPremiumAccess ? (
+              {hasPremiumAccess || userData.isPremium ? (
                 <div>
                   <textarea
                     placeholder="What's on your mind today? Write a quick reflection..."
@@ -686,7 +732,7 @@ const Dashboard: React.FC = () => {
                   <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-blue-500" />
                   <span className="hidden sm:inline">Session History</span>
                   <span className="sm:hidden">History</span>
-                  {isPremiumUser() && (
+                  {userData.isPremium && (
                     <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
                       Premium
                     </span>
@@ -694,7 +740,7 @@ const Dashboard: React.FC = () => {
                 </h2>
               </div>
 
-              {hasPremiumAccess ? (
+              {hasPremiumAccess || userData.isPremium ? (
                 <SessionHistory 
                   sessions={sessions}
                   onSelectSession={handleViewSessionHistory}
@@ -725,14 +771,14 @@ const Dashboard: React.FC = () => {
                 <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-indigo-500" />
                 <span className="hidden sm:inline">Your Insights</span>
                 <span className="sm:hidden">Insights</span>
-                {isPremiumUser() && (
+                {userData.isPremium && (
                   <span className="ml-2 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
                     Premium
                   </span>
                 )}
               </h2>
 
-              {hasPremiumAccess ? (
+              {hasPremiumAccess || userData.isPremium ? (
                 <div className="space-y-4">
                   <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
                     <div className="flex items-center justify-between mb-2">

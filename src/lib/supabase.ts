@@ -16,9 +16,12 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium';
+  current_plan: 'freemium' | 'monthly_trial' | 'yearly_trial' | 'monthly_premium' | 'yearly_premium' | 'premium';
+  is_premium: boolean; // New field
   trial_start_date?: string;
   trial_end_date?: string;
+  subscription_started_at?: string; // New field
+  payment_reference?: string; // New field
   created_at: string;
   updated_at: string;
   profile_image_url?: string;
@@ -135,6 +138,7 @@ export const db = {
         name,
         email,
         current_plan: plan,
+        is_premium: false, // Initialize as false
         has_ever_trialed: false,
         is_judge: false,
         created_at: new Date().toISOString(),

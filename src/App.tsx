@@ -17,7 +17,6 @@ import WelcomeFlow from './components/WelcomeFlow';
 import PersonalizationFlow, { PersonalizationData } from './components/personalization/PersonalizationFlow';
 import AuthModal from './components/auth/AuthModal';
 import ComparisonPricingPage from './components/ComparisonPricingPage';
-import CreditCardPage from './components/CreditCardPage';
 import Dashboard from './pages/Dashboard';
 import { useDarkMode } from './hooks/useDarkMode';
 import { UserProvider, UserData } from './contexts/UserContext';
@@ -29,9 +28,10 @@ import UpgradeModal from './components/UpgradeModal';
 import { Session } from '@supabase/supabase-js';
 import CrisisResources from './pages/CrisisResources';
 import LoadingScreen from './components/LoadingScreen';
+import { initializePaystack } from './utils/paystack';
 
 type UserPath = 'trial_path' | 'freemium_path' | null;
-type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'credit-card' | 'dashboard' | 'settings' | 'crisis-resources';
+type AppView = 'landing' | 'welcome' | 'personalization' | 'session' | 'comparison' | 'dashboard' | 'settings' | 'crisis-resources';
 type UpgradeReason = 'trial_end' | 'message_limit' | 'voice_limit';
 
 function AppContent() {
@@ -116,6 +116,7 @@ function AppContent() {
         feeling: data.feeling,
         isAuthenticated: false,
         currentPlan: 'freemium' as const,
+        isPremium: false,
         dailyMessagesUsed: 0,
         voiceNotesUsed: 0,
         lastResetDate: new Date().toISOString().split('T')[0],
@@ -199,7 +200,7 @@ function AppContent() {
     // Only proceed if user data has finished loading and user is authenticated
     if (!isUserDataLoading && userData?.isAuthenticated && !initialAuthCheckComplete) {
       // Check if we're not already on a logged-in view to avoid unnecessary navigation
-      const loggedInViews: AppView[] = ['dashboard', 'session', 'settings', 'comparison', 'credit-card'];
+      const loggedInViews: AppView[] = ['dashboard', 'session', 'settings', 'comparison'];
       
       if (!loggedInViews.includes(view)) {
         // User just authenticated via OAuth, route them to dashboard
@@ -224,43 +225,51 @@ function AppContent() {
   }, [userData?.isAuthenticated, isUserDataLoading, initialAuthCheckComplete, view, navigateTo]);
 
   const handleStartFreeTrial = (planType: 'monthly' | 'yearly') => {
-    setSelectedPlan(planType);
-    
-    // Check if user has ever trialed before
-    if (userData?.isAuthenticated && userData?.hasEverTrialed && userData?.currentPlan === 'freemium') {
-      // User has trialed before, this is a direct subscription
-      setIsDirectSubscription(true);
-    } else {
-      // First time trial or not authenticated
-      setIsDirectSubscription(false);
+    if (!userData || !userData.email || !userData.name) {
+      // If user is not authenticated or email/name is missing, prompt sign-up/sign-in
+      openAuthModal('signup', 'trial_path');
+      return;
     }
-    
-    navigateTo('credit-card');
-  };
 
-  const handleCreditCardSuccess = () => {
-    if (!userData) return;
-    
-    if (isDirectSubscription) {
-      // Direct subscription for users who have trialed before
-      const premiumPlan = selectedPlan === 'monthly' ? 'monthly_premium' : 'yearly_premium';
-      updateUserData({
-        currentPlan: premiumPlan
-      });
-    } else {
-      // First time trial
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 7);
-      
-      const trialPlan = selectedPlan === 'monthly' ? 'monthly_trial' : 'yearly_trial';
-      updateUserData({
-        currentPlan: trialPlan,
-        trialEndDate: trialEndDate.toISOString(),
-        hasEverTrialed: true
-      });
-    }
-    
-    navigateTo('dashboard');
+    const amount = 500000; // ₦5000 in kobo
+
+    initializePaystack(
+      userData.email,
+      amount,
+      userData.name,
+      async (response) => {
+        // Payment successful
+        toast.success('🎉 You're now a Premium user – thank you!', {
+          duration: 4000,
+          position: 'top-right',
+          style: {
+            background: '#10b981',
+            color: '#fff',
+            borderRadius: '8px',
+            padding: '12px 16px',
+          },
+        });
+
+        // Update user profile in Supabase
+        await updateUserData({
+          currentPlan: 'premium',
+          isPremium: true, // Set isPremium to true
+          subscriptionStartedAt: new Date().toISOString(),
+          paymentReference: response.reference,
+          trialEndDate: null, // Clear trial end date if upgrading from trial
+          hasEverTrialed: true, // Mark as trialed
+        });
+
+        navigateTo('dashboard');
+      },
+      () => {
+        // Payment closed or failed
+        toast.error('❌ Payment was not completed', {
+          duration: 4000,
+          position: 'top-right',
+        });
+      }
+    );
   };
 
   const handleBackToAuth = () => {
@@ -458,16 +467,6 @@ function AppContent() {
             onBack={handleBack}
             isDark={isDark} 
             toggleDarkMode={toggleDarkMode}
-          />
-        );
-
-      case 'credit-card':
-        return (
-          <CreditCardPage
-            selectedPlan={selectedPlan}
-            isDirectSubscription={isDirectSubscription}
-            onSuccess={handleCreditCardSuccess}
-            onBack={handleBackToComparison}
           />
         );
 
